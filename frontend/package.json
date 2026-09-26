@@ -1,0 +1,13 @@
+{
+  "name": "real-estate-aggregator-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Frontend scaffold — dependencies to be filled by frontend team",
+  "scripts": {
+    "dev": "echo \"Configure Vite/Webpack and run the chosen framework\"",
+    "build": "echo \"Not configured yet\"",
+    "preview": "echo \"Not configured yet\""
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

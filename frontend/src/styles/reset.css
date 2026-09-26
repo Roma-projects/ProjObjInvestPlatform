@@ -1,0 +1,27 @@
+/* Для чего нужен этот файл:
+ * Сбрасывает стандартные различия стилей браузеров для предсказуемого отображения интерфейса.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

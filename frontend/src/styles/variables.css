@@ -1,0 +1,17 @@
+/* Для чего нужен этот файл:
+ * Хранит общие CSS-переменные, например цвета и размеры, чтобы переиспользовать их во всём интерфейсе.
+ */
+
+:root {
+  --color-bg: #f4f7f8;
+  --color-surface: #ffffff;
+  --color-text: #1a2332;
+  --color-muted: #5b6b7c;
+  --color-accent: #0f766e;
+  --color-accent-hover: #0d9488;
+  --color-border: #d5dde5;
+  --font-sans: "Segoe UI", "Source Sans 3", system-ui, sans-serif;
+  --font-display: "Source Serif 4", Georgia, serif;
+  --radius: 8px;
+  --space: 1rem;
+}

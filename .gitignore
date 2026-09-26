@@ -1,0 +1,10 @@
+# Real Estate Aggregator — ignore local artifacts
+# Репозиторий приватный: файлы .env намеренно включаются в Git для команды.
+# Исключаем временный кэш, локальные окружения и результаты сборки.
+**/__pycache__/
+**/*.py[cod]
+.venv/
+venv/
+node_modules/
+dist/
+.pytest_cache/

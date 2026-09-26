@@ -1,0 +1,21 @@
+/* Для чего нужен этот файл:
+ * Содержит общие визуальные правила интерфейса: типографику, цвета и оформление элементов.
+ */
+
+@import "./variables.css";
+@import "./reset.css";
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background:
+    radial-gradient(ellipse at top left, #dbeafe 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, #ccfbf1 0%, transparent 45%),
+    var(--color-bg);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-accent);
+}

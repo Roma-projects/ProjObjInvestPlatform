@@ -1,0 +1,175 @@
+# Для чего нужен этот файл:
+# Шаблон запуска инфраструктуры и микросервисов через Docker Compose. Строки после символа # сейчас отключены.
+
+# =============================================================================
+# Docker Compose — ВРЕМЕННО ОТКЛЮЧЁН
+# =============================================================================
+# Весь стек закомментирован для локальной разработки без Docker.
+# Для запуска используйте Start_test.py в корне и в каждом сервисе:
+#   python Start_test.py              # все сервисы
+#   python auth-service/Start_test.py # один сервис
+#
+# Чтобы включить Docker: раскомментируйте блоки ниже и выполните:
+#   docker compose up -d --build
+# =============================================================================
+
+# version: "3.9"
+#
+# services:
+#   postgres:
+#     image: postgres:15-alpine
+#     container_name: rea-postgres
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U postgres"]
+#       interval: 5s
+#       timeout: 5s
+#       retries: 10
+#     networks:
+#       - backend-network
+#
+#   redis:
+#     image: redis:7-alpine
+#     container_name: rea-redis
+#     ports:
+#       - "6379:6379"
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 10
+#     networks:
+#       - backend-network
+#
+#   rabbitmq:
+#     image: rabbitmq:3-management-alpine
+#     container_name: rea-rabbitmq
+#     environment:
+#       RABBITMQ_DEFAULT_USER: guest
+#       RABBITMQ_DEFAULT_PASS: guest
+#     ports:
+#       - "5672:5672"
+#       - "15672:15672"
+#     healthcheck:
+#       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 10
+#     networks:
+#       - backend-network
+#
+#   auth-service:
+#     build:
+#       context: .
+#       dockerfile: auth-service/Dockerfile
+#     container_name: rea-auth
+#     env_file:
+#       - auth-service/.env
+#     ports:
+#       - "8001:8000"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+#   listing-service:
+#     build:
+#       context: .
+#       dockerfile: listing-service/Dockerfile
+#     container_name: rea-listing
+#     env_file:
+#       - listing-service/.env
+#     ports:
+#       - "8002:8000"
+#     volumes:
+#       - ./uploads:/app/uploads
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+#   search-service:
+#     build:
+#       context: .
+#       dockerfile: search-service/Dockerfile
+#     container_name: rea-search
+#     env_file:
+#       - search-service/.env
+#     ports:
+#       - "8003:8000"
+#     depends_on:
+#       redis:
+#         condition: service_healthy
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+#   messaging-service:
+#     build:
+#       context: .
+#       dockerfile: messaging-service/Dockerfile
+#     container_name: rea-messaging
+#     env_file:
+#       - messaging-service/.env
+#     ports:
+#       - "8004:8000"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+#   analytics-service:
+#     build:
+#       context: .
+#       dockerfile: analytics-service/Dockerfile
+#     container_name: rea-analytics
+#     env_file:
+#       - analytics-service/.env
+#     ports:
+#       - "8005:8000"
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+#   notification-service:
+#     build:
+#       context: .
+#       dockerfile: notification-service/Dockerfile
+#     container_name: rea-notification
+#     env_file:
+#       - notification-service/.env
+#     ports:
+#       - "8006:8000"
+#     depends_on:
+#       rabbitmq:
+#         condition: service_healthy
+#     networks:
+#       - backend-network
+#
+# volumes:
+#   postgres_data:
+#
+# networks:
+#   backend-network:
+#     driver: bridge

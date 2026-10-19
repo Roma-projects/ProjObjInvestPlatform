@@ -12,12 +12,13 @@
  */
 
 export const API_BASE = {
-  auth: 'http://localhost:8001',
-  listings: 'http://localhost:8002',
-  search: 'http://localhost:8003',
-  messaging: 'http://localhost:8004',
-  analytics: 'http://localhost:8005',
-  notifications: 'http://localhost:8006',
+  // Браузер ходит только в Nginx; он пересылает API в Gateway.
+  auth: 'http://localhost:8080',
+  listings: 'http://localhost:8080',
+  search: 'http://localhost:8080',
+  messaging: 'http://localhost:8080',
+  analytics: 'http://localhost:8080',
+  notifications: 'http://localhost:8080',
 };
 
 let accessToken = null;
@@ -27,10 +28,11 @@ export function setAccessToken(token) {
 }
 
 export async function apiRequest(baseUrl, path, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
+  const headers = { ...(options.headers || {}) };
+  // Для JSON указываем формат явно; FormData сам добавит multipart boundary.
+  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }

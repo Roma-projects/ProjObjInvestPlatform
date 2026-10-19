@@ -9,10 +9,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.database import init_db
-from app.rabbitmq.publisher import message_publisher
-from app.routers import messages as messages_router
-from app.websocket import endpoints as ws_endpoints
+from app.rabbitmq.consumer import consumer
+from app.store import store
+from app.api import router as messaging_router
 
 settings = get_settings()
 logging.basicConfig(
@@ -25,19 +24,17 @@ logger = logging.getLogger(settings.service_name)
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Starting %s", settings.service_name)
-    try:
-        await init_db()
-    except Exception as exc:
-        logger.warning("DB init failed: %s", exc)
-    await message_publisher.connect()
+    await store.connect()
+    await consumer.start()
     yield
-    await message_publisher.close()
+    await consumer.stop()
+    await store.close()
     logger.info("Stopped %s", settings.service_name)
 
 
 app = FastAPI(
     title="Messaging Service",
-    description="REST + WebSocket chat",
+    description="One-to-one text messaging with RabbitMQ commands and MongoDB storage",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -56,5 +53,4 @@ async def health() -> dict:
     return {"status": "ok", "service": settings.service_name}
 
 
-app.include_router(messages_router.router)
-app.include_router(ws_endpoints.router)
+app.include_router(messaging_router)

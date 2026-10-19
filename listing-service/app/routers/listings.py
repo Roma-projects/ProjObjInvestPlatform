@@ -6,7 +6,7 @@ from decimal import Decimal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 
-from app.dependencies import get_current_user_id, get_listing_service
+from app.dependencies import get_current_user_id, get_listing_service, require_gateway
 from app.schemas.listing import (
     ListingCreate,
     ListingListResponse,
@@ -20,7 +20,7 @@ from app.services.listing_service import (
     ListingService,
 )
 
-router = APIRouter(prefix="/api/v1/listings", tags=["listings"])
+router = APIRouter(prefix="/api/v1/listings", tags=["listings"], dependencies=[Depends(require_gateway)])
 
 
 @router.post("", response_model=ListingResponse, status_code=status.HTTP_201_CREATED)

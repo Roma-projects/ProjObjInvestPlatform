@@ -2,22 +2,6 @@
 Запускает все микросервисы локально в отдельных процессах. Здесь заданы сервисы и порты; Ctrl+C останавливает запущенные процессы.
 """
 
-"""
-Start_test.py — временный скрипт запуска ВСЕХ микросервисов для локальных тестов.
-
-Docker Compose временно отключён (см. docker-compose.yml).
-
-Использование (из корня real-estate-aggregator):
-    pip install -e ./shared
-    # создайте БД auth_db, listing_db, messaging_db, analytics_db в PostgreSQL
-    python Start_test.py
-
-Отдельные сервисы:
-    python auth-service/Start_test.py
-    python listing-service/Start_test.py
-    ...
-"""
-
 from __future__ import annotations
 
 import signal
@@ -29,12 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 
 SERVICES = [
-    ("auth-service", 8001),
-    ("listing-service", 8002),
-    ("search-service", 8003),
-    ("messaging-service", 8004),
-    ("analytics-service", 8005),
-    ("notification-service", 8006),
+    ("api-gateway", 8000),
 ]
 
 
@@ -42,8 +21,8 @@ def main() -> None:
     processes: list[subprocess.Popen] = []
 
     print("=" * 60)
-    print(" Real Estate Aggregator — локальный запуск (Start_test)")
-    print(" Docker отключён. Ctrl+C — остановить все сервисы.")
+    print(" Real Estate Business Platform — локальный API Gateway")
+    print(" Для полного стека используйте: docker compose up --build -d")
     print("=" * 60)
 
     for name, port in SERVICES:

@@ -2,7 +2,7 @@
  * Содержит правила работы этой части приложения. Сервисный слой связывает API, проверку данных и хранилище.
  */
 
-/** Listings API stubs */
+/** Запросы фронтенда для создания, чтения, обновления и загрузки объявлений. */
 import { API_BASE, apiRequest } from './api';
 
 export async function createListing(payload) {
@@ -23,7 +23,7 @@ export async function getListing(id) {
 
 export async function updateListing(id, payload) {
   return apiRequest(API_BASE.listings, `/api/v1/listings/${id}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }
@@ -34,8 +34,12 @@ export async function deleteListing(id) {
   });
 }
 
-/** uploadPhoto — использовать FormData + fetch вручную (multipart) */
-export async function uploadPhoto(listingId, file, isMain = false) {
-  // TODO: multipart FormData implementation
-  console.warn('uploadPhoto stub', listingId, file, isMain);
+/** Загружает файл в закрытый API Listing; поле задаёт тип документа или медиа. */
+export async function uploadListingFile(listingId, field, file) {
+  const form = new FormData();
+  form.append('file', file);
+  return apiRequest(API_BASE.listings, `/api/v1/listings/${listingId}/files/${encodeURIComponent(field)}`, {
+    method: 'POST',
+    body: form,
+  });
 }

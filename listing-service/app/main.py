@@ -5,15 +5,18 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+import asyncio
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import init_db
 from app.rabbitmq.publisher import publisher
+from app.rabbitmq.results_consumer import results_consumer
 from app.routers import listings as listings_router
+from app.routers import business_listings as business_listings_router
+from app.services.business_listing_service import run_outbox_dispatcher
 
 settings = get_settings()
 logging.basicConfig(
@@ -27,12 +30,20 @@ logger = logging.getLogger(settings.service_name)
 async def lifespan(_app: FastAPI):
     logger.info("Starting %s", settings.service_name)
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.public_upload_dir).mkdir(parents=True, exist_ok=True)
+    Path(settings.private_upload_dir).mkdir(parents=True, exist_ok=True)
     try:
         await init_db()
     except Exception as exc:
         logger.warning("DB init failed: %s", exc)
     await publisher.connect()
+    await results_consumer.start()
+    stop_dispatcher = asyncio.Event()
+    dispatcher_task = asyncio.create_task(run_outbox_dispatcher(stop_dispatcher))
     yield
+    stop_dispatcher.set()
+    await dispatcher_task
+    await results_consumer.stop()
     await publisher.close()
     logger.info("Stopped %s", settings.service_name)
 
@@ -52,14 +63,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-uploads_path = Path(settings.upload_dir)
-uploads_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(uploads_path)), name="uploads")
-
-
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": settings.service_name}
 
 
 app.include_router(listings_router.router)
+app.include_router(business_listings_router.router)

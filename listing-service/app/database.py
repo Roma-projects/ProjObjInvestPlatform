@@ -18,6 +18,10 @@ class Base(DeclarativeBase):
     pass
 
 
+# Import after Base exists so all ORM models register with SQLAlchemy and Alembic.
+from app.models import BusinessListing, OutboxEvent, PropertyListing, PropertyPhoto  # noqa: E402,F401
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:

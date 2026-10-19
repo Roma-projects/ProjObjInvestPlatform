@@ -5,3 +5,9 @@
 from app.models.user import User
 
 __all__ = ["User"]
+"""Экспорт моделей Auth для их регистрации в метаданных SQLAlchemy."""
+
+from app.models.session import AuthSession
+from app.models.user import User
+
+__all__ = ["AuthSession", "User"]

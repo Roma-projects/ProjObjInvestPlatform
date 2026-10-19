@@ -4,7 +4,7 @@
 
 Клиентская часть **Web-агрегатора недвижимости**: размещение лотов с фото и картой, поиск и фильтры, заявки владельцам, встроенный мессенджер, оценка аренды и инвестиционный скоринг, личные кабинеты.
 
-Backend уже реализован как набор микросервисов (FastAPI). Эта папка — **каркас для фронтенд-команды**: структура каталогов, API-документация и stub-клиенты. Полная UI-реализация здесь не делается.
+Backend реализован как набор микросервисов (FastAPI). Сейчас фронтенд остаётся простым каркасом: Nginx отдаёт статическую страницу, а папка `src/services` содержит API-клиенты для дальнейшей разработки.
 
 ## Цели фронтенда
 
@@ -62,18 +62,17 @@ frontend/
 
 ## API документация (Swagger)
 
-Пока Docker отключён, сервисы поднимаются через `Start_test.py`:
+Основной запуск выполняется из корня проекта через Docker Compose. Внутренние порты сервисов не публикуются напрямую; запросы идут через Nginx и API Gateway. Для полного порядка запуска используйте корневой [README](../README.md).
 
 | Сервис | Docs |
 |--------|------|
-| Auth | http://localhost:8001/docs |
-| Listings | http://localhost:8002/docs |
-| Search | http://localhost:8003/docs |
-| Messaging | http://localhost:8004/docs |
-| Analytics | http://localhost:8005/docs |
-| Notifications | http://localhost:8006/docs |
+| Gateway | http://localhost:8080/api/health |
+| Auth | http://localhost:8080/api/auth/... |
+| Listings | http://localhost:8080/api/v1/listings |
+| Search | http://localhost:8080/api/catalog |
+| Messaging | http://localhost:8080/api/messages |
 
-Подробные примеры curl/fetch: [API_DOCS.md](./API_DOCS.md).
+Подробные примеры curl/fetch: [API_DOCS.md](./API_DOCS.md). Swagger сервисов доступен только внутри контейнерной сети.
 
 ## JWT авторизация (базовый пример)
 
@@ -203,18 +202,21 @@ Backend разрешает origin `http://localhost:3000` (см. `CORS_ORIGINS`)
 
 ## Запуск и разработка
 
-```bash
-# 1. Backend (из корня real-estate-aggregator)
-pip install -r auth-service/requirements.txt  # и остальные сервисы / shared
-python Start_test.py
+Веб-страницу и backend можно поднять одной командой из корня репозитория:
 
-# 2. Frontend (когда команда заполнит package.json)
-cd frontend
-npm install
-npm run dev   # ожидаемо http://localhost:3000
+```powershell
+docker compose up --build -d
 ```
 
-Сейчас `package.json` и `vite.config.js` — плейсхолдеры. Фронтенд-команда выбирает стек и заполняет зависимости.
+Откройте `http://localhost:8080`. Node.js для контейнерного статического каркаса не нужен. Для разработки полноценного фронтенда сначала выберите и добавьте framework и зависимости в `package.json`; сейчас npm-скрипты являются заглушками и не собирают приложение.
+
+Если запускаете только dev-сервер после настройки npm-проекта:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
 ## Контакты / согласование API
 

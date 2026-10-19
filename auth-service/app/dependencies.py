@@ -2,7 +2,9 @@
 Содержит повторно используемые зависимости FastAPI, например получение текущего пользователя или сессии базы данных.
 """
 
-from fastapi import Depends, Request
+import hmac
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,8 +13,17 @@ from app.exceptions import AuthenticationError
 from app.models.user import User
 from app.security import decode_token
 from app.services.auth_service import AuthService
+from app.config import get_settings
+
+settings = get_settings()
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+
+async def require_gateway(request: Request) -> None:
+    supplied = request.headers.get("X-Gateway-Token", "")
+    if not hmac.compare_digest(supplied, settings.gateway_shared_secret):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API Gateway required")
 
 
 async def get_auth_service(

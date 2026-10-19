@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 7
     bcrypt_rounds: int = 12
     redis_url: str = "redis://localhost:6379/0"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_address: str = ""
+    smtp_start_tls: bool = True
+    refresh_cookie_secure: bool = False
+    verification_code_ttl_seconds: int = 600
+    gateway_shared_secret: str = "local-gateway-secret-change-me"
+    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
     service_name: str = "auth-service"

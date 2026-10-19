@@ -29,6 +29,10 @@ class Base(DeclarativeBase):
     pass
 
 
+# Import after Base exists: model modules depend on this class and register tables.
+from app.models import AuthSession, User  # noqa: E402,F401
+
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:

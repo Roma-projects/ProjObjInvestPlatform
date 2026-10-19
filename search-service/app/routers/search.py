@@ -2,12 +2,31 @@
 Описывает HTTP-маршруты этой части API и связывает адреса и методы запросов с функциями-обработчиками.
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.dependencies import require_gateway
 from app.schemas.search import SearchResponse, SuggestResponse
 from app.services.search_service import search_service
 
-router = APIRouter(prefix="/api/v1/search", tags=["search"])
+router = APIRouter(prefix="/api/v1/search", tags=["search"], dependencies=[Depends(require_gateway)])
+
+
+@router.get("/catalog")
+async def search_catalog(
+    q: str | None = Query(None, max_length=120),
+    business_type: str | None = None,
+    min_price: float | None = Query(None, ge=0),
+    max_price: float | None = Query(None, ge=0),
+    verification_status: str | None = Query(None, pattern="^(all|basic|deep)$"),
+    sort: str = Query("newest", pattern="^(newest|price_asc|price_desc)$"),
+    cursor: str | None = None,
+    limit: int = Query(20, ge=1, le=100),
+) -> dict:
+    """Return public business cards; the cursor keeps page boundaries stable."""
+    return await search_service.search_businesses(
+        q=q, business_type=business_type, min_price=min_price, max_price=max_price,
+        verification_status=verification_status, sort=sort, cursor=cursor, limit=limit,
+    )
 
 
 @router.get("", response_model=SearchResponse)

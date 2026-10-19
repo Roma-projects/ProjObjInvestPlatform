@@ -6,5 +6,5 @@
 
 CREATE DATABASE auth_db;
 CREATE DATABASE listing_db;
-CREATE DATABASE messaging_db;
 CREATE DATABASE analytics_db;
+CREATE DATABASE analytic_ai_db;

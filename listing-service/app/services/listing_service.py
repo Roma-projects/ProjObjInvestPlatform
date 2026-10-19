@@ -8,7 +8,7 @@ from decimal import Decimal
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.listing import Listing
+from app.models.listing import PropertyListing
 from app.rabbitmq.publisher import publisher
 from app.repositories.listing_repo import ListingRepository
 from app.schemas.listing import (
@@ -18,7 +18,6 @@ from app.schemas.listing import (
     ListingUpdate,
     PhotoResponse,
 )
-from app.services.geocoding import geocode_address
 from app.utils.file_upload import save_upload
 
 logger = logging.getLogger(__name__)
@@ -36,14 +35,10 @@ class ListingService:
     def __init__(self, session: AsyncSession) -> None:
         self.repo = ListingRepository(session)
 
-    def _to_response(self, listing: Listing) -> ListingResponse:
+    def _to_response(self, listing: PropertyListing) -> ListingResponse:
         return ListingResponse.model_validate(listing)
 
     async def create(self, owner_id: int, data: ListingCreate) -> ListingResponse:
-        lat, lng = data.lat, data.lng
-        if (lat is None or lng is None) and data.address:
-            lat, lng = await geocode_address(data.address)
-
         listing = await self.repo.create(
             owner_id=owner_id,
             title=data.title,
@@ -53,8 +48,8 @@ class ListingService:
             rooms=data.rooms,
             floor=data.floor,
             address=data.address,
-            lat=lat,
-            lng=lng,
+            lat=data.lat,
+            lng=data.lng,
             type=data.type.value,
             status=data.status.value,
         )
@@ -110,13 +105,6 @@ class ListingService:
             payload["type"] = payload["type"].value
         if "status" in payload and payload["status"] is not None:
             payload["status"] = payload["status"].value
-
-        if "address" in payload and (
-            "lat" not in payload or "lng" not in payload
-        ):
-            lat, lng = await geocode_address(payload["address"])
-            payload.setdefault("lat", lat)
-            payload.setdefault("lng", lng)
 
         listing = await self.repo.update(listing, **payload)
         await publisher.listing_updated(listing)

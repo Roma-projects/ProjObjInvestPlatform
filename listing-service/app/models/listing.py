@@ -21,8 +21,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
 
-class Listing(Base):
-    __tablename__ = "listings"
+class PropertyListing(Base):
+    """Legacy property-listing model kept for the original /api/v1 contract."""
+
+    __tablename__ = "property_listings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     owner_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
@@ -47,19 +49,21 @@ class Listing(Base):
         nullable=False,
     )
 
-    photos: Mapped[list["Photo"]] = relationship(
-        "Photo", back_populates="listing", cascade="all, delete-orphan"
+    photos: Mapped[list["PropertyPhoto"]] = relationship(
+        "PropertyPhoto", back_populates="listing", cascade="all, delete-orphan"
     )
 
 
-class Photo(Base):
-    __tablename__ = "photos"
+class PropertyPhoto(Base):
+    """Photos for the legacy property-listing API."""
+
+    __tablename__ = "property_photos"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     listing_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("listings.id", ondelete="CASCADE"), nullable=False
+        Integer, ForeignKey("property_listings.id", ondelete="CASCADE"), nullable=False
     )
     url: Mapped[str] = mapped_column(String(1024), nullable=False)
     is_main: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
-    listing: Mapped["Listing"] = relationship("Listing", back_populates="photos")
+    listing: Mapped["PropertyListing"] = relationship("PropertyListing", back_populates="photos")

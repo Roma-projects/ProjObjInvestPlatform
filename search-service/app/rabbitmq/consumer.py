@@ -35,11 +35,19 @@ class SearchConsumer:
             queue = await channel.declare_queue(QUEUE_SEARCH, durable=True)
             await queue.bind(exchange, routing_key="listing.*")
 
+            # New business listings enter the catalog only after moderation approves them.
+            business_exchange = await channel.declare_exchange("listings", ExchangeType.TOPIC, durable=True)
+            catalog_queue = await channel.declare_queue("search_catalog.index", durable=True)
+            await catalog_queue.bind(business_exchange, routing_key="listing.creation.completed")
+
             async def _on_message(message: aio_pika.IncomingMessage) -> None:
                 async with message.process():
                     try:
                         body = json.loads(message.body.decode("utf-8"))
                         event_type = body.get("event_type", "")
+                        if event_type == "listing.creation.completed":
+                            await search_service.upsert_business(body)
+                            return
                         if event_type in ("listing.created", "listing.updated"):
                             search_service.upsert(body)
                         elif event_type == "listing.deleted":
@@ -48,6 +56,7 @@ class SearchConsumer:
                         logger.exception("Failed to process search event: %s", exc)
 
             await queue.consume(_on_message)
+            await catalog_queue.consume(_on_message)
             logger.info("Search consumer listening on %s", QUEUE_SEARCH)
         except Exception as exc:
             logger.warning("Search consumer not started: %s", exc)

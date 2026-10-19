@@ -4,7 +4,10 @@
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+import hmac
+from uuid import UUID
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,3 +63,22 @@ async def get_optional_user_id(
         return int(payload["sub"])
     except HTTPException:
         return None
+
+
+async def require_gateway(request: Request) -> None:
+    """Reject requests that did not come through the authenticated API Gateway."""
+    supplied = request.headers.get("X-Gateway-Token", "")
+    if not hmac.compare_digest(supplied, settings.gateway_shared_secret):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API Gateway required")
+
+
+async def get_current_user_uuid(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> UUID:
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    payload = _decode_access(credentials.credentials)
+    try:
+        return UUID(payload["user_id"])
+    except (KeyError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has no user identity") from exc

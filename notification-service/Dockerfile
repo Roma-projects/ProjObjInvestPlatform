@@ -1,7 +1,7 @@
 # Для чего нужен этот файл:
 # Объясняет Docker, как собрать образ сервиса notification-service: выбрать базовый образ, установить библиотеки и запустить приложение.
 
-# Docker временно отключён — используйте Start_test.py
+# Собирает сервис уведомлений и устанавливает его зависимости.
 FROM python:3.11-slim
 WORKDIR /app
 COPY notification-service/requirements.txt .

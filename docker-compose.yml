@@ -1,175 +1,364 @@
-# Для чего нужен этот файл:
-# Шаблон запуска инфраструктуры и микросервисов через Docker Compose. Строки после символа # сейчас отключены.
+name: real-estate-business-platform
 
-# =============================================================================
-# Docker Compose — ВРЕМЕННО ОТКЛЮЧЁН
-# =============================================================================
-# Весь стек закомментирован для локальной разработки без Docker.
-# Для запуска используйте Start_test.py в корне и в каждом сервисе:
-#   python Start_test.py              # все сервисы
-#   python auth-service/Start_test.py # один сервис
-#
-# Чтобы включить Docker: раскомментируйте блоки ниже и выполните:
-#   docker compose up -d --build
-# =============================================================================
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - public_uploads:/public_uploads:ro
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    networks: [edge, backend]
+    restart: unless-stopped
 
-# version: "3.9"
-#
-# services:
-#   postgres:
-#     image: postgres:15-alpine
-#     container_name: rea-postgres
-#     environment:
-#       POSTGRES_USER: postgres
-#       POSTGRES_PASSWORD: postgres
-#     ports:
-#       - "5432:5432"
-#     volumes:
-#       - postgres_data:/var/lib/postgresql/data
-#       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
-#     healthcheck:
-#       test: ["CMD-SHELL", "pg_isready -U postgres"]
-#       interval: 5s
-#       timeout: 5s
-#       retries: 10
-#     networks:
-#       - backend-network
-#
-#   redis:
-#     image: redis:7-alpine
-#     container_name: rea-redis
-#     ports:
-#       - "6379:6379"
-#     healthcheck:
-#       test: ["CMD", "redis-cli", "ping"]
-#       interval: 5s
-#       timeout: 3s
-#       retries: 10
-#     networks:
-#       - backend-network
-#
-#   rabbitmq:
-#     image: rabbitmq:3-management-alpine
-#     container_name: rea-rabbitmq
-#     environment:
-#       RABBITMQ_DEFAULT_USER: guest
-#       RABBITMQ_DEFAULT_PASS: guest
-#     ports:
-#       - "5672:5672"
-#       - "15672:15672"
-#     healthcheck:
-#       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 10
-#     networks:
-#       - backend-network
-#
-#   auth-service:
-#     build:
-#       context: .
-#       dockerfile: auth-service/Dockerfile
-#     container_name: rea-auth
-#     env_file:
-#       - auth-service/.env
-#     ports:
-#       - "8001:8000"
-#     depends_on:
-#       postgres:
-#         condition: service_healthy
-#       redis:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-#   listing-service:
-#     build:
-#       context: .
-#       dockerfile: listing-service/Dockerfile
-#     container_name: rea-listing
-#     env_file:
-#       - listing-service/.env
-#     ports:
-#       - "8002:8000"
-#     volumes:
-#       - ./uploads:/app/uploads
-#     depends_on:
-#       postgres:
-#         condition: service_healthy
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-#   search-service:
-#     build:
-#       context: .
-#       dockerfile: search-service/Dockerfile
-#     container_name: rea-search
-#     env_file:
-#       - search-service/.env
-#     ports:
-#       - "8003:8000"
-#     depends_on:
-#       redis:
-#         condition: service_healthy
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-#   messaging-service:
-#     build:
-#       context: .
-#       dockerfile: messaging-service/Dockerfile
-#     container_name: rea-messaging
-#     env_file:
-#       - messaging-service/.env
-#     ports:
-#       - "8004:8000"
-#     depends_on:
-#       postgres:
-#         condition: service_healthy
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-#   analytics-service:
-#     build:
-#       context: .
-#       dockerfile: analytics-service/Dockerfile
-#     container_name: rea-analytics
-#     env_file:
-#       - analytics-service/.env
-#     ports:
-#       - "8005:8000"
-#     depends_on:
-#       postgres:
-#         condition: service_healthy
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-#   notification-service:
-#     build:
-#       context: .
-#       dockerfile: notification-service/Dockerfile
-#     container_name: rea-notification
-#     env_file:
-#       - notification-service/.env
-#     ports:
-#       - "8006:8000"
-#     depends_on:
-#       rabbitmq:
-#         condition: service_healthy
-#     networks:
-#       - backend-network
-#
-# volumes:
-#   postgres_data:
-#
-# networks:
-#   backend-network:
-#     driver: bridge
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      AUTH_URL: http://auth-service:8000
+      LISTING_URL: http://listing-service:8000
+      SEARCH_URL: http://search-service:8000
+      NOTIFICATION_URL: http://notification-service:8000
+      MESSAGING_URL: http://messaging-service:8000
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      listing-service:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+      messaging-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    env_file:
+      - auth-service/.env
+    environment:
+      DATABASE_URL: ${AUTH_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:postgres@postgres:5432/auth_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      SMTP_START_TLS: ${SMTP_START_TLS:-true}
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  listing-service:
+    build:
+      context: .
+      dockerfile: listing-service/Dockerfile
+    env_file:
+      - listing-service/.env
+    environment:
+      DATABASE_URL: ${LISTING_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:postgres@postgres:5432/listing_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      PUBLIC_UPLOAD_DIR: /public_uploads
+      PRIVATE_UPLOAD_DIR: /private_uploads
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+    volumes:
+      - public_uploads:/public_uploads
+      - private_uploads:/private_uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  search-service:
+    build:
+      context: .
+      dockerfile: search-service/Dockerfile
+    env_file:
+      - search-service/.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongo:27017/search_catalog
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+    volumes:
+      - public_uploads:/public_uploads:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  analytic-scripts:
+    build:
+      context: .
+      dockerfile: analytic-scripts/Dockerfile
+    environment:
+      MONGODB_URL: mongodb://mongo:27017/analytic_scripts_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  parsers:
+    build:
+      context: .
+      dockerfile: parsers/Dockerfile
+    environment:
+      MONGODB_URL: mongodb://mongo:27017/parsers_db
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      PARSERS_STORAGE_DIR: /parsers_storage
+    volumes:
+      - parsers_storage:/parsers_storage
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  analytic-ai:
+    build:
+      context: .
+      dockerfile: analytic-ai/Dockerfile
+    environment:
+      DATABASE_URL: ${ANALYTIC_AI_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:postgres@postgres:5432/analytic_ai_db}
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      QWEN_BASE_URL: ${QWEN_BASE_URL:-}
+      QWEN_API_KEY: ${QWEN_API_KEY:-}
+      QWEN_MODEL: ${QWEN_MODEL:-Qwen2.5-VL-7B-Instruct}
+      PUBLIC_UPLOAD_DIR: /public_uploads
+    volumes:
+      - public_uploads:/public_uploads:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      parsers:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  analytics-service:
+    profiles: [legacy]
+    build:
+      context: .
+      dockerfile: analytics-service/Dockerfile
+    environment:
+      DATABASE_URL: ${ANALYTICS_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:postgres@postgres:5432/analytics_db}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      ML_MODEL_PATH: ./ml/models/rent_model.joblib
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  messaging-service:
+    build:
+      context: .
+      dockerfile: messaging-service/Dockerfile
+    env_file:
+      - messaging-service/.env
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      MONGODB_URL: mongodb://mongo:27017/messaging_db
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+    env_file:
+      - notification-service/.env
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_DEFAULT_USER:-guest}:${RABBITMQ_DEFAULT_PASS:-guest}@rabbitmq:5672/
+      MONGODB_URL: mongodb://mongo:27017/notification_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend]
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "127.0.0.1:${RABBITMQ_UI_PORT:-15672}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks: [backend]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongo_data:
+  redis_data:
+  rabbitmq_data:
+  public_uploads:
+  private_uploads:
+  parsers_storage:
+
+networks:
+  edge:
+  backend:

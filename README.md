@@ -1,99 +1,102 @@
-# Web-агрегатор недвижимости
+# Платформа купли-продажи готового бизнеса
 
-Микросервисная платформа для размещения, поиска и анализа объектов недвижимости.
+Микросервисная платформа для размещения и поиска объявлений о продаже готового бизнеса.
 
 ## Возможности
 
 - Лоты с фото, характеристиками и координатами на карте
 - Поиск с фильтрами и автокомплитом
-- Заявки и встроенный мессенджер (REST + WebSocket)
+- Заявки и встроенный мессенджер (REST API и WebSocket-уведомления)
 - Оценка аренды и инвестиционный скоринг (ML + эвристики)
 - JWT auth (access 15 мин / refresh 7 дней), личные кабинеты
 
 ## Архитектура
 
-| Сервис | Порт | БД |
-|--------|------|-----|
-| auth-service | 8001 | auth_db |
-| listing-service | 8002 | listing_db |
-| search-service | 8003 | — (Redis + in-memory index) |
-| messaging-service | 8004 | messaging_db |
-| analytics-service | 8005 | analytics_db |
-| notification-service | 8006 | — |
+| Сервис | Внутренний порт | Хранилище |
+|--------|------------------|-----------|
+| API Gateway | 8000 | Redis, RabbitMQ |
+| Auth | 8000 | PostgreSQL, Redis |
+| Listing | 8000 | PostgreSQL, файловые volumes |
+| Search + Catalog | 8000 | MongoDB, Redis |
+| Analytic Scripts | 8000 | MongoDB |
+| Analytic AI | 8000 | PostgreSQL, Redis |
+| Parsers | 8000 | MongoDB, `parsers_storage` |
+| Messaging | 8000 | MongoDB, Redis |
+| Notification | 8000 | MongoDB |
+| analytics-service (legacy) | 8000 | PostgreSQL; запускается только с профилем `legacy` |
 
-Инфраструктура: PostgreSQL 15, Redis 7, RabbitMQ 3 (management UI :15672).
+Инфраструктура: PostgreSQL 15, MongoDB 7, Redis 7 и RabbitMQ 3.12. Внешний трафик проходит через Nginx и API Gateway; сервисы не публикуют собственные порты.
 
-**Docker Compose временно отключён** (весь `docker-compose.yml` закомментирован). Локальный запуск — через `Start_test.py`.
+Сервисы работают в изолированной сети Compose; внешний HTTP-трафик проходит через Nginx и API Gateway, межсервисные события идут через RabbitMQ. Analytic Scripts и Analytic AI обрабатывают объявление независимо друг от друга, Listing собирает их результаты. Для автоматического решения AI настройте Qwen endpoint в `.env`; без него сервис требует ручную проверку.
 
-## Быстрый старт (без Docker)
-
-### 1. Инфраструктура вручную
-
-Поднимите локально PostgreSQL, Redis и RabbitMQ (или раскомментируйте `docker-compose.yml` только для infra).
-
-Создайте БД:
-
-```sql
-CREATE DATABASE auth_db;
-CREATE DATABASE listing_db;
-CREATE DATABASE messaging_db;
-CREATE DATABASE analytics_db;
+```mermaid
+flowchart LR
+  FE[Frontend] --> N[Nginx]
+  N --> G[API Gateway]
+  G --> A[Auth]
+  G --> L[Listing]
+  G --> S[Search + Catalog]
+  G -->|message.send / 202| MQ[(RabbitMQ)]
+  MQ --> M[Messaging]
+  L --> MQ
+  MQ --> AS[Analytic Scripts]
+  MQ --> AI[Analytic AI]
+  L --> MQ --> P[Parsers]
+  P --> MQ --> AI
+  MQ --> NO[Notification]
+  L --> PG[(PostgreSQL)]
+  A --> PG
+  S --> MO[(MongoDB)]
+  L --> PUB[(public_uploads)]
+  L --> PRIV[(private_uploads)]
+  N -. read-only .-> PUB
 ```
 
-Скрипт: `scripts/init-databases.sql`.
+## Быстрый старт (Docker Compose)
 
-### 2. Переменные окружения
+### 1. Настройте окружение
 
-```bash
+```powershell
 cp .env.example .env
-# при необходимости отредактируйте *.service/.env
 ```
 
-### 3. Зависимости
+Задайте свои `JWT_SECRET_KEY` и `GATEWAY_SHARED_SECRET`. Для регистрации с подтверждением email также заполните `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` и `SMTP_FROM_ADDRESS`.
+
+### 2. Запустите платформу
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Откройте `http://localhost:8080`. API доступен через `/api/`; например, Auth — `/api/auth/register`, каталог — `/api/catalog`. RabbitMQ Management UI доступен на `http://localhost:15672`.
+
+Остановить контейнеры без удаления данных:
 
 ```bash
-python -m pip install -r requirements.txt
+docker compose down
 ```
 
-### 4. Запуск
+Данные PostgreSQL, MongoDB, Redis, RabbitMQ и загруженные файлы сохраняются в именованных Docker volumes. Для локальной разработки без Docker можно использовать инструкции виртуального окружения ниже, после запуска необходимых внешних служб и применения миграций через `make migrate`.
+
+### Публичные и конфиденциальные файлы
+
+Файлы объявлений загружаются через API Gateway в Listing. Публичные изображения сохраняются в `public_uploads` и доступны через Nginx по `/public/uploads/`; Listing имеет к ним доступ на запись, Nginx — только на чтение. Документы продавца сохраняются в `private_uploads`, который не подключён к Nginx.
+
+### Остановка и логи
 
 ```bash
-# все сервисы
-python Start_test.py
-
-# или по одному
-python auth-service/Start_test.py
-python listing-service/Start_test.py
-python search-service/Start_test.py
-python messaging-service/Start_test.py
-python analytics-service/Start_test.py
-python notification-service/Start_test.py
+docker compose logs -f api-gateway auth-service listing-service
 ```
-
-Makefile:
-
-```bash
-make start-all
-make start-auth
-make migrate
-```
-
-### 5. OpenAPI
-
-- http://localhost:8001/docs — Auth  
-- http://localhost:8002/docs — Listings  
-- http://localhost:8003/docs — Search  
-- http://localhost:8004/docs — Messaging  
-- http://localhost:8005/docs — Analytics  
-- http://localhost:8006/docs — Notifications  
-
-Frontend-гайд: `frontend/README.md`, примеры API: `frontend/API_DOCS.md`.
 
 ## RabbitMQ topology
 
-- Exchange `listings_events` (topic) → `search_index_queue`, `analytics_queue`
+- Exchange `listings` (topic) → `analytic.scripts`, `analytic.ai`, `listing.results`, `search_catalog.index`, `notification.listings`
+- Exchange `messaging` (topic) → `messaging.in` (gateway responds `202 Accepted` after publish)
+- Exchange `auth` (topic) → security events for Notification
+- Legacy exchange `listings_events` remains for the original property-listing API
 - Exchange `messages_events` (topic) → `notifications_queue`
-- Exchange `notifications` (fanout) → `email_notifications_queue`
+- Queues declare dead-letter queues; Listing also writes events to a PostgreSQL outbox and retries delivery.
 
 Сервисы сами объявляют exchanges/queues при старте (если брокер доступен). Без RabbitMQ/Redis сервисы стартуют с warning и продолжают работать (graceful degrade).
 
@@ -104,27 +107,42 @@ Frontend-гайд: `frontend/README.md`, примеры API: `frontend/API_DOCS.
 - CORS: `http://localhost:3000`
 - Валидация входа через Pydantic v2
 
-## Включение Docker позже
+## Инструкции по отдельным сервисам
 
-1. Раскомментируйте блоки в `docker-compose.yml`
-2. `docker compose up -d --build`
-3. Healthchecks и `depends_on: condition: service_healthy` уже прописаны в шаблоне
+В каждом каталоге сервиса есть собственный README: там указаны назначение, зависимости, настройки и команды запуска через Docker Compose или локальное виртуальное окружение.
+
+| Сервис | Инструкция |
+|---|---|
+| Nginx и Frontend edge | [nginx/README.md](nginx/README.md) |
+| API Gateway | [api-gateway/README.md](api-gateway/README.md) |
+| Auth | [auth-service/README.md](auth-service/README.md) |
+| Listing | [listing-service/README.md](listing-service/README.md) |
+| Search + Catalog | [search-service/README.md](search-service/README.md) |
+| Analytic Scripts | [analytic-scripts/README.md](analytic-scripts/README.md) |
+| Analytic AI | [analytic-ai/README.md](analytic-ai/README.md) |
+| Parsers | [parsers/README.md](parsers/README.md) |
+| Messaging | [messaging-service/README.md](messaging-service/README.md) |
+| Notification | [notification-service/README.md](notification-service/README.md) |
+| Legacy Analytics | [analytics-service/README.md](analytics-service/README.md) |
 
 ## Структура
 
 ```
 real-estate-aggregator/
-├── Start_test.py              # запуск всех сервисов
-├── docker-compose.yml         # ЗАКОММЕНТИРОВАН
+├── docker-compose.yml         # запуск сервисов и инфраструктуры
 ├── shared/                    # общий Python-пакет
-├── auth-service/              # + Start_test.py
+├── api-gateway/
+├── auth-service/
 ├── listing-service/
 ├── search-service/
+├── analytic-scripts/
+├── analytic-ai/
+├── parsers/
 ├── messaging-service/
-├── analytics-service/
 ├── notification-service/
-├── frontend/                  # структура + docs (без UI)
-└── uploads/                   # MVP хранилище фото
+├── analytics-service/          # legacy, не входит в новый Compose-контур
+├── frontend/                  # клиентская часть и API-обёртки
+└── nginx/                     # внешний HTTP edge
 ```
 
 ## Стек

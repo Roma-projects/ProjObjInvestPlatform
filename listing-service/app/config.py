@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     cors_origins: str = "http://localhost:3000"
     upload_dir: str = "./uploads"
+    public_upload_dir: str = "/public_uploads"
+    private_upload_dir: str = "/private_uploads"
+    gateway_shared_secret: str = "local-gateway-secret-change-me"
     log_level: str = "INFO"
     service_name: str = "listing-service"
     service_port: int = 8002

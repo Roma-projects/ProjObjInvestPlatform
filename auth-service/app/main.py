@@ -13,6 +13,8 @@ from app.config import get_settings
 from app.database import init_db
 from app.exceptions import AppError
 from app.routers import auth as auth_router
+from app.routers import identity as identity_router
+from app.rabbitmq.publisher import publisher as auth_publisher
 
 settings = get_settings()
 
@@ -31,7 +33,12 @@ async def lifespan(_app: FastAPI):
         logger.info("Database schema ready")
     except Exception as exc:
         logger.warning("DB init skipped/failed (start PostgreSQL): %s", exc)
+    try:
+        await auth_publisher.connect()
+    except Exception as exc:
+        logger.warning("RabbitMQ unavailable during startup: %s", exc)
     yield
+    await auth_publisher.close()
     logger.info("Shutting down %s", settings.service_name)
 
 
@@ -65,3 +72,5 @@ async def health() -> dict:
 
 
 app.include_router(auth_router.router)
+# Keep the existing v1 routes while exposing the paths required by the new contract.
+app.include_router(identity_router.router)

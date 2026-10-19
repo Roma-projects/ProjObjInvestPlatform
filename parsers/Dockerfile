@@ -3,6 +3,16 @@ FROM python:3.11-slim
 WORKDIR /app
 COPY parsers/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m playwright install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/*
 COPY parsers/app ./app
+COPY parsers/entrypoint.sh /entrypoint.sh
+RUN groupadd --system --gid 10001 parsers \
+    && useradd --system --uid 10001 --gid parsers --create-home parsers
 EXPOSE 8000
+ENTRYPOINT ["sh", "/entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

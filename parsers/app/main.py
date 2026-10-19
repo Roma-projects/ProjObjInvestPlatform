@@ -15,6 +15,7 @@ consumer = ParserQueueConsumer(storage)
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    """Подключает базу и очередь при старте и закрывает их при завершении."""
     await storage.connect()
     await consumer.start(settings.rabbitmq_url)
     yield
@@ -27,4 +28,5 @@ app = FastAPI(title="Parsers", lifespan=lifespan)
 
 @app.get("/health")
 async def health() -> dict[str, str]:
+    """Сообщает Docker Compose, что веб-процесс Parsers отвечает."""
     return {"status": "ok", "service": "parsers"}

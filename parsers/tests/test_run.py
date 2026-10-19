@@ -10,14 +10,23 @@ import argparse
 import asyncio
 import json
 import logging
+from pathlib import Path
+import sys
 import uuid
 from typing import Any
+
+# Позволяет запускать файл из корня проекта: app/ находится внутри parsers/.
+PARSERS_DIR = Path(__file__).resolve().parents[1]
+if str(PARSERS_DIR) not in sys.path:
+    sys.path.insert(0, str(PARSERS_DIR))
 
 from app.models import ParserRequest
 from app.storage import MongoStorage
 from app.worker import ParserWorker
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+# HTTPX включает query-параметры в URL логов; там могут быть персональные данные.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger("parsers.test_run")
 
 # Тестовый синтетический ИНН; подмените на тестовый ИНН, разрешённый для вашего прогона.
@@ -26,7 +35,7 @@ TEST_DATA = """
   "inn": "780415587178",
   "fio": "Шальнов Александр Витальевич",
   "status": "ip",
-  "ogrnip": 304780408600170,
+  "ogrnip": "304780408600170",
   "sources": ["egrul", "pb", "fedresurs", "kad"],
   "ttl_seconds": 120
 }
@@ -34,7 +43,8 @@ TEST_DATA = """
 
 
 async def test(inn: str | None = None, fio: str | None = None, status: str | None = None,
-              test_data_json: str | None = None, direct_mode: bool = True) -> dict[str, Any]:
+              test_data_json: str | None = None, direct_mode: bool = True,
+              sources: list[str] | None = None) -> dict[str, Any]:
     """Обрабатывает один запрос синхронно и сохраняет его в parsers_db_test."""
     if not direct_mode:
         raise ValueError("Only direct_mode is supported by this local runner")
@@ -45,6 +55,8 @@ async def test(inn: str | None = None, fio: str | None = None, status: str | Non
         data["fio"] = fio
     if status is not None:
         data["status"] = status
+    if sources:
+        data["sources"] = sources
     request = ParserRequest(
         correlation_id=str(uuid.uuid4()), reply_to="test.local.reply",
         listing_id=str(uuid.uuid4()), **data,
@@ -67,9 +79,11 @@ def main() -> None:
     parser.add_argument("--inn")
     parser.add_argument("--fio")
     parser.add_argument("--status", choices=["ip", "self_employed"])
+    parser.add_argument("--sources", nargs="+", choices=["egrul", "pb", "fedresurs", "kad"],
+                        help="Запустить только указанные источники")
     parser.add_argument("--test-data", help="JSON-строка; CLI-поля имеют приоритет над ней")
     args = parser.parse_args()
-    asyncio.run(test(args.inn, args.fio, args.status, args.test_data))
+    asyncio.run(test(args.inn, args.fio, args.status, args.test_data, sources=args.sources))
 
 
 if __name__ == "__main__":

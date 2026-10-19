@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     parsers_storage_dir: str = "./parsers_storage"
     egrul_url: str = "https://egrul.nalog.ru/"
-    pb_url: str = "https://pb.nalog.ru/search-ext.html"
+    pb_url: str = "https://pb.nalog.ru/"
     fedresurs_url: str = "https://fedresurs.ru/"
     kad_url: str = "https://kad.arbitr.ru/"
     request_timeout_seconds: int = 20
@@ -19,4 +19,5 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    """Загружает настройки один раз и повторно использует их в приложении."""
     return Settings()

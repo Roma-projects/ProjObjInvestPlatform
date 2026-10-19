@@ -20,14 +20,16 @@ logger = logging.getLogger(__name__)
 
 
 class ParserWorker:
-    """Координирует источники последовательно и изолирует сбой одного источника."""
+    """Опросит реестры параллельно, а PB вызовет как резерв для ЕГРЮЛ."""
 
     def __init__(self, storage: MongoStorage) -> None:
+        """Сохраняет базу и подготавливает доступные парсеры по именам источников."""
         self.storage = storage
         self.parsers = {item.source: item for item in
                         (EgrulParser(), PbParser(), FedresursParser(), KadParser())}
 
     async def process(self, request: ParserRequest) -> ParserResponse:
+        """Обрабатывает задание, сохраняет сводку и возвращает результат проверки."""
         started = time.monotonic()
         listing_files = LocalStorage(request.listing_id)
         await self.storage.tasks.update_one(
@@ -44,22 +46,44 @@ class ParserWorker:
         )
         source_results: dict[str, dict[str, Any]] = {}
         failed: list[str] = []
+        attempted: list[str] = []
         files: dict[str, list[str]] = {}
+
+        async def run_source(source: str) -> None:
+            """Запускает источник, сохраняет его ответ или записывает сбой."""
+            if source not in attempted:
+                attempted.append(source)
+            try:
+                parser = self.parsers[source]
+                result = await parser.run(
+                    inn=request.inn, ogrnip=request.ogrnip, fio=request.fio,
+                    storage=listing_files, mongo=self.storage,
+                )
+                source_results[source] = result
+                files[source] = result["files"]
+            except Exception as exc:
+                logger.warning("Registry source %s failed: %s", source, exc)
+                failed.append(source)
+
+        async def run_fns_sources() -> None:
+            """Сначала проверяет ЕГРЮЛ и запускает PB только при его ошибке."""
+            if "egrul" in request.sources:
+                await run_source("egrul")
+                if "egrul" in failed and "pb" in request.sources:
+                    await run_source("pb")
+            elif "pb" in request.sources:
+                # Позволяет явно запускать только PB из ручного тестового runner.
+                await run_source("pb")
+
         try:
             async with asyncio.timeout(request.ttl_seconds):
-                for source in request.sources:
-                    try:
-                        parser = self.parsers[source]
-                        source_results[source] = await parser.run(
-                            inn=request.inn, ogrnip=request.ogrnip, fio=request.fio,
-                            storage=listing_files, mongo=self.storage,
-                        )
-                        files[source] = source_results[source]["files"]
-                    except Exception as exc:
-                        logger.warning("Registry source %s failed (%s)", source, type(exc).__name__)
-                        failed.append(source)
+                independent_sources = [source for source in request.sources if source not in {"egrul", "pb"}]
+                jobs = [run_source(source) for source in independent_sources]
+                if "egrul" in request.sources or "pb" in request.sources:
+                    jobs.append(run_fns_sources())
+                await asyncio.gather(*jobs)
         except TimeoutError:
-            failed.extend(source for source in request.sources if source not in source_results and source not in failed)
+            failed.extend(source for source in attempted if source not in source_results and source not in failed)
 
         text = " ".join(result.get("extract", {}).get("source_text_excerpt") or ""
                          for result in source_results.values())
@@ -75,7 +99,7 @@ class ParserWorker:
             registry_extract=registry,
             files=files,
             metadata={
-                "sources_checked": request.sources,
+                "sources_checked": attempted,
                 "failed_sources": failed,
                 "total_duration_ms": int((time.monotonic() - started) * 1000),
                 "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -122,11 +146,13 @@ class ParserQueueConsumer:
     """Читает RabbitMQ задания и публикует ответы напрямую в указанную reply queue."""
 
     def __init__(self, storage: MongoStorage) -> None:
+        """Готовит обработчик заданий и соединение, которое откроется при старте."""
         self.storage = storage
         self.worker = ParserWorker(storage)
         self.connection: aio_pika.RobustConnection | None = None
 
     async def start(self, rabbitmq_url: str) -> None:
+        """Подключается к RabbitMQ, объявляет очередь и запускает обработчик."""
         self.connection = await aio_pika.connect_robust(rabbitmq_url)
         channel = await self.connection.channel()
         await channel.set_qos(prefetch_count=5)
@@ -156,5 +182,6 @@ class ParserQueueConsumer:
         await queue.consume(handle)
 
     async def stop(self) -> None:
+        """Аккуратно закрывает соединение RabbitMQ при остановке приложения."""
         if self.connection and not self.connection.is_closed:
             await self.connection.close()

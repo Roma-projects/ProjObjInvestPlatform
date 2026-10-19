@@ -2,7 +2,7 @@
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class ParserRequest(BaseModel):
@@ -15,6 +15,16 @@ class ParserRequest(BaseModel):
     ogrnip: str | None = None
     sources: list[Literal["egrul", "pb", "fedresurs", "kad"]] = ["egrul", "pb", "fedresurs", "kad"]
     ttl_seconds: int = Field(default=120, ge=1, le=300)
+
+    @field_validator("ogrnip", mode="before")
+    @classmethod
+    def normalize_ogrnip(cls, value: Any) -> str | None:
+        """Переводит числовой ОГРНИП из тестового JSON в строковый идентификатор."""
+        if value is None:
+            return None
+        if isinstance(value, bool) or not isinstance(value, (str, int)):
+            raise ValueError("ogrnip must be a string or integer")
+        return str(value)
 
 
 class ParserResponse(BaseModel):

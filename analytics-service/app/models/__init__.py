@@ -1,7 +1,0 @@
-"""Для чего нужен этот файл:
-Описывает таблицы базы данных и их поля. ORM преобразует эти модели Python в записи базы данных и обратно.
-"""
-
-from app.models.analytics import Analytics, PriceHistory
-
-__all__ = ["Analytics", "PriceHistory"]

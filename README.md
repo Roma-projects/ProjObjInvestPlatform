@@ -23,11 +23,10 @@
 | Parsers | 8000 | MongoDB, `parsers_storage` |
 | Messaging | 8000 | MongoDB, Redis |
 | Notification | 8000 | MongoDB |
-| analytics-service (legacy) | 8000 | PostgreSQL; запускается только с профилем `legacy` |
 
 Инфраструктура: PostgreSQL 15, MongoDB 7, Redis 7 и RabbitMQ 3.12. Внешний трафик проходит через Nginx и API Gateway; сервисы не публикуют собственные порты.
 
-Сервисы работают в изолированной сети Compose; внешний HTTP-трафик проходит через Nginx и API Gateway, межсервисные события идут через RabbitMQ. Analytic Scripts и Analytic AI обрабатывают объявление независимо друг от друга, Listing собирает их результаты. Для автоматического решения AI настройте Qwen endpoint в `.env`; без него сервис требует ручную проверку.
+Сервисы работают в изолированной сети Compose; внешний HTTP-трафик проходит через Nginx и API Gateway, межсервисные события идут через RabbitMQ. Analytic Scripts и Analytic AI обрабатывают объявление независимо друг от друга, Listing собирает их результаты. Для автоматического анализа AI настройте `POLZA_API_KEY` и `POLZA_MODEL`; при недоступности модели фото направляются на ручную проверку. Подробный запуск AI-сценариев из venv или Docker описан в [analytic-ai/README.md](analytic-ai/README.md).
 
 ```mermaid
 flowchart LR
@@ -57,10 +56,18 @@ flowchart LR
 ### 1. Настройте окружение
 
 ```powershell
-cp .env.example .env
+Copy-Item .env.example .env
+Copy-Item auth-service/.env.example auth-service/.env
+Copy-Item listing-service/.env.example listing-service/.env
+Copy-Item messaging-service/.env.example messaging-service/.env
+Copy-Item notification-service/.env.example notification-service/.env
+Copy-Item search-service/.env.example search-service/.env
+Copy-Item parsers/.env.example parsers/.env
+Copy-Item analytic-scripts/.env.example analytic-scripts/.env
+Copy-Item analytic-ai/.env.example analytic-ai/.env
 ```
 
-Задайте свои `JWT_SECRET_KEY` и `GATEWAY_SHARED_SECRET`. Для регистрации с подтверждением email также заполните `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` и `SMTP_FROM_ADDRESS`.
+Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. API ключ AI задайте только в `analytic-ai/.env`. Compose читает эти файлы через `env_file`; Dockerfiles их не копируют в образы. Шаблоны `.env.example` можно хранить в Git. Для регистрации с подтверждением email заполните SMTP параметры в корневом `.env`.
 
 ### 2. Запустите платформу
 
@@ -123,7 +130,6 @@ docker compose logs -f api-gateway auth-service listing-service
 | Parsers | [parsers/README.md](parsers/README.md) |
 | Messaging | [messaging-service/README.md](messaging-service/README.md) |
 | Notification | [notification-service/README.md](notification-service/README.md) |
-| Legacy Analytics | [analytics-service/README.md](analytics-service/README.md) |
 
 ## Структура
 
@@ -140,14 +146,13 @@ real-estate-aggregator/
 ├── parsers/
 ├── messaging-service/
 ├── notification-service/
-├── analytics-service/          # legacy, не входит в новый Compose-контур
 ├── frontend/                  # клиентская часть и API-обёртки
 └── nginx/                     # внешний HTTP edge
 ```
 
 ## Стек
 
-Python 3.11+, FastAPI, SQLAlchemy 2.0 async, asyncpg, Alembic, aio-pika, Redis, Pydantic v2, scikit-learn (analytics).
+Python 3.11+, FastAPI, SQLAlchemy 2.0 async, asyncpg, Alembic, aio-pika, Redis, Pydantic v2.
 
 ## Виртуальное окружение и зависимости
 
@@ -201,7 +206,7 @@ git remote add origin https://github.com/ВАШЕ_ИМЯ/ИМЯ_РЕПОЗИТО
 git push -u origin main
 ```
 
-`git add .` добавляет все изменения, кроме временного кэша, локальных виртуальных окружений и результатов сборки, указанных в `.gitignore`. Файлы `.env` намеренно включены в Git, чтобы команда могла использовать общие настройки. Добавляйте их только в приватный репозиторий и выдавайте доступ только участникам команды.
+`git add .` добавляет изменения и безопасные шаблоны `.env.example`; реальные `.env`, `key.txt`, приватные ключи и кэш игнорируются. Перед коммитом проверьте `git status` и убедитесь, что локальные секреты не staged.
 
 Если команда `git remote add origin ...` сообщает, что `origin` уже существует, обновите его адрес командой `git remote set-url origin https://github.com/ВАШЕ_ИМЯ/ИМЯ_РЕПОЗИТОРИЯ.git`.
 
@@ -221,4 +226,8 @@ git push
 
 ### Перед тем как сделать репозиторий публичным
 
-Сейчас файлы `.env` и другие настройки с секретами специально попадают в Git. Перед открытием репозитория обновите `.gitignore`, чтобы исключить секретные файлы, удалите их из Git и замените опубликованные пароли и ключи. Простого нового коммита с удалением `.env` недостаточно: старые коммиты остаются в истории. Сначала проверьте и очистите историю репозитория от секретов, а затем меняйте видимость на публичную. Файлы `.gitkeep` — пустые маркеры, которые позволяют Git хранить нужные пустые папки; они сами по себе секретов не содержат.
+Секретные файлы исключены из текущего индекса Git. Если секреты ранее попадали в коммиты, удаление из последующего коммита не стирает старую историю: замените скомпрометированные ключи и перед публикацией очистите историю репозитория. Файлы `.gitkeep` — пустые маркеры для сохранения нужных директорий.
+
+### Отдельные машины
+
+По умолчанию Compose адресует зависимости по Docker DNS (`rabbitmq`, `postgres`, `mongo`, `redis`). При размещении сервисов на отдельных машинах задайте соответствующие `*_URL_DOCKER` в корневом `.env` на адреса, доступные по сети, настройте firewall/TLS и передайте сервису его секреты через переменные окружения или secret store. Не используйте `localhost` для удалённой базы или RabbitMQ: внутри контейнера это сам контейнер. Общий пакет `shared/` используется Auth, Listing и Messaging и входит в их Docker images при сборке из корня этого репозитория; для независимой сборки сервиса его нужно публиковать как отдельный пакет либо включать в сборочный контекст.

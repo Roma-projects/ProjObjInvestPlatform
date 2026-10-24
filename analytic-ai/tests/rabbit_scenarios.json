@@ -1,0 +1,537 @@
+{
+  "scenarios": [
+    {
+      "name": "cafe_clean_photo",
+      "expected_status": "auto_ok",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-clean-0001",
+      "listing_id": "00000000-0000-4000-8000-000000000101",
+      "user_id": "00000000-0000-4000-8000-000000000201",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Небольшая кофейня с посадочными местами",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "equipment_list": [
+          {
+            "equipment_value": 800000
+          }
+        ],
+        "stock_value": 350000,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 332345,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "skipped",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/8a81e771158d2f57723eec80f0f47798_w958_h835--big.jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": false,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": false
+        }
+      },
+      "expected_red_flags": [
+        "DOC-002"
+      ],
+      "expected_red_flag_score": 2,
+      "expected_red_flag_rating": "moderate"
+    },
+    {
+      "name": "cafe_prohibited_suggestive_photo",
+      "expected_status": "requires_moderation",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-photo-review-0002",
+      "listing_id": "00000000-0000-4000-8000-000000000102",
+      "user_id": "00000000-0000-4000-8000-000000000202",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Кофейня с залом для гостей",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 332345,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "skipped",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/images (2).jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": false,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": false
+        }
+      },
+      "expected_red_flags": [
+        "DOC-002",
+        "CNT-001"
+      ],
+      "expected_red_flag_score": 2,
+      "expected_red_flag_rating": "critical"
+    },
+    {
+      "name": "cafe_all_uploaded_photos",
+      "expected_status": "requires_moderation",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-all-photos-0003",
+      "listing_id": "00000000-0000-4000-8000-000000000103",
+      "user_id": "00000000-0000-4000-8000-000000000203",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Небольшая кофейня с посадочными местами",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "equipment_list": [
+          {
+            "equipment_value": 800000
+          }
+        ],
+        "stock_value": 350000,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 332345,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "skipped",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/8a81e771158d2f57723eec80f0f47798_w958_h835--big.jpg",
+            "/public/uploads/кофтнка).jpg",
+            "/public/uploads/images (1).jpg",
+            "/public/uploads/images (2).jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": false,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": false
+        }
+      },
+      "expected_red_flags": [
+        "DOC-002",
+        "CNT-001"
+      ],
+      "expected_red_flag_score": 2,
+      "expected_red_flag_rating": "critical"
+    },
+    {
+      "name": "tax_certificate_uploaded_listing_deep_moderation",
+      "expected_status": "auto_ok",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-tax-doc-0004",
+      "listing_id": "00000000-0000-4000-8000-000000000104",
+      "user_id": "00000000-0000-4000-8000-000000000204",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Небольшая кофейня с посадочными местами",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "equipment_list": [
+          {
+            "equipment_value": 800000
+          }
+        ],
+        "stock_value": 350000,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 332345,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "ok",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/8a81e771158d2f57723eec80f0f47798_w958_h835--big.jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": true,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": false
+        }
+      },
+      "registry_extract": {
+        "status": "действующая",
+        "okved": [
+          "56.10"
+        ],
+        "region": "Санкт-Петербург"
+      },
+      "expected_red_flags": [
+        "DOC-002"
+      ],
+      "expected_red_flag_score": 2,
+      "expected_listing_policy": {
+        "status": "on_moderation",
+        "verification_status": "deep",
+        "reason": "tax_certificate_doc загружен; Listing требует обязательную проверку независимо от решения AI."
+      },
+      "expected_red_flag_rating": "moderate"
+    },
+    {
+      "name": "passport_uploaded_listing_deep_moderation",
+      "expected_status": "auto_ok",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-passport-0005",
+      "listing_id": "00000000-0000-4000-8000-000000000105",
+      "user_id": "00000000-0000-4000-8000-000000000205",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Небольшая кофейня с посадочными местами",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "equipment_list": [
+          {
+            "equipment_value": 800000
+          }
+        ],
+        "stock_value": 350000,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 332345,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "skipped",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/8a81e771158d2f57723eec80f0f47798_w958_h835--big.jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": false,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": true
+        }
+      },
+      "expected_red_flags": [
+        "DOC-002"
+      ],
+      "expected_red_flag_score": 2,
+      "expected_listing_policy": {
+        "status": "on_moderation",
+        "verification_status": "deep",
+        "reason": "passport_copy_doc загружен; Listing требует обязательную проверку независимо от решения AI."
+      },
+      "expected_red_flag_rating": "moderate"
+    },
+    {
+      "name": "financial_risk_score_threshold",
+      "expected_status": "requires_moderation",
+      "event": "listing.creation.started",
+      "correlation_id": "test-ai-risk-threshold-0006",
+      "listing_id": "00000000-0000-4000-8000-000000000106",
+      "user_id": "00000000-0000-4000-8000-000000000206",
+      "data_for_analytics": {
+        "business_name": "Кофейня у метро",
+        "business_type": "cafe",
+        "short_description": "Небольшая кофейня с посадочными местами",
+        "sale_price": 12000000,
+        "area_sqm": 85,
+        "staff_count": 5,
+        "equipment_list": [
+          {
+            "equipment_value": 800000
+          }
+        ],
+        "stock_value": 350000,
+        "monthly_financials": [
+          {
+            "month": "2026-01",
+            "revenue": 1812345,
+            "net_profit": 100000,
+            "total_expenses": 1480000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 700000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 50000,
+            "other_expenses": 50000
+          },
+          {
+            "month": "2026-02",
+            "revenue": 1923456,
+            "net_profit": 373456,
+            "total_expenses": 1550000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 750000,
+            "utilities_expenses": 80000,
+            "taxes_expenses": 70000,
+            "marketing_expenses": 60000,
+            "other_expenses": 60000
+          },
+          {
+            "month": "2026-03",
+            "revenue": 2134567,
+            "net_profit": 424567,
+            "total_expenses": 1710000,
+            "rent_expenses": 180000,
+            "payroll_expenses": 350000,
+            "purchases_expenses": 850000,
+            "utilities_expenses": 90000,
+            "taxes_expenses": 80000,
+            "marketing_expenses": 70000,
+            "other_expenses": 90000
+          }
+        ],
+        "registry_check": "skipped",
+        "media_files": {
+          "main_photo": "/public/uploads/кофейня.jpg",
+          "photos": [
+            "/public/uploads/8a81e771158d2f57723eec80f0f47798_w958_h835--big.jpg"
+          ]
+        },
+        "has_documents": {
+          "evacuation_plan_doc": false,
+          "fire_declaration_doc": false,
+          "fire_service_contract_doc": false,
+          "san_epid_conclusion": false,
+          "tax_certificate_doc": false,
+          "income_statement_doc": false,
+          "lease_agreement_doc": false,
+          "ownership_doc": false,
+          "passport_copy_doc": false
+        }
+      },
+      "expected_red_flags": [
+        "FIN-002",
+        "DOC-002"
+      ],
+      "expected_red_flag_score": 5,
+      "expected_red_flag_rating": "high"
+    }
+  ]
+}

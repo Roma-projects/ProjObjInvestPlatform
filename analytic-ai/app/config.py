@@ -1,4 +1,4 @@
-"""Настройки очередей, Redis, PostgreSQL и совместимого с OpenAI API модели Qwen."""
+"""Настройки очередей, хранилищ и OpenAI-совместимой vision-модели Polza."""
 
 from functools import lru_cache
 
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     qwen_base_url: str = ""
     qwen_api_key: str = ""
     qwen_model: str = "Qwen2.5-VL-7B-Instruct"
+    polza_base_url: str = "https://polza.ai/api/v1"
+    polza_api_key: str = ""
+    polza_model: str = "google/gemini-3.8-flash"
     public_upload_dir: str = "/public_uploads"
     model_timeout_seconds: int = 90
 

@@ -1,0 +1,35 @@
+{
+  "description": "Интеграционный вход для цепочки Parsers → Analytic AI через RabbitMQ. Персональные тестовые данные используются только для ручного тестового запуска.",
+  "parser_request": {
+    "correlation_id": "registry-ai-test-20261024-001",
+    "listing_id": "00000000-0000-4000-8000-000000000001",
+    "fio": "Шальнов Александр Витальевич",
+    "inn": "780415587178",
+    "status": "ip",
+    "ogrnip": "304780408600170",
+    "sources": ["egrul", "pb", "fedresurs", "kad"],
+    "ttl_seconds": 120
+  },
+  "data_for_analytics": {
+    "business_name": "Тестовое кафе",
+    "business_type": "cafe",
+    "short_description": "Тестовый пример финансового анализа",
+    "seller_status": "ip",
+    "seller_name": "Шальнов Александр Витальевич",
+    "seller_inn": "780415587178",
+    "seller_ogrnip": "304780408600170",
+    "sale_price": 12000000,
+    "area_sqm": 85,
+    "staff_count": 5,
+    "equipment_list": [{"equipment_value": 800000}],
+    "stock_value": 350000,
+    "monthly_financials": [
+      {"month": "2026-01", "revenue": 1812345, "net_profit": 332345, "total_expenses": 1480000, "rent_expenses": 180000, "payroll_expenses": 350000, "purchases_expenses": 700000, "utilities_expenses": 80000, "taxes_expenses": 70000, "marketing_expenses": 50000, "other_expenses": 50000},
+      {"month": "2026-02", "revenue": 1923456, "net_profit": 373456, "total_expenses": 1550000, "rent_expenses": 180000, "payroll_expenses": 350000, "purchases_expenses": 750000, "utilities_expenses": 80000, "taxes_expenses": 70000, "marketing_expenses": 60000, "other_expenses": 60000},
+      {"month": "2026-03", "revenue": 2134567, "net_profit": 424567, "total_expenses": 1710000, "rent_expenses": 180000, "payroll_expenses": 350000, "purchases_expenses": 850000, "utilities_expenses": 90000, "taxes_expenses": 80000, "marketing_expenses": 70000, "other_expenses": 90000}
+    ],
+    "registry_check": "awaiting",
+    "media_files": {"photos": []},
+    "has_documents": {"tax_certificate_doc": false, "income_statement_doc": false, "passport_copy_doc": false}
+  }
+}

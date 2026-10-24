@@ -1,9 +1,18 @@
-# Real Estate Aggregator — ignore local artifacts
-# Репозиторий приватный: файлы .env намеренно включаются в Git для команды.
-# Исключаем временный кэш, локальные окружения и результаты сборки.
-# В этом приватном репозитории секретные .env-файлы не игнорируются намеренно.
+# Local configuration and secrets stay out of Git; commit only *.env.example templates.
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+key.txt
+*.pem
+*.p12
+*.pfx
+*.key
 **/__pycache__/
 **/*.py[cod]
+**/*.egg-info/
 **/.cache/
 **/*.egg-info/
 .venv/
@@ -18,5 +27,9 @@ htmlcov/
 .coverage
 coverage.xml
 *.log
+analytic-ai/tests/results.json
+analytic-ai/tests/registry_then_ai_result.json
+analytic-ai/tests/report.html
+analytic-ai/tests/report.md
 .DS_Store
 Thumbs.db

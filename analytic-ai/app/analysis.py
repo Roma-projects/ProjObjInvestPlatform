@@ -12,6 +12,23 @@ def _num(value: Any) -> float:
         return 0.0
 
 
+def red_flag_score(flags: list[dict[str, str]]) -> int:
+    """Возвращает баллы по ТЗ: high=3, medium=2, low=1; critical оценивается отдельно."""
+    return sum({"high": 3, "medium": 2, "low": 1}.get(flag.get("severity", ""), 0) for flag in flags)
+
+
+def red_flag_rating(flags: list[dict[str, str]], score: int | None = None) -> str:
+    """Назначает понятный уровень риска по критическим флагам и порогу ТЗ 5 баллов."""
+    if any(flag.get("severity") == "critical" for flag in flags):
+        return "critical"
+    score = red_flag_score(flags) if score is None else score
+    if score >= 5:
+        return "high"
+    if score:
+        return "moderate"
+    return "low"
+
+
 def detect_red_flags(data: dict[str, Any], registry: dict[str, Any] | None = None) -> list[dict[str, str]]:
     """Проверяет объективные финансовые расхождения и доступность данных реестра."""
     flags: list[dict[str, str]] = []
@@ -43,6 +60,20 @@ def detect_red_flags(data: dict[str, Any], registry: dict[str, Any] | None = Non
         flags.append({"code": "FIN-005", "severity": "high", "evidence": "business is unprofitable and price exceeds declared assets"})
     if data.get("registry_check") == "invalid_inn":
         flags.append({"code": "REG-007", "severity": "high", "evidence": "seller INN failed format or checksum validation"})
+    documents = data.get("has_documents")
+    if isinstance(documents, dict):
+        required_docs = ("tax_certificate_doc", "income_statement_doc")
+        missing_or_unreadable = []
+        for name in required_docs:
+            document = documents.get(name, False)
+            if isinstance(document, dict):
+                if not document.get("uploaded") or document.get("readable") is False:
+                    missing_or_unreadable.append(name)
+            elif document is not True:
+                missing_or_unreadable.append(name)
+        if missing_or_unreadable:
+            flags.append({"code": "DOC-002", "severity": "medium",
+                          "evidence": "missing or unreadable tax/income documents: " + ", ".join(missing_or_unreadable)})
     if registry and registry.get("status") not in (None, "действующая", "active"):
         flags.append({"code": "REG-001", "severity": "critical", "evidence": "registry record is not active"})
     if registry and registry.get("ogrnip") and data.get("seller_ogrnip") and registry["ogrnip"] != data["seller_ogrnip"]:
@@ -60,10 +91,10 @@ def fallback_report(data: dict[str, Any], registry: dict[str, Any] | None = None
     avg_profit = sum(profits) / len(profits) if profits else 0
     price = _num(data.get("sale_price"))
     payback = round(price / avg_profit, 2) if avg_profit > 0 else None
-    severity_score = sum({"critical": 40, "high": 20, "medium": 10}.get(item["severity"], 0) for item in flags)
+    severity_score = red_flag_score(flags)
     moderation = "requires_moderation" if flags or not months else "requires_moderation"
     return {
-        "red_flags": flags, "red_flag_score": min(100, severity_score),
+        "red_flags": flags, "red_flag_score": severity_score, "red_flag_rating": red_flag_rating(flags, severity_score),
         "moderation_status": moderation,
         "moderation_reasons": [item["code"] for item in flags] or ["AI endpoint is not configured; human review required"],
         "metrics_summary": {"average_monthly_revenue": round(avg_revenue, 2),

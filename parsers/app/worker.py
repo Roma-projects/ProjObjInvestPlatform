@@ -87,7 +87,8 @@ class ParserWorker:
 
         text = " ".join(result.get("extract", {}).get("source_text_excerpt") or ""
                          for result in source_results.values())
-        registry = self._extract_fields(text, request.fio, request.ogrnip)
+        registry = self._extract_fields(text, request.fio, request.inn, request.ogrnip, request.status,
+                                        any(source_files for source_files in files.values()))
         if failed:
             result_status = "partial" if source_results else "error"
         else:
@@ -121,15 +122,27 @@ class ParserWorker:
         return response
 
     @staticmethod
-    def _extract_fields(text: str, expected_fio: str, expected_ogrnip: str | None) -> dict[str, Any]:
+    def _extract_fields(text: str, expected_fio: str, expected_inn: str,
+                        expected_ogrnip: str | None, expected_status: str,
+                        document_downloaded: bool) -> dict[str, Any]:
         """Extracts conservative text hints; the AI receives null when a value is uncertain."""
         ogrnip_match = re.search(r"(?<!\d)(\d{15})(?!\d)", text)
+        inn_match = re.search(rf"(?<!\d){re.escape(expected_inn)}(?!\d)", text)
         date_match = re.search(r"(?<!\d)(\d{2}\.\d{2}\.\d{4})(?!\d)", text)
         okved = list(dict.fromkeys(re.findall(r"(?<!\d)(\d{2}(?:\.\d{1,2}){1,2})(?!\d)", text)))
         status = "действующая" if re.search(r"действующ", text, re.IGNORECASE) else None
+        is_ip = bool(re.search(r"индивидуальн\w*\s+предпринимател|\bИП\b", text, re.IGNORECASE))
+        identity_check = {
+            "fio_match": expected_fio.casefold() in text.casefold(),
+            "inn_match": inn_match is not None,
+            "business_status_match": expected_status == "ip" and is_ip,
+            "document_downloaded": document_downloaded,
+        }
+        identity_check["verified"] = all(identity_check.values())
         region_match = re.search(r"регион\s*[:\-]\s*([^,;]{2,80})", text, re.IGNORECASE)
         return {
-            "fio": expected_fio if expected_fio.casefold() in text.casefold() else None,
+            "fio": expected_fio if identity_check["fio_match"] else None,
+            "identity_check": identity_check,
             "ogrnip": ogrnip_match.group(1) if ogrnip_match else None,
             "registration_date": date_match.group(1) if date_match else None,
             "okved": okved,

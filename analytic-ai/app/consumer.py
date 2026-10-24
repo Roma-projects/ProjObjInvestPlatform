@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.model_client import QwenAnalyzer
+from app.model_client import VisionAnalyzer
 from app.models import ModelConfig
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ class AIConsumer:
         self.connection: aio_pika.RobustConnection | None = None
         self.channel: aio_pika.Channel | None = None
         self.redis: redis.Redis | None = None
-        self.analyzer = QwenAnalyzer()
+        self.analyzer = VisionAnalyzer()
         self.exchange: aio_pika.Exchange | None = None
 
     async def start(self) -> None:
@@ -56,11 +56,11 @@ class AIConsumer:
         async with SessionLocal() as session:
             row = await session.scalar(select(ModelConfig).where(ModelConfig.id == 1))
             if row is None:
-                session.add(ModelConfig(id=1, model_name=settings.qwen_model,
+                session.add(ModelConfig(id=1, model_name=self.analyzer.model_name,
                                         policy_version="tender-v1", endpoint_host=self.analyzer.endpoint_host(),
                                         system_prompt="Four tasks only; no marketing copy; redact confidential fields."))
             else:
-                row.model_name = settings.qwen_model
+                row.model_name = self.analyzer.model_name
                 row.endpoint_host = self.analyzer.endpoint_host()
                 row.updated_at = datetime.now(timezone.utc)
             await session.commit()
@@ -131,6 +131,22 @@ class AIConsumer:
             return
         try:
             report = await self.analyzer.analyze(data, registry)
+            # Registry verification is deterministic; an LLM must not approve an unmatched seller.
+            if data.get("seller_status") == "ip" and data.get("registry_check") not in {"timeout", "error"}:
+                identity = (registry or {}).get("identity_check") or {}
+                verified = bool(identity.get("verified"))
+                report["registry_match_report"] = {
+                    "status": "verified" if verified else "unverified",
+                    "identity_check": identity,
+                    "document_downloaded": bool(identity.get("document_downloaded")),
+                }
+                if not verified:
+                    report["moderation_status"] = "requires_moderation"
+                    reasons = report.setdefault("moderation_reasons", [])
+                    reasons.append("registry_identity_unverified")
+                    moderator = report.setdefault("moderator_report", {})
+                    moderator["review_required"] = True
+                    moderator["registry_identity_check"] = identity
             result = {
                 "event": "listing.ai.analysis.completed",
                 "event_id": f"{correlation_id}:ai",

@@ -1,10 +1,4 @@
--- Для чего нужен этот файл:
--- Создаёт базы данных PostgreSQL для сервисов проекта при первоначальной настройке.
-
--- Инициализация БД для каждого микросервиса
--- Используется при раскомментировании Docker (docker-entrypoint-initdb.d)
-
-CREATE DATABASE auth_db;
-CREATE DATABASE listing_db;
-CREATE DATABASE analytics_db;
-CREATE DATABASE analytic_ai_db;
+-- Create the isolated PostgreSQL databases required by the independently deployed services.
+SELECT 'CREATE DATABASE auth_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'auth_db') \gexec
+SELECT 'CREATE DATABASE listing_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'listing_db') \gexec
+SELECT 'CREATE DATABASE analytic_ai_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'analytic_ai_db') \gexec

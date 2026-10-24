@@ -5,6 +5,51 @@ from __future__ import annotations
 from typing import Any
 
 
+FIELD_TYPES = {
+    "sale_price": (int, float), "stock_value": (int, float), "area_sqm": (int, float),
+    "staff_count": int, "monthly_loan_payments": (int, float), "average_check": (int, float),
+    "monthly_orders": int, "monthly_clients_unique": int, "customer_base_size": int,
+    "repeat_customer_rate": (int, float), "tax_system": str,
+    "seasonality_months": list, "equipment_list": list, "staff_details": list,
+    "monthly_financials": list,
+}
+MONTH_TYPES = {"month": str, **{key: (int, float) for key in (
+    "revenue", "net_profit", "total_expenses", "rent_expenses", "payroll_expenses",
+    "purchases_expenses", "utilities_expenses", "taxes_expenses", "marketing_expenses", "other_expenses",
+)}}
+
+
+def validate_input(data: Any) -> dict[str, Any]:
+    """Оставляет только финансовые поля Listing и заменяет неверные типы на None."""
+    if not isinstance(data, dict):
+        return {}
+    clean: dict[str, Any] = {}
+    for key, expected in FIELD_TYPES.items():
+        value = data.get(key)
+        if value is None:
+            clean[key] = None
+        elif key == "monthly_financials" and isinstance(value, list):
+            clean[key] = [
+                {name: (item.get(name) if item.get(name) is None or _is_type(item.get(name), kind) else None)
+                 for name, kind in MONTH_TYPES.items()}
+                for item in value if isinstance(item, dict)
+            ]
+        elif key in {"staff_details", "equipment_list"} and isinstance(value, list):
+            inner = {"salary": (int, float), "count": int} if key == "staff_details" else {"equipment_value": (int, float)}
+            clean[key] = [{name: (row.get(name) if row.get(name) is None or _is_type(row.get(name), kind) else None)
+                           for name, kind in inner.items()} for row in value if isinstance(row, dict)]
+        elif _is_type(value, expected):
+            clean[key] = value
+        else:
+            clean[key] = None
+    return clean
+
+
+def _is_type(value: Any, expected: type | tuple[type, ...]) -> bool:
+    """Проверяет JSON-тип и не принимает bool вместо чисел (Python считает bool числом)."""
+    return isinstance(value, expected) and not (isinstance(value, bool) and expected != bool)
+
+
 def _number(value: Any) -> float:
     """Превращает пустые поля формы в ноль, чтобы расчёты не падали."""
     try:
@@ -26,6 +71,7 @@ def _consistency(name: str, left: float, right: float, tolerance: float) -> dict
 
 def analyze(data: dict[str, Any]) -> dict[str, Any]:
     """Вычисляет доходность, окупаемость, сезонность и сверки для Listing."""
+    data = validate_input(data)
     months = sorted(data.get("monthly_financials") or [], key=lambda row: str(row.get("month", "")))
     revenues = [_number(row.get("revenue")) for row in months]
     profits = [_number(row.get("net_profit")) for row in months]

@@ -33,6 +33,9 @@ async def run(input_path: Path, output_path: Path, timeout: int) -> dict[str, An
     correlation_id = f"{request['correlation_id']}-{uuid4().hex[:8]}"
     request["correlation_id"] = correlation_id
     request["reply_to"] = f"ai.reply.{correlation_id}"
+    data = dict(fixture["data_for_analytics"])
+    analyzer = VisionAnalyzer()
+    photo_task = asyncio.create_task(analyzer.analyze_while_registry_pending(data))
     rabbitmq_url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
     connection = await aio_pika.connect_robust(rabbitmq_url)
     channel = await connection.channel()
@@ -55,11 +58,12 @@ async def run(input_path: Path, output_path: Path, timeout: int) -> dict[str, An
     finally:
         await connection.close()
 
-    data = dict(fixture["data_for_analytics"])
     data["registry_check"] = parser_result.get("status", "error")
-    analyzer = VisionAnalyzer()
     try:
-        report = await analyzer.analyze(data, parser_result.get("registry_extract"))
+        photo_report = await photo_task
+        report = analyzer.recalculate_with_registry(
+            photo_report, data, parser_result.get("registry_extract")
+        )
     finally:
         await analyzer.close()
 

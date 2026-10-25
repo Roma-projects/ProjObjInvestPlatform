@@ -204,12 +204,6 @@ services:
       DATABASE_URL: ${ANALYTIC_AI_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/analytic_ai_db}
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
-      QWEN_BASE_URL: ${QWEN_BASE_URL:-}
-      QWEN_API_KEY: ${QWEN_API_KEY:-}
-      QWEN_MODEL: ${QWEN_MODEL:-Qwen2.5-VL-7B-Instruct}
-      POLZA_BASE_URL: ${POLZA_BASE_URL:-https://polza.ai/api/v1}
-      POLZA_API_KEY: ${POLZA_API_KEY:-}
-      POLZA_MODEL: ${POLZA_MODEL:-google/gemini-3.8-flash}
       PUBLIC_UPLOAD_DIR: /public_uploads
     volumes:
       - public_uploads:/public_uploads:ro

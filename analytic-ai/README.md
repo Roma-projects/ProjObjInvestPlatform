@@ -1,6 +1,6 @@
 # Analytic AI
 
-AI-ветвь принимает событие Listing, анализирует фото и финансовые показатели и возвращает `listing.ai.analysis.completed`. По умолчанию использует совместимый с OpenAI API endpoint Polza и `google/gemini-3.8-flash`. Парсеры получают отдельное задание через `parsers.tasks`; ответ Parsers ждёт очередь `ai.reply.<correlation_id>`, после чего AI публикует итог Listing.
+AI-ветвь принимает событие Listing, анализирует фото и финансовые показатели и возвращает `listing.ai.analysis.completed`. По умолчанию использует совместимый с OpenAI API endpoint Polza и `google/gemini-3.8-flash`. Парсеры получают отдельное задание через `parsers.tasks`; пока они работают, AI параллельно проверяет фото. Ответ Parsers приходит в `ai.reply.<correlation_id>`, после чего AI дополняет отчёт реестровыми фактами и публикует итог Listing.
 
 ## Настройка окружения
 
@@ -17,7 +17,7 @@ docker compose logs -f analytic-ai parsers
 
 ## Тест полного потока Parsers → Analytic AI
 
-Тестовый JSON `tests/registry_then_ai.json` содержит финансовые поля и предыдущие тестовые значения ИНН/ФИО. Сценарий публикует запрос в RabbitMQ, ожидает результат работающего Parsers и только после этого передаёт отчёт в AI. Требуются запущенные `rabbitmq`, `mongo`, `parsers`, настроенный `analytic-ai/.env` и установленный пакет `analytic-ai/requirements.txt`.
+Тестовый JSON `tests/registry_then_ai.json` содержит финансовые поля и тестовые значения ИНН/ФИО. Сценарий публикует запрос в RabbitMQ, параллельно запускает vision-проверку (как в production consumer) и после ответа Parsers собирает финальный отчёт AI. Требуются запущенные `rabbitmq`, `mongo`, `parsers`, настроенный `analytic-ai/.env` и установленный пакет `analytic-ai/requirements.txt`.
 
 Из корня проекта в PowerShell:
 

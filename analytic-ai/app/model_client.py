@@ -198,6 +198,29 @@ class VisionAnalyzer:
             base["moderation_reasons"] = list(dict.fromkeys([*base.get("moderation_reasons", []), "photo_review_required"]))
         if isinstance(base.get("moderator_report"), dict):
             base["moderator_report"]["photo_issues"] = photo_issues
+        return self._apply_deterministic_verdict(base, data, registry)
+
+    async def analyze_while_registry_pending(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Vision/financial pass that may run in parallel with Parsers while registry_check=awaiting."""
+        pending = {**data, "registry_check": "awaiting"}
+        return await self.analyze(pending, None)
+
+    def recalculate_with_registry(
+        self, report: dict[str, Any], data: dict[str, Any], registry: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        """Merges registry facts into an earlier photo pass without repeating the vision API call."""
+        merged = dict(report)
+        baseline = fallback_report(data, registry)
+        merged["registry_match_report"] = baseline.get("registry_match_report", merged.get("registry_match_report"))
+        if baseline.get("metrics_summary"):
+            merged["metrics_summary"] = baseline["metrics_summary"]
+        return self._apply_deterministic_verdict(merged, data, registry)
+
+    def _apply_deterministic_verdict(
+        self, base: dict[str, Any], data: dict[str, Any], registry: dict[str, Any] | None
+    ) -> dict[str, Any]:
+        moderation = [item for item in base.get("content_moderation", []) if isinstance(item, dict)]
+        photo_issues = [item for item in moderation if item.get("status") in {"blocked", "review"}]
         flags = detect_red_flags(data, registry)
         for item in moderation:
             status = item.get("status")
@@ -217,7 +240,6 @@ class VisionAnalyzer:
         base["red_flags"] = flags
         base["red_flag_score"] = red_flag_score(flags)
         base["red_flag_rating"] = red_flag_rating(flags, base["red_flag_score"])
-        # Only deterministic, TЗ-backed findings and image-review results may explain the verdict.
         base["moderation_status"] = (
             "requires_moderation"
             if any(flag["severity"] == "critical" for flag in flags)

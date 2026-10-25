@@ -26,6 +26,16 @@
 - Listing начал принимать analytics result events и агрегировать отчёты, соблюдая приоритет документов паспорта/ФНС/справки доходов над вердиктом AI.
 - В Listing добавлена проверка ИНН ИП по контрольным цифрам ФНС и условный outbox-триггер `parsers.request.registry`; парсеры не запускаются для самозанятых, пустого ФИО или некорректного ИНН.
 
+## 2026-10-25 — env, Parsers → Analytic AI → Listing
+
+- Секреты вынесены в локальные `.env` по сервисам; в Git остаются только шаблоны `*.env.example`, реальные `.env` и ключи не индексируются.
+- Listing публикует `parsers.request.registry` в exchange `parsers` (очередь `parsers.tasks`) и заранее объявляет `reply_to=ai.reply.<correlation_id>`; Parsers отвечает напрямую в эту очередь.
+- Analytic AI при `registry_check=awaiting` параллельно запускает vision-проверку фото и ждёт ответ Parsers через `ai.reply.*` / таймаут `ai.resume`; итог публикуется как `listing.ai.analysis.completed`.
+- Детерминированная сверка ИП: скачанный документ, совпадение ФИО/ИНН в тексте, статус ИП; при несовпадении — `requires_moderation`.
+- Listing собирает отчёты Scripts + AI в `listing.results` и принимает финальное решение по объявлению.
+- Интеграционный сценарий: `analytic-ai/tests/run_registry_then_ai.py` + фикстура `registry_then_ai.json` (тестовый ИНН/ФИО).
+- Пакет `shared/` нужен: общие схемы, JWT/пароли и события для Auth, Listing и Messaging в Docker-сборке.
+
 ### Следующие этапы ТЗ
 
-Этапы 2–5 продолжаются: подключены основные компоненты этапа 2, но Parsers и очередь `ai.resume`, Analytic AI с модераторским контуром, а также полный Messaging-контракт ещё не реализованы. Для завершения требуется обработать полный путь событий из ТЗ.
+Продолжается доработка Messaging-контракта и расширение e2e-покрытия; базовый контур Listing → Parsers → Analytic AI → Listing замкнут.

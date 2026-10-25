@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
@@ -29,6 +30,7 @@ class AIConsumer:
         self.redis: redis.Redis | None = None
         self.analyzer = VisionAnalyzer()
         self.exchange: aio_pika.Exchange | None = None
+        self._photo_tasks: dict[str, asyncio.Task[dict]] = {}
 
     async def start(self) -> None:
         self.redis = redis.from_url(settings.redis_url, decode_responses=True)
@@ -73,6 +75,9 @@ class AIConsumer:
                 return
             data = event.get("data_for_analytics") or {}
             if data.get("registry_check") == "awaiting":
+                self._photo_tasks[correlation_id] = asyncio.create_task(
+                    self.analyzer.analyze_while_registry_pending(data)
+                )
                 await self._suspend(event)
             else:
                 await self._analyze_and_publish(event, data, None)
@@ -103,10 +108,12 @@ class AIConsumer:
                     await self.redis.delete(f"ai:pending:{correlation_id}")
                     await self.channel.queue_delete(timer_name, if_unused=False, if_empty=False)
                     event = json.loads(event_json)
-                    registry = json.loads(message.body.decode())
+                    registry_payload = json.loads(message.body.decode())
                     data = event.get("data_for_analytics") or {}
-                    data["registry_check"] = registry.get("status", "error")
-                    await self._analyze_and_publish(event, data, registry.get("registry_extract"))
+                    data["registry_check"] = registry_payload.get("status", "error")
+                    await self._analyze_and_publish(
+                        event, data, registry_payload.get("registry_extract"), reuse_photo_task=True
+                    )
                 await self.channel.queue_delete(reply_name, if_unused=False, if_empty=False)
 
         await reply_queue.consume(handle_reply)
@@ -122,15 +129,34 @@ class AIConsumer:
             event = json.loads(event_json)
             data = event.get("data_for_analytics") or {}
             data["registry_check"] = "timeout"
-            await self._analyze_and_publish(event, data, None)
+            await self._analyze_and_publish(event, data, None, reuse_photo_task=True)
 
-    async def _analyze_and_publish(self, event: dict, data: dict, registry: dict | None) -> None:
+    async def _consume_photo_task(self, correlation_id: str) -> dict | None:
+        task = self._photo_tasks.pop(correlation_id, None)
+        if task is None:
+            return None
+        try:
+            return await task
+        except Exception:
+            logger.exception("Parallel photo analysis failed for correlation %s", correlation_id)
+            return None
+
+    async def _analyze_and_publish(
+        self, event: dict, data: dict, registry: dict | None, *, reuse_photo_task: bool = False
+    ) -> None:
         correlation_id = str(event["correlation_id"])
         complete_key = f"ai:complete:{correlation_id}"
         if not await self.redis.set(complete_key, "1", ex=86400, nx=True):
+            task = self._photo_tasks.pop(correlation_id, None)
+            if task and not task.done():
+                task.cancel()
             return
         try:
-            report = await self.analyzer.analyze(data, registry)
+            photo_report = await self._consume_photo_task(correlation_id) if reuse_photo_task else None
+            if photo_report is not None:
+                report = self.analyzer.recalculate_with_registry(photo_report, data, registry)
+            else:
+                report = await self.analyzer.analyze(data, registry)
             # Registry verification is deterministic; an LLM must not approve an unmatched seller.
             if data.get("seller_status") == "ip" and data.get("registry_check") not in {"timeout", "error"}:
                 identity = (registry or {}).get("identity_check") or {}

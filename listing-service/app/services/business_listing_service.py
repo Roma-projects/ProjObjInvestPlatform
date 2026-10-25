@@ -242,8 +242,8 @@ class BusinessListingService:
             )
         else:
             payload["data_for_analytics"]["registry_check"] = "awaiting"
-        self.session.add(OutboxEvent(routing_key="listing.creation.started", payload=payload))
         if trigger_parsers:
+            # Publish the parser job first so reply_to exists before Parsers can finish.
             self.session.add(OutboxEvent(routing_key="parsers.request.registry", payload={
                 "event": "parsers.request.registry",
                 "correlation_id": correlation_id,
@@ -256,6 +256,7 @@ class BusinessListingService:
                 "sources": ["egrul", "pb", "fedresurs", "kad"],
                 "ttl_seconds": 120,
             }))
+        self.session.add(OutboxEvent(routing_key="listing.creation.started", payload=payload))
         if critical_documents_attached:
             self.session.add(OutboxEvent(
                 routing_key="listing.on_moderation",

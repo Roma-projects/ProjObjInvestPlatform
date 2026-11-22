@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     service_name: str = "search-service"
     service_port: int = 8003
     cache_ttl_seconds: int = 60
+    nominatim_base_url: str = "https://nominatim.openstreetmap.org/search"
+    nominatim_user_agent: str = "MieroVenture/1.0"
+    nominatim_enabled: bool = True
+    nominatim_min_interval_ms: int = 1100
 
     @property
     def cors_origins_list(self) -> list[str]:

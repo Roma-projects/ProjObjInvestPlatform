@@ -8,6 +8,13 @@ export function search(filters = {}) {
   });
 }
 
+export function searchMap(filters = {}) {
+  return apiRequest(API_BASE.search, '/api/catalog/map', {
+    method: 'POST',
+    body: JSON.stringify(filters),
+  });
+}
+
 export function getPublishedListing(id) {
   return apiRequest(API_BASE.search, `/api/catalog/${encodeURIComponent(id)}`);
 }

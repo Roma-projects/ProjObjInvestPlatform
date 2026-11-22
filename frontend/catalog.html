@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="miero-map-tiles" content="https://tile.openstreetmap.org/{z}/{x}/{y}.png">
   <title>Каталог — MieroVenture</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,6 +17,7 @@
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="/css/catalog.css">
   <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 
 <body>
@@ -425,6 +427,27 @@
         </div>
       </form>
 
+      <section class="catalog-map" aria-labelledby="catalog-map-title">
+        <div class="catalog-map__heading">
+          <div>
+            <h2 id="catalog-map-title">Объявления на карте</h2>
+            <p>Нажмите на точку, чтобы увидеть бизнес и цену.</p>
+          </div>
+          <span class="catalog-map__count" id="catalog-map-count" aria-live="polite"></span>
+        </div>
+        <div class="catalog-map__layout">
+          <div id="catalog-map-canvas" class="catalog-map__canvas" role="application" aria-label="Карта опубликованных объявлений"></div>
+          <aside class="catalog-map__selection" id="catalog-map-selection" aria-live="polite">
+            <p class="catalog-map__hint">Выберите объявление на карте</p>
+            <h3 class="catalog-map__selected-title" hidden></h3>
+            <p class="catalog-map__selected-price" hidden></p>
+            <p class="catalog-map__selected-city" hidden></p>
+            <button class="catalog-map__details" id="catalog-map-details" type="button" hidden>Подробнее</button>
+          </aside>
+        </div>
+        <p class="catalog-map__status" id="catalog-map-status" role="status"></p>
+      </section>
+
       <!-- Список объявлений -->
       <section class="cards" aria-label="Объявления">
         <article class="card">
@@ -584,6 +607,7 @@
 
   </div>
   <script src="/js/main.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="/js/app.js"></script>
 </body>
 

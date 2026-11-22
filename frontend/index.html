@@ -39,11 +39,17 @@
           <span></span><span></span><span></span>
         </button>
         <nav class="header__nav">
-          <a class="header__link" href="catalog.html">Каталог</a>
+          <a class="header__link" href="login.html" data-auth-destination="catalog.html">Каталог</a>
           <a class="header__link" href="#how">Как это работает</a>
           <a class="header__link" href="#contact">О нас</a>
-          <a class="header__link" href="registration.html">Регистрация</a>
-          <a class="button button--light header__login" href="login.html">Вход</a>
+          <a class="header__link" href="registration.html" data-home-guest>Регистрация</a>
+          <a class="button button--light header__login" href="login.html" data-home-guest>Вход</a>
+          <a class="header__avatar" href="profile.html" data-home-avatar hidden aria-label="Открыть профиль">
+            <span class="header__avatar-face">
+              <span data-home-avatar-initials aria-hidden="true">MV</span>
+              <img data-home-avatar-image alt="" hidden>
+            </span>
+          </a>
         </nav>
       </div>
     </header>
@@ -62,7 +68,7 @@
               <p class="hero__description">Сравнивайте доступные предложения, анализируйте перспективы и связывайтесь с
                 владельцами напрямую.</p>
               <div class="hero__actions">
-                <a class="button button--light" href="catalog.html">Перейти к каталогу</a>
+                <a class="button button--light" href="login.html" data-auth-destination="catalog.html">Перейти к каталогу</a>
               </div>
 
               <div class="hero__features stagger">
@@ -140,7 +146,7 @@
               <p class="section__eyebrow">Актуальные предложения</p>
               <h2 class="section__title">Бизнесы с потенциалом</h2>
             </div>
-            <a class="text-link" href="catalog.html">Смотреть все предложения →</a>
+            <a class="text-link" href="login.html" data-auth-destination="catalog.html">Смотреть все предложения →</a>
           </div>
           <div class="business-grid stagger">
             <article class="business-offer">
@@ -230,7 +236,7 @@
                 </div>
 
                 <div class="business-offer__footer">
-                  <a class="business-offer__details" href="catalog.html">
+                  <a class="business-offer__details" href="login.html" data-auth-destination="catalog.html">
                     Подробнее
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path
@@ -279,7 +285,7 @@
                 </div>
 
                 <div class="business-offer__footer">
-                  <a class="business-offer__details" href="catalog.html">
+                  <a class="business-offer__details" href="login.html" data-auth-destination="catalog.html">
                     Подробнее
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path
@@ -303,7 +309,7 @@
               <p class="sell-banner__text">Разместите свое объявление на MieroVenture и найдите покупателя, которому
                 будет интересен ваш бизнес.</p>
             </div>
-            <a class="button button--light sell-banner__button" href="login.html">Разместить бизнес <span
+            <a class="button button--light sell-banner__button" href="login.html" data-auth-destination="create-listing.html">Разместить бизнес <span
                 class="icon-arrow"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"
                   xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -324,7 +330,7 @@
               <h2 class="section__title analytics__title">Инвестиционная оценка бизнеса</h2>
               <p class="section__lead">Получите объективную оценку и сравните несколько вариантов по ключевым
                 показателям. Наши инструменты помогут определить инвестиционную привлекательность и возможные риски.</p>
-              <a class="button button--primary analytics__button" href="login.html">Перейти к аналитике <span
+              <a class="button button--primary analytics__button" href="login.html" data-auth-destination="catalog.html">Перейти к аналитике <span
                   class="icon-arrow"><svg width="21" height="22" viewBox="0 0 21 22" fill="none"
                     xmlns="http://www.w3.org/2000/svg">
                     <path
@@ -434,7 +440,7 @@
             </div>
 
           </div>
-          <a class="button button--primary map__button" href="login.html">Больше объявлений на карте <span
+          <a class="button button--primary map__button" href="login.html" data-auth-destination="catalog.html">Больше объявлений на карте <span
               class="icon-arrow"><svg width="21" height="22" viewBox="0 0 21 22" fill="none"
                 xmlns="http://www.w3.org/2000/svg">
                 <path
@@ -529,7 +535,7 @@
         </div>
         <div>
           <p class="footer__col-title">Владельцам</p>
-          <div class="footer__links"><a class="footer__link" href="login.html">Разместить свой бизнес</a><a
+          <div class="footer__links"><a class="footer__link" href="login.html" data-auth-destination="create-listing.html">Разместить свой бизнес</a><a
               class="footer__link" href="#how">Как это работает?</a></div>
         </div>
         <div>

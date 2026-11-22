@@ -119,7 +119,7 @@ def _is_public_catalog(method: str, path: str) -> bool:
         or path == "/search/suggest"
     ):
         return True
-    return method == "POST" and path in {"/catalog/query", "/search/suggest"}
+    return method == "POST" and path in {"/catalog/query", "/catalog/map", "/search/suggest"}
 
 
 def _service_path(path: str, prefix: str, upstream_prefix: str | None = None) -> str:

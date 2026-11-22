@@ -9,7 +9,7 @@ import {
   verifyEmail,
   logout,
 } from '../src/services/auth.js';
-import { restoreSession, getAccessToken } from '../src/services/api.js';
+import { restoreSession, getAccessToken, setAccessToken } from '../src/services/api.js';
 import {
   createListing,
   getListing,
@@ -28,7 +28,7 @@ import {
   removeFromBlacklist,
   removeFromCatalog,
 } from '../src/services/moderation.js';
-import { getPublishedListing, search } from '../src/services/search.js';
+import { getPublishedListing, search, searchMap } from '../src/services/search.js';
 import {
   createConversation,
   getConversation,
@@ -46,6 +46,10 @@ let currentCatalogFilters = {};
 let catalogCursor = null;
 let catalogItems = [];
 let catalogTemplate = null;
+let catalogLeafletMap = null;
+let catalogMarkerLayer = null;
+let selectedMapMarker = null;
+let selectedMapListingId = null;
 
 function notify(message, kind = 'info') {
   let toast = $('.miero-toast');
@@ -84,6 +88,17 @@ function asItems(response) {
 function formatMoney(value) {
   const number = Number(value);
   return Number.isFinite(number) ? `${currency.format(number)} ₽` : 'Цена не указана';
+}
+
+function safeInternalDestination(value, fallback = 'profile.html') {
+  try {
+    const target = new URL(value || fallback, location.href);
+    const appRoot = new URL('.', location.href).pathname;
+    if (target.origin !== location.origin || !target.pathname.startsWith(appRoot)) return fallback;
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return fallback;
+  }
 }
 
 function localizedStatus(status) {
@@ -213,6 +228,7 @@ async function loadCatalog(form, append = false) {
   container.classList.add('miero-loading');
   try {
     const result = await search(payload);
+    if (!append) await loadCatalogMap(currentCatalogFilters, true);
     const items = asItems(result);
     catalogCursor = result?.next_cursor || null;
     catalogItems = append ? [...catalogItems, ...items] : items;
@@ -246,6 +262,135 @@ async function loadCatalog(form, append = false) {
     notify(error.message, 'error');
   } finally {
     container.classList.remove('miero-loading');
+  }
+}
+
+function addOpenStreetMapTiles(map) {
+  const template = $('meta[name="miero-map-tiles"]')?.content
+    || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  window.L.tileLayer(template, {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+  }).addTo(map);
+}
+
+function selectCatalogMapItem(item, marker) {
+  if (selectedMapMarker && selectedMapMarker !== marker) {
+    selectedMapMarker.setStyle({ color: '#ffffff', weight: 2, fillColor: '#680A18', fillOpacity: 0.92 });
+  }
+  selectedMapMarker = marker;
+  selectedMapListingId = String(item.listing_id);
+  marker.setStyle({ color: '#680A18', weight: 3, fillColor: '#D9C6A5', fillOpacity: 1 });
+  const panel = $('#catalog-map-selection');
+  const hint = $('.catalog-map__hint', panel);
+  const title = $('.catalog-map__selected-title', panel);
+  const price = $('.catalog-map__selected-price', panel);
+  const city = $('.catalog-map__selected-city', panel);
+  const details = $('#catalog-map-details');
+  if (hint) hint.hidden = true;
+  if (title) { title.hidden = false; title.textContent = item.business_name || 'Бизнес на продаже'; }
+  if (price) {
+    price.hidden = false;
+    price.textContent = item.sale_price === null || item.sale_price === undefined ? 'Цена не указана' : formatMoney(item.sale_price);
+  }
+  if (city) {
+    city.hidden = !item.city;
+    city.textContent = item.city
+      ? `${item.city}${item.coordinate_precision === 'city' ? ' · приблизительная точка' : ''}`
+      : (item.coordinate_precision === 'city' ? 'Приблизительная точка: центр города' : '');
+    city.hidden = !city.textContent;
+  }
+  if (details) details.hidden = false;
+}
+
+async function openListingFromMap() {
+  if (!selectedMapListingId) return;
+  const destination = `listing.html#${encodeURIComponent(selectedMapListingId)}`;
+  if (getAccessToken()) {
+    try {
+      await me();
+      location.href = destination;
+      return;
+    } catch {
+      setAccessToken(null);
+    }
+  }
+  const authenticated = await restoreSession().catch(() => false);
+  if (authenticated) {
+    try {
+      await me();
+      location.href = destination;
+      return;
+    } catch {
+      setAccessToken(null);
+    }
+  }
+  sessionStorage.setItem('mieroventure.redirect', destination);
+  location.href = 'login.html';
+}
+
+async function loadCatalogMap(filters = {}, fitMap = false) {
+  const canvas = $('#catalog-map-canvas');
+  if (!canvas) return;
+  const status = $('#catalog-map-status');
+  const count = $('#catalog-map-count');
+  if (!window.L) {
+    if (status) status.textContent = 'Не удалось загрузить библиотеку карты. Обновите страницу позже.';
+    return;
+  }
+  if (!catalogLeafletMap) {
+    catalogLeafletMap = window.L.map(canvas, { scrollWheelZoom: false }).setView([61, 90], 3);
+    addOpenStreetMapTiles(catalogLeafletMap);
+    catalogMarkerLayer = window.L.layerGroup().addTo(catalogLeafletMap);
+    $('#catalog-map-details')?.addEventListener('click', openListingFromMap);
+    requestAnimationFrame(() => catalogLeafletMap?.invalidateSize());
+  }
+  if (status) status.textContent = 'Загружаем объявления…';
+  try {
+    const result = await searchMap(filters);
+    const items = asItems(result);
+    catalogMarkerLayer.clearLayers();
+    selectedMapMarker = null;
+    selectedMapListingId = null;
+    const hint = $('.catalog-map__hint');
+    const title = $('.catalog-map__selected-title');
+    const price = $('.catalog-map__selected-price');
+    const city = $('.catalog-map__selected-city');
+    const details = $('#catalog-map-details');
+    if (hint) hint.hidden = false;
+    [title, price, city].forEach((node) => { if (node) { node.hidden = true; node.textContent = ''; } });
+    if (details) details.hidden = true;
+    const points = [];
+    items.forEach((item) => {
+      const latitude = Number(item.latitude);
+      const longitude = Number(item.longitude);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+      const marker = window.L.circleMarker([latitude, longitude], {
+        radius: 8,
+        color: '#ffffff',
+        weight: 2,
+        fillColor: '#680A18',
+        fillOpacity: 0.92,
+        className: 'miero-map-marker',
+      });
+      marker.on('click', () => selectCatalogMapItem(item, marker));
+      marker.addTo(catalogMarkerLayer);
+      points.push([latitude, longitude]);
+    });
+    if (count) count.textContent = `${result.total ?? items.length} на карте`;
+    if (status) {
+      const messages = [];
+      if (result.unlocated) messages.push(`${result.unlocated} объявл. без координат`);
+      if (result.truncated) messages.push('показана первая часть объектов — уточните фильтры');
+      status.textContent = messages.join(' · ');
+    }
+    if (points.length && fitMap) {
+      if (points.length === 1) catalogLeafletMap.setView(points[0], items[0]?.coordinate_precision === 'city' ? 11 : 13);
+      else catalogLeafletMap.fitBounds(points, { padding: [24, 24], maxZoom: 13 });
+    }
+    requestAnimationFrame(() => catalogLeafletMap?.invalidateSize());
+  } catch (error) {
+    if (status) status.textContent = `Карта временно недоступна: ${error.message}`;
   }
 }
 
@@ -389,7 +534,7 @@ function registerAuthForms() {
     if (button) button.disabled = true;
     try {
       await login(String(form.get('login') || '').trim(), String(form.get('password') || ''));
-      const destination = sessionStorage.getItem('mieroventure.redirect') || 'profile.html';
+      const destination = safeInternalDestination(sessionStorage.getItem('mieroventure.redirect'), 'profile.html');
       sessionStorage.removeItem('mieroventure.redirect');
       location.href = destination;
     } catch (error) {
@@ -852,6 +997,61 @@ function renderDetailTab(id, content) {
   if (!body.childElementCount) body.append(emptyState('Продавец пока не добавил эти сведения.'));
 }
 
+function buildListingMapSection(item) {
+  const section = document.createElement('section');
+  section.className = 'listing-map';
+  const title = document.createElement('h2');
+  title.className = 'listing-map__title';
+  title.textContent = 'Местоположение на карте';
+  const canvas = document.createElement('div');
+  canvas.className = 'listing-map__canvas';
+  canvas.setAttribute('role', 'application');
+  canvas.setAttribute('aria-label', 'Расположение объявления на карте');
+  const note = document.createElement('p');
+  note.className = 'listing-map__note';
+  const coordinates = item.location_point?.coordinates;
+  const longitude = Array.isArray(coordinates) ? Number(coordinates[0]) : NaN;
+  const latitude = Array.isArray(coordinates) ? Number(coordinates[1]) : NaN;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    canvas.hidden = true;
+    note.textContent = 'Для этого объявления координаты пока не определены.';
+  } else if (!window.L) {
+    canvas.hidden = true;
+    note.textContent = 'Не удалось загрузить библиотеку карты.';
+  } else {
+    const initialize = () => requestAnimationFrame(() => {
+      if (!canvas.isConnected) return;
+      const zoom = item.coordinate_precision === 'city' ? 12 : 15;
+      const map = window.L.map(canvas, { scrollWheelZoom: false }).setView([latitude, longitude], zoom);
+      addOpenStreetMapTiles(map);
+      window.L.circleMarker([latitude, longitude], {
+        radius: 10,
+        color: '#ffffff',
+        weight: 3,
+        fillColor: '#680A18',
+        fillOpacity: 1,
+        className: 'miero-map-marker miero-map-marker--selected',
+      }).addTo(map);
+      requestAnimationFrame(() => map.invalidateSize());
+    });
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        initialize();
+      });
+      observer.observe(canvas);
+    } else {
+      initialize();
+    }
+    if (item.coordinate_precision === 'city') {
+      note.textContent = 'Точка приблизительная: указана только привязка к городу.';
+    }
+  }
+  section.append(title, canvas, note);
+  return section;
+}
+
 function renderListingDetails(item) {
   const yesNo = (value) => value === null || value === undefined ? '' : value ? 'Да' : 'Нет';
   const moneyOrEmpty = (value) => value === null || value === undefined ? '' : formatMoney(value);
@@ -871,7 +1071,7 @@ function renderListingDetails(item) {
   const descriptionText = document.createElement('p');
   descriptionText.className = 'text';
   descriptionText.textContent = item.full_description || item.short_description || 'Описание пока не добавлено.';
-  description.append(descriptionTitle, descriptionText);
+  description.append(descriptionTitle, descriptionText, buildListingMapSection(item));
   const reason = item.sale_reason ? makeDetailSection('Причина продажи', [['Причина', item.sale_reason]]) : null;
   renderDetailTab('tab-main', [description, reason, makeDetailSection('Основные характеристики', [
     ['Тип бизнеса', displayEnum(item.business_type)], ['Состав сделки', displayEnum(item.deal_composition)],
@@ -1398,7 +1598,10 @@ async function loadProfile() {
   $$('[role="switch"][name]').forEach((input) => { input.disabled = true; });
   profileRoot?.setAttribute('aria-busy', 'true');
   try {
-    loadedUser = await me();
+    loadedUser = await resolveCurrentUser();
+    if (!loadedUser) {
+      throw new Error('Сессия не найдена. Войдите, чтобы открыть профиль.');
+    }
     if (pageName() === 'moderator-profile.html' && loadedUser.role !== 'moderator') {
       profileRoot?.replaceChildren(emptyState('Эта страница доступна только модератору.', 'Перейти в профиль', 'profile.html'));
       return;
@@ -1574,8 +1777,14 @@ function bindGlobalUi() {
   const logoutLink = $('[data-logout]');
   logoutLink?.addEventListener('click', async (event) => {
     event.preventDefault();
-    try { await logout(); } catch { /* Clear local access even if the session already expired. */ }
-    location.href = 'index.html';
+    logoutLink.disabled = true;
+    try {
+      await logout();
+      location.href = 'index.html';
+    } catch (error) {
+      logoutLink.disabled = false;
+      notify(`Не удалось завершить сеанс: ${error.message}`, 'error');
+    }
   });
 }
 
@@ -1664,6 +1873,8 @@ async function bindBlacklist() {
 }
 
 async function bindHome() {
+  const homeUser = await resolveHomeUser();
+  applyHomeAccountState(homeUser);
   const grid = $('.offers .business-grid');
   if (!grid) return;
   try {
@@ -1671,7 +1882,13 @@ async function bindHome() {
     grid.replaceChildren(emptyState('Загрузка предложений…'));
     const rows = asItems(await search({ limit: 3, sort: 'newest' })).slice(0, 3);
     if (!rows.length) {
-      grid.replaceChildren(emptyState('Новые предложения появятся здесь после публикации объявлений.', 'Открыть каталог', 'catalog.html'));
+      const empty = emptyState('Новые предложения появятся здесь после публикации объявлений.', 'Открыть каталог', homeUser ? 'catalog.html' : 'login.html');
+      const emptyLink = $('a', empty);
+      if (emptyLink) {
+        emptyLink.dataset.authDestination = 'catalog.html';
+        emptyLink.dataset.homeAuthenticated = String(Boolean(homeUser));
+      }
+      grid.replaceChildren(empty);
       return;
     }
     grid.replaceChildren();
@@ -1696,7 +1913,12 @@ async function bindHome() {
       if (paybackMonths === undefined && values[2]) values[2].closest('.business-offer__stat').hidden = true;
       placeImage($('.business-offer__photo', card), item.main_photo || item.photos?.[0]);
       const more = $('.business-offer__details', card);
-      if (more) more.href = `listing.html#${encodeURIComponent(item.listing_id)}`;
+      if (more) {
+        const destination = `listing.html#${encodeURIComponent(item.listing_id)}`;
+        more.dataset.authDestination = destination;
+        more.dataset.homeAuthenticated = String(Boolean(homeUser));
+        more.href = homeUser ? destination : 'login.html';
+      }
       const favorite = $('.business-offer__favorite', card);
       if (favorite) {
         favorite.dataset.listingId = item.listing_id;
@@ -1706,6 +1928,73 @@ async function bindHome() {
     });
   } catch (error) {
     notify(`Не удалось загрузить предложения: ${error.message}`, 'error');
+  }
+}
+
+async function resolveHomeUser() {
+  try {
+    return await resolveCurrentUser();
+  } catch { return null; }
+}
+
+async function resolveCurrentUser() {
+  if (!getAccessToken() && !(await restoreSession())) return null;
+  try {
+    return await me();
+  } catch (error) {
+    if (error.status !== 401) throw error;
+    setAccessToken(null);
+    if (!(await restoreSession())) return null;
+    return me();
+  }
+}
+
+function applyHomeAccountState(user) {
+  const authenticated = Boolean(user);
+  $$('[data-home-guest]').forEach((element) => { element.hidden = authenticated; });
+  const avatarLink = $('[data-home-avatar]');
+  if (avatarLink) {
+    avatarLink.hidden = !authenticated;
+    if (authenticated) {
+      const nameParts = [user.first_name, user.last_name].filter((part) => typeof part === 'string' && part.trim());
+      const fallbackName = user.email || 'Профиль';
+      const initials = nameParts.length
+        ? `${nameParts[0][0]}${nameParts.length > 1 ? nameParts[nameParts.length - 1][0] : ''}`
+        : fallbackName.slice(0, 2);
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || fallbackName;
+      const initialsElement = $('[data-home-avatar-initials]', avatarLink);
+      const image = $('[data-home-avatar-image]', avatarLink);
+      if (initialsElement) initialsElement.textContent = initials.toLocaleUpperCase('ru-RU');
+      avatarLink.setAttribute('aria-label', `Открыть профиль: ${name}`);
+      avatarLink.href = user.role === 'moderator' ? 'moderator-profile.html' : 'profile.html';
+      if (image) {
+        let avatarUrl = null;
+        try { if (user.avatar) avatarUrl = new URL(user.avatar, location.href); } catch { /* Use initials for an invalid avatar URL. */ }
+        const useAvatar = avatarUrl && avatarUrl.origin === location.origin && ['http:', 'https:'].includes(avatarUrl.protocol);
+        image.hidden = !useAvatar;
+        if (initialsElement) initialsElement.hidden = Boolean(useAvatar);
+        image.onerror = () => {
+          image.hidden = true;
+          if (initialsElement) initialsElement.hidden = false;
+        };
+        if (useAvatar) image.src = avatarUrl.href;
+        else image.removeAttribute('src');
+      }
+    }
+  }
+  $$('[data-auth-destination]').forEach((link) => {
+    link.dataset.homeAuthenticated = String(authenticated);
+    link.href = authenticated ? link.dataset.authDestination : 'login.html';
+  });
+  if (!document.documentElement.dataset.homeAuthClickBound) {
+    document.documentElement.dataset.homeAuthClickBound = 'true';
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('a[data-auth-destination]');
+      if (!link || link.dataset.homeAuthenticated === 'true') return;
+      event.preventDefault();
+      sessionStorage.setItem('mieroventure.redirect', safeInternalDestination(link.dataset.authDestination));
+      location.href = 'login.html';
+    });
   }
 }
 
@@ -1734,7 +2023,11 @@ function start() {
   if (page === 'moderation-detail.html') bindModerationDetail();
   if (page === 'blacklist.html') bindBlacklist();
   if (page === 'messages.html') {
-    me().then((user) => { loadedUser = user; return loadMessages(); })
+    resolveCurrentUser().then((user) => {
+      if (!user) throw new Error('Войдите, чтобы открыть сообщения.');
+      loadedUser = user;
+      return loadMessages();
+    })
       .catch((error) => notify(`Войдите, чтобы открыть сообщения: ${error.message}`, 'error'));
   }
 }

@@ -549,6 +549,58 @@ button {
   transition: gap var(--transition-fast);
 }
 
+/* ---------- Карта опубликованных объявлений ---------- */
+.catalog-map {
+  margin: 24px 0 20px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.catalog-map__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.catalog-map__heading h2 { color: var(--color-primary); font-size: 20px; }
+.catalog-map__heading p,
+.catalog-map__status { margin-top: 4px; color: var(--color-text-soft); font-size: 12px; }
+.catalog-map__count { color: var(--color-text-soft); font-size: 12px; white-space: nowrap; }
+.catalog-map__layout { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; }
+.catalog-map__canvas { min-width: 0; height: 410px; border-radius: var(--radius-sm); background: #eee9e1; z-index: 0; }
+.catalog-map__selection {
+  min-height: 130px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-background);
+}
+.catalog-map__hint,
+.catalog-map__selected-city { color: var(--color-text-soft); font-size: 12px; line-height: 1.5; }
+.catalog-map__selected-title { margin-bottom: 8px; color: var(--color-primary); font-size: 17px; line-height: 1.35; }
+.catalog-map__selected-price { margin-bottom: 5px; color: var(--color-dark); font-size: 16px; font-weight: 700; }
+.catalog-map__details {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 16px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-size: 13px;
+  font-weight: 600;
+}
+.catalog-map__details:hover { background: var(--color-dark); }
+.catalog-map__status:empty { display: none; }
+.catalog-map__canvas .leaflet-container { font: inherit; }
+
+.miero-map-marker { stroke: #fff; stroke-width: 2; fill: #680A18; fill-opacity: .92; }
+.miero-map-marker--selected { stroke: #680A18; stroke-width: 3; fill: #D9C6A5; fill-opacity: 1; }
+
 .card__more:hover {
   gap: 10px;
 }
@@ -624,6 +676,8 @@ button {
   .sorting__list {
     gap: 12px;
   }
+
+  .catalog-map__layout { grid-template-columns: minmax(0, 1fr) 220px; }
 }
 
 /* Мобильные: сайдбар превращается в нижнюю панель */
@@ -714,6 +768,11 @@ button {
     right: auto;
     width: 100%;
   }
+
+  .catalog-map { padding: 12px; }
+  .catalog-map__layout { grid-template-columns: minmax(0, 1fr); }
+  .catalog-map__canvas { height: 340px; }
+  .catalog-map__selection { min-height: 0; }
 
   .card {
     grid-template-columns: 110px minmax(0, 1fr);

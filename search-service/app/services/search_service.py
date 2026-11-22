@@ -15,6 +15,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.config import get_settings
 from app.schemas.search import SearchHit, SearchResponse, SuggestItem, SuggestResponse
+from app.services.geocoding import geocoder
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -30,6 +31,7 @@ class SearchService:
         self._blocked_legacy_sellers = None
         self._blocked_legacy_owner_ids: set[int] = set()
         self._catalog_lock = asyncio.Lock()
+        self._map_result_limit = 2000
 
     async def connect_redis(self) -> None:
         self._mongo_client = AsyncIOMotorClient(settings.mongodb_url)
@@ -40,6 +42,8 @@ class SearchService:
             int(row["_id"]) async for row in self._blocked_legacy_sellers.find({}, {"_id": 1})
         }
         await self._catalog.create_index("seller_id")
+        await self._catalog.create_index([("location_point", "2dsphere")])
+        await self._catalog.create_index([("status", 1), ("location_point.type", 1)])
         await self._catalog.create_index([("business_name", "text"), ("short_description", "text")])
         await self._catalog.create_index([("sale_price", 1), ("business_type", 1), ("verification_status", 1)])
         try:
@@ -50,8 +54,10 @@ class SearchService:
         except Exception as exc:
             logger.warning("Redis unavailable, cache disabled: %s", exc)
             self._redis = None
+        geocoder.connect(self._mongo_client.get_default_database(), self._redis)
 
     async def close(self) -> None:
+        await geocoder.close()
         if self._redis:
             await self._redis.close()
         if self._mongo_client:
@@ -73,7 +79,8 @@ class SearchService:
         """Store only allow-listed public fields from a completed listing event."""
         if self._catalog is None or self._blocked_sellers is None:
             raise RuntimeError("MongoDB catalog is not connected")
-        public = dict(body.get("public_data") or {})
+        incoming_public = dict(body.get("public_data") or {})
+        public = dict(incoming_public)
         seller_id = str(public.get("seller_id") or body.get("user_id") or "")
         if not seller_id:
             logger.warning("Ignoring catalog upsert without seller id listing_id=%s", body.get("listing_id"))
@@ -92,15 +99,43 @@ class SearchService:
             "floor_plan_image",
             "deal_composition", "property_type", "property_condition",
             "transfer_method", "revenue_trend", "verification_status", "user_analytics",
+            "location_point", "coordinate_precision",
         }
         public = {key: value for key, value in public.items() if key in allowed}
+        location = public.get("location") or {}
+        if not isinstance(location, dict):
+            location = {}
+        public["location"] = location
+        geocode_input = {
+            **public,
+            "latitude": incoming_public.get("latitude"),
+            "longitude": incoming_public.get("longitude"),
+        }
+        explicit_point = bool(
+            geocode_input.get("location_point")
+            or location.get("coordinates")
+            or location.get("lat") is not None
+            or geocode_input.get("latitude") is not None
+        )
+        point = await geocoder.resolve(geocode_input)
+        if point:
+            public["location_point"] = point
+            public["coordinate_precision"] = (
+                "address" if explicit_point or location.get("street") or location.get("house") else "city"
+            )
+        else:
+            public.pop("location_point", None)
+            public.pop("coordinate_precision", None)
         async with self._catalog_lock:
             if await self._blocked_sellers.find_one({"_id": seller_id}):
                 logger.info("Ignoring catalog upsert for blocked seller=%s", seller_id)
                 return
+            catalog_update = {"$set": {**public, "seller_id": seller_id, "status": "published"}}
+            if not point:
+                catalog_update["$unset"] = {"location_point": "", "coordinate_precision": ""}
             await self._catalog.update_one(
                 {"_id": str(body["listing_id"])},
-                {"$set": {**public, "seller_id": seller_id, "status": "published"}},
+                catalog_update,
                 upsert=True,
             )
         if self._redis:
@@ -233,6 +268,71 @@ class SearchService:
             return None
         row.pop("_id", None)
         return {"listing_id": listing_id, **row}
+
+    async def map_businesses(self, filters: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Return small public map markers, never private Listing-service fields."""
+        if self._catalog is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        filters = filters or {}
+        criteria: dict[str, Any] = {"status": "published"}
+        if filters.get("q"):
+            criteria["$text"] = {"$search": filters["q"]}
+        for field in ("business_type", "deal_composition", "property_type", "property_condition", "transfer_method", "revenue_trend"):
+            value = filters.get(field)
+            if isinstance(value, list):
+                values = [item for item in value if item]
+                if values:
+                    criteria[field] = values[0] if len(values) == 1 else {"$in": values}
+            elif value:
+                criteria[field] = value
+        city = filters.get("city")
+        if city:
+            criteria["location.city"] = {"$regex": re.escape(str(city).strip()), "$options": "i"}
+        if filters.get("verification_status") and filters["verification_status"] != "all":
+            criteria["verification_status"] = filters["verification_status"]
+        price: dict[str, Any] = {}
+        if filters.get("min_price") is not None:
+            price["$gte"] = filters["min_price"]
+        if filters.get("max_price") is not None:
+            price["$lte"] = filters["max_price"]
+        if price:
+            criteria["sale_price"] = price
+
+        total = await self._catalog.count_documents(criteria)
+        marker_criteria = {**criteria, "location_point.type": "Point"}
+        located_total = await self._catalog.count_documents(marker_criteria)
+        rows = await self._catalog.find(
+            marker_criteria,
+            {"business_name": 1, "sale_price": 1, "location.city": 1, "location_point": 1,
+             "coordinate_precision": 1},
+        ).limit(self._map_result_limit).to_list(self._map_result_limit)
+        items = []
+        for row in rows:
+            point = row.get("location_point") or {}
+            coordinates = point.get("coordinates") or []
+            if len(coordinates) != 2:
+                continue
+            try:
+                longitude, latitude = float(coordinates[0]), float(coordinates[1])
+            except (TypeError, ValueError):
+                continue
+            if not (-180 <= longitude <= 180 and -90 <= latitude <= 90):
+                continue
+            items.append({
+                "listing_id": str(row["_id"]),
+                "business_name": row.get("business_name") or "Бизнес на продаже",
+                "sale_price": float(row["sale_price"]) if row.get("sale_price") is not None else None,
+                "city": (row.get("location") or {}).get("city"),
+                "latitude": latitude,
+                "longitude": longitude,
+                "coordinate_precision": row.get("coordinate_precision", "address"),
+            })
+        return {
+            "items": items,
+            "total": located_total,
+            "unlocated": max(0, total - located_total),
+            "truncated": located_total > self._map_result_limit,
+        }
 
     def _score(self, item: dict[str, Any], q: str | None) -> float:
         if not q:

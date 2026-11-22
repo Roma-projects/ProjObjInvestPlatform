@@ -29,10 +29,17 @@ export async function refresh() {
 
 export async function logout(logoutAllDevices = false) {
   try {
-    return await apiRequest(API_BASE.auth, '/api/auth/logout', {
+    const sendLogout = () => apiRequest(API_BASE.auth, '/api/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ logout_all_devices: logoutAllDevices }),
     });
+    try {
+      return await sendLogout();
+    } catch (error) {
+      if (error.status !== 401) throw error;
+      await refresh();
+      return await sendLogout();
+    }
   } finally {
     setAccessToken(null);
   }

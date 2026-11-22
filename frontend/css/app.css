@@ -38,6 +38,25 @@
 .miero-dialog input, .miero-dialog textarea { width: 100%; padding: .7rem .8rem; border: 1px solid #d7cec2; border-radius: .5rem; font: inherit; }
 .miero-dialog__actions { display: flex; justify-content: flex-end; gap: .7rem; margin-top: .5rem; }
 [hidden] { display: none !important; }
+.hero__logout {
+  align-self: flex-end;
+  margin-top: .5rem;
+  padding: .45rem .7rem;
+  border: 1px solid rgba(248, 240, 227, .72);
+  border-radius: var(--radius-md);
+  background: rgba(32, 35, 42, .35);
+  color: var(--color-background);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.hero__logout:hover,
+.hero__logout:focus-visible {
+  background: var(--color-background);
+  color: var(--color-primary);
+}
+.hero__logout:disabled { cursor: wait; opacity: .65; }
 .moderator-remove-listing {
   margin-top: 1rem;
   padding: 0.8rem 1.1rem;

@@ -75,7 +75,14 @@ Copy-Item analytic-scripts/.env.example analytic-scripts/.env
 Copy-Item analytic-ai/.env.example analytic-ai/.env
 ```
 
-Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, `MODERATION_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. Используйте одно значение `MODERATION_SHARED_SECRET` во внутренних настройках Auth, Listing и Moderation. API ключ AI задайте только в `analytic-ai/.env`. Compose читает сервисные файлы через `env_file`, а для Moderation основные адреса задаёт в Compose; Dockerfiles не копируют реальные локальные `.env` в образы. Шаблоны `.env.example` можно хранить в Git. Для регистрации с подтверждением email заполните SMTP параметры в корневом `.env`.
+Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, `MODERATION_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. Используйте одно значение `MODERATION_SHARED_SECRET` во внутренних настройках Auth, Listing и Moderation. API ключ AI задайте только в `analytic-ai/.env`. Compose читает сервисные файлы через `env_file`, а для Moderation основные адреса задаёт в Compose; Dockerfiles не копируют реальные локальные `.env` в образы. Шаблоны `.env.example` можно хранить в Git.
+
+Для подтверждения email заполните SMTP-поля в корневом `.env` (Compose передаёт их в Auth):
+
+- Для личного Gmail включите двухэтапную проверку аккаунта Google, создайте [пароль приложения](https://support.google.com/accounts/answer/185833) и укажите адрес Gmail в `SMTP_USER` и `SMTP_FROM_ADDRESS`. Используйте `SMTP_HOST=smtp.gmail.com`, порт `587`, `SMTP_START_TLS=true`; в `SMTP_PASSWORD` укажите пароль приложения без пробелов, а не пароль входа в Google. Это удобный вариант для разработки и небольшого MVP; Google ограничивает отправку (обычный лимит Gmail — до 500 писем в сутки), поэтому это не безлимитная почта. Актуальные параметры сервера есть в [справке Gmail по SMTP](https://support.google.com/mail/answer/7104828?hl=en).
+- Для Brevo используйте `SMTP_HOST=smtp-relay.brevo.com`, порт `587`, `SMTP_START_TLS=true`, SMTP login из раздела SMTP и SMTP key в `SMTP_PASSWORD`. `SMTP_FROM_ADDRESS` должен быть проверенным отправителем; для домена потребуется настроить аутентификацию. Следуйте [инструкции Brevo SMTP](https://help.brevo.com/hc/en-us/articles/7924908994450-Send-transactional-emails-using-Brevo-SMTP); бесплатный план ограничен [300 отправками в день](https://help.brevo.com/hc/en-us/articles/208580669-FAQs-What-are-the-limits-of-the-Free-plan).
+
+Не коммитьте `.env` и SMTP-ключи. Auth уже использует асинхронную SMTP-библиотеку `aiosmtplib`, шаблон письма, повторы при временных ошибках и Redis-защиту от повторной отправки; дополнительно действует лимит 1 письмо в минуту и не более 5 в час на адрес.
 
 ### 2. Запустите платформу
 
@@ -97,6 +104,10 @@ docker compose down
 ### Публичные и конфиденциальные файлы
 
 Файлы объявлений загружаются через API Gateway в Listing. Публичные изображения сохраняются в `public_uploads` и доступны через Nginx по `/public/uploads/`; Listing имеет к ним доступ на запись, Nginx — только на чтение. Документы продавца сохраняются в `private_uploads`, который не подключён к Nginx. Moderation хранит только ссылки на закрытые документы и запрашивает файл через внутренний Listing endpoint с отдельным сервисным секретом. Браузер обращается к защищённому маршруту Moderation через Gateway; Listing не публикует документы во внешнем каталоге или через Nginx.
+
+### Карта и геокодирование
+
+Search геокодирует только публичный адрес объявления при публикации, хранит полученную точку в своём публичном индексе и отдаёт маркеры каталогу через `POST /api/catalog/map`. Каталог и карточка объявления используют Leaflet и OpenStreetMap; документы продавца не попадают в геокодер. Search соблюдает общий лимит Nominatim через Redis и кэширует ответы. Публичный Nominatim подходит для умеренного трафика: перед production настройте `NOMINATIM_USER_AGENT` в `search-service/.env`; для большого регулярного потока установите свой экземпляр Nominatim или переключите provider endpoint. Смотрите [политику использования Nominatim](https://operations.osmfoundation.org/policies/nominatim/) и [политику OSM-тайлов](https://operations.osmfoundation.org/policies/tiles/).
 
 ### Остановка и логи
 
@@ -190,55 +201,6 @@ python -m pip install -r requirements.txt
 
 Чтобы выйти из виртуального окружения, выполните `deactivate`.
 
-## Git и GitHub
-
-### Первый коммит и отправка проекта на GitHub
-
-1. Установите Git и войдите в свой аккаунт на [GitHub](https://github.com/).
-2. Создайте на GitHub новый пустой репозиторий. Если проект уже есть на компьютере, удобнее не добавлять при создании репозитория README, лицензию или `.gitignore`.
-3. Откройте терминал в корневой папке проекта. Если Git-репозиторий ещё не создан, выполните:
-
-```bash
-git init
-git branch -M main
-```
-
-4. Добавьте файлы и проверьте, что попадёт в коммит:
-
-```bash
-git add .
-git status
-```
-
-5. Создайте первый коммит и привяжите удалённый репозиторий. Замените адрес на URL своего репозитория на GitHub:
-
-```bash
-git commit -m "Initial project commit"
-git remote add origin https://github.com/ВАШЕ_ИМЯ/ИМЯ_РЕПОЗИТОРИЯ.git
-git push -u origin main
-```
-
-`git add .` добавляет изменения и безопасные шаблоны `.env.example`; реальные `.env`, `key.txt`, приватные ключи и кэш игнорируются. Перед коммитом проверьте `git status` и убедитесь, что локальные секреты не staged.
-
-Если команда `git remote add origin ...` сообщает, что `origin` уже существует, обновите его адрес командой `git remote set-url origin https://github.com/ВАШЕ_ИМЯ/ИМЯ_РЕПОЗИТОРИЯ.git`.
-
-### Как отправлять следующие изменения
-
-После того как внесли изменения в файлы, выполните из корня проекта:
-
-```bash
-git pull
-git status
-git add .
-git commit -m "Коротко описать изменения"
-git push
-```
-
-`git pull` сначала загружает последние изменения из GitHub. `git status` показывает, какие файлы изменены, `git add .` подготавливает их к сохранению, `git commit` создаёт запись об изменениях, а `git push` отправляет коммиты на GitHub. Вместо `git add .` можно добавить только нужные файлы, например `git add README.md`.
-
-### Перед тем как сделать репозиторий публичным
-
-Секретные файлы исключены из текущего индекса Git. Если секреты ранее попадали в коммиты, удаление из последующего коммита не стирает старую историю: замените скомпрометированные ключи и перед публикацией очистите историю репозитория. Файлы `.gitkeep` — пустые маркеры для сохранения нужных директорий.
 
 ### Отдельные машины
 

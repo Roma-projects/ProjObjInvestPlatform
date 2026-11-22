@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.dependencies import require_gateway
 from app.schemas.search import (
     CatalogQueryRequest,
+    CatalogMapRequest,
     SearchResponse,
     SuggestRequest,
     SuggestResponse,
@@ -53,6 +54,12 @@ async def search_catalog_json(body: CatalogQueryRequest) -> dict:
         revenue_trend=body.revenue_trend,
         city=body.city,
     )
+
+
+@router.post("/catalog/map")
+async def catalog_map_json(body: CatalogMapRequest) -> dict:
+    """Return coordinates and titles for published listings using a JSON body."""
+    return await search_service.map_businesses(body.model_dump(exclude_none=True))
 
 
 @router.get("/catalog/{listing_id}")

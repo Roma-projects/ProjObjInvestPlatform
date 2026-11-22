@@ -19,6 +19,8 @@
 
 Пароль должен содержать не менее 12 символов. В подтверждении и сбросе пароля используется проверочный код/токен, присланный Auth.
 
+Главная проверяет состояние сессии через `POST /api/auth/refresh` (если access token отсутствует) и `GET /api/auth/me`. Выход удаляет refresh-cookie ответом Auth; сам access token очищается из `sessionStorage`.
+
 ## Listing — объявления
 
 - `POST /api/listings` — создать черновик; JSON-схема `BusinessListingDraft` находится в `listing-service/app/schemas/business_listing.py`.
@@ -52,6 +54,7 @@
 Для браузерного каталога используйте POST: фильтры находятся в JSON-теле, не в query string.
 
 - `POST /api/catalog/query` — `q`, `business_type`, `deal_composition`, `property_type`, `property_condition`, `transfer_method`, `min_price`, `max_price`, `verification_status`, `revenue_trend`, `city`, `sort`, `cursor`, `limit`. Поля категорий принимают строку или массив строк.
+- `POST /api/catalog/map` — JSON-фильтры каталога; возвращает только ID, название, цену, город и координаты публичных объявлений.
 - `GET /api/catalog/{listing_id}` — получить публичную карточку опубликованного объявления.
 - `POST /api/search/suggest` — JSON: `{ "q": "кофейня", "limit": 10 }`.
 - `GET /api/catalog` — совместимый маршрут со значениями по умолчанию; новые клиенты должны использовать POST `/query`.
@@ -71,6 +74,10 @@
 ```
 
 Публичный Search-индекс не содержит телефон, email, паспортные данные и закрытые документы продавца. Начать диалог можно по `seller_id` из карточки объявления.
+
+Пример карты без фильтрации: `POST /api/catalog/map` с телом `{}`. Ответ содержит `items` (маркеры), `total` (количество точек), `unlocated` (объявления без координат) и `truncated` (если превышен лимит карты).
+
+Карта использует координаты из публичного индекса Search. При публикации Search геокодирует адрес объекта на сервере и кэширует координату; закрытые документы и адреса, не предназначенные для каталога, не отправляются в Nominatim. Для ранее опубликованных карточек предусмотрен одноразовый backfill, описанный в [документации Search](../search-service/README.md).
 
 ## Messaging — сообщения
 

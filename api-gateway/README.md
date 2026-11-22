@@ -2,7 +2,7 @@
 
 Единая точка входа API: проверяет access JWT, ограничивает частоту запросов, направляет HTTP-запросы к Auth/Listing/Search/Moderation и отправляет новые сообщения в RabbitMQ. События блокировки из Moderation синхронизируют Redis-проверку access JWT, поэтому уже выданный токен перестаёт давать доступ после получения события.
 
-Публичные маршруты каталога и подсказок поиска не требуют JWT: `GET /api/catalog`, `GET /api/catalog/{listing_id}`, `POST /api/catalog/query` и `POST /api/search/suggest`. Поиск и фильтры передавайте JSON-телом в `POST /api/catalog/query`; маршруты `/api/auth/*` используют контракты Auth-сервиса, а приватные маршруты объявлений и сообщений требуют Bearer access token.
+Публичные маршруты каталога и подсказок поиска не требуют JWT: `GET /api/catalog`, `GET /api/catalog/{listing_id}`, `POST /api/catalog/query`, `POST /api/catalog/map` и `POST /api/search/suggest`. Поиск и фильтры передавайте JSON-телом; маршруты `/api/auth/*` используют контракты Auth-сервиса, а приватные маршруты объявлений и сообщений требуют Bearer access token.
 
 ## Запуск через Docker Compose
 

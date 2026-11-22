@@ -17,6 +17,7 @@
 | API Gateway | 8000 | Redis, RabbitMQ |
 | Auth | 8000 | PostgreSQL, Redis |
 | Listing | 8000 | PostgreSQL, файловые volumes |
+| Moderation | 8000 | PostgreSQL |
 | Search + Catalog | 8000 | MongoDB, Redis |
 | Analytic Scripts | 8000 | MongoDB |
 | Analytic AI | 8000 | PostgreSQL, Redis |
@@ -26,7 +27,7 @@
 
 Инфраструктура: PostgreSQL 15, MongoDB 7, Redis 7 и RabbitMQ 3.12. Внешний трафик проходит через Nginx и API Gateway; сервисы не публикуют собственные порты.
 
-Сервисы работают в изолированной сети Compose; внешний HTTP-трафик проходит через Nginx и API Gateway, межсервисные события идут через RabbitMQ. Analytic Scripts и Analytic AI обрабатывают объявление независимо друг от друга, Listing собирает их результаты. Для автоматического анализа AI настройте `POLZA_API_KEY` и `POLZA_MODEL`; при недоступности модели фото направляются на ручную проверку. Подробный запуск AI-сценариев из venv или Docker описан в [analytic-ai/README.md](analytic-ai/README.md).
+Сервисы работают в изолированной сети Compose; внешний HTTP-трафик проходит через Nginx и API Gateway, межсервисные события идут через RabbitMQ. Analytic Scripts и Analytic AI обрабатывают объявление независимо друг от друга, Listing собирает их результаты и передаёт в Moderation только внутренний снимок на проверку. Moderation записывает решение в свой PostgreSQL и публикует событие; только после одобрения Listing отправляет публичные поля в Search. Для автоматического анализа AI настройте `POLZA_API_KEY` и `POLZA_MODEL`; при недоступности модели объявление остаётся на ручной проверке. Подробный запуск AI-сценариев из venv или Docker описан в [analytic-ai/README.md](analytic-ai/README.md).
 
 ```mermaid
 flowchart LR
@@ -34,6 +35,7 @@ flowchart LR
   N --> G[API Gateway]
   G --> A[Auth]
   G --> L[Listing]
+  G --> MOD[Moderation]
   G --> S[Search + Catalog]
   G -->|message.send / 202| MQ[(RabbitMQ)]
   MQ --> M[Messaging]
@@ -42,6 +44,11 @@ flowchart LR
   MQ --> AI[Analytic AI]
   L --> MQ --> P[Parsers]
   P --> MQ --> AI
+  MQ --> MOD
+  MOD --> MQ --> L
+  L --> MQ --> S
+  MOD --> MQ --> A
+  MOD --> MQ --> S
   MQ --> NO[Notification]
   L --> PG[(PostgreSQL)]
   A --> PG
@@ -59,6 +66,7 @@ flowchart LR
 Copy-Item .env.example .env
 Copy-Item auth-service/.env.example auth-service/.env
 Copy-Item listing-service/.env.example listing-service/.env
+Copy-Item moderation-service/.env.example moderation-service/.env
 Copy-Item messaging-service/.env.example messaging-service/.env
 Copy-Item notification-service/.env.example notification-service/.env
 Copy-Item search-service/.env.example search-service/.env
@@ -67,7 +75,7 @@ Copy-Item analytic-scripts/.env.example analytic-scripts/.env
 Copy-Item analytic-ai/.env.example analytic-ai/.env
 ```
 
-Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. API ключ AI задайте только в `analytic-ai/.env`. Compose читает эти файлы через `env_file`; Dockerfiles их не копируют в образы. Шаблоны `.env.example` можно хранить в Git. Для регистрации с подтверждением email заполните SMTP параметры в корневом `.env`.
+Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, `MODERATION_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. Используйте одно значение `MODERATION_SHARED_SECRET` во внутренних настройках Auth, Listing и Moderation. API ключ AI задайте только в `analytic-ai/.env`. Compose читает сервисные файлы через `env_file`, а для Moderation основные адреса задаёт в Compose; Dockerfiles не копируют реальные локальные `.env` в образы. Шаблоны `.env.example` можно хранить в Git. Для регистрации с подтверждением email заполните SMTP параметры в корневом `.env`.
 
 ### 2. Запустите платформу
 
@@ -88,7 +96,7 @@ docker compose down
 
 ### Публичные и конфиденциальные файлы
 
-Файлы объявлений загружаются через API Gateway в Listing. Публичные изображения сохраняются в `public_uploads` и доступны через Nginx по `/public/uploads/`; Listing имеет к ним доступ на запись, Nginx — только на чтение. Документы продавца сохраняются в `private_uploads`, который не подключён к Nginx.
+Файлы объявлений загружаются через API Gateway в Listing. Публичные изображения сохраняются в `public_uploads` и доступны через Nginx по `/public/uploads/`; Listing имеет к ним доступ на запись, Nginx — только на чтение. Документы продавца сохраняются в `private_uploads`, который не подключён к Nginx. Moderation хранит только ссылки на закрытые документы и запрашивает файл через внутренний Listing endpoint с отдельным сервисным секретом. Браузер обращается к защищённому маршруту Moderation через Gateway; Listing не публикует документы во внешнем каталоге или через Nginx.
 
 ### Остановка и логи
 
@@ -98,12 +106,13 @@ docker compose logs -f api-gateway auth-service listing-service
 
 ## RabbitMQ topology
 
-- Exchange `listings` (topic) → `analytic.scripts`, `analytic.ai`, `listing.results`, `search_catalog.index`, `notification.listings`
+- Exchange `listings` (topic) → `analytic.scripts`, `analytic.ai`, `listing.results`, `moderation.inbox`, `search_catalog.index`, Auth/Gateway/Listing blacklist consumers
 - Exchange `messaging` (topic) → `messaging.in` (gateway responds `202 Accepted` after publish)
 - Exchange `auth` (topic) → security events for Notification
 - Legacy exchange `listings_events` remains for the original property-listing API
 - Exchange `messages_events` (topic) → `notifications_queue`
 - Queues declare dead-letter queues; Listing also writes events to a PostgreSQL outbox and retries delivery.
+- Moderation хранит решения и блокировки в `moderation_db` и публикует их через свой PostgreSQL outbox. `moderation.user.blacklisted` снимает все объявления продавца с Search, блокирует его сессии в Auth и запрещает новые публикации; `moderation.user.unblocked` разрешает вход, но старые объявления остаются снятыми до повторной отправки и проверки.
 
 Сервисы сами объявляют exchanges/queues при старте (если брокер доступен). Без RabbitMQ/Redis сервисы стартуют с warning и продолжают работать (graceful degrade).
 
@@ -121,9 +130,11 @@ docker compose logs -f api-gateway auth-service listing-service
 | Сервис | Инструкция |
 |---|---|
 | Nginx и Frontend edge | [nginx/README.md](nginx/README.md) |
+| Frontend | [frontend/README.md](frontend/README.md) |
 | API Gateway | [api-gateway/README.md](api-gateway/README.md) |
 | Auth | [auth-service/README.md](auth-service/README.md) |
 | Listing | [listing-service/README.md](listing-service/README.md) |
+| Moderation | [moderation-service/README.md](moderation-service/README.md) |
 | Search + Catalog | [search-service/README.md](search-service/README.md) |
 | Analytic Scripts | [analytic-scripts/README.md](analytic-scripts/README.md) |
 | Analytic AI | [analytic-ai/README.md](analytic-ai/README.md) |
@@ -140,13 +151,14 @@ real-estate-aggregator/
 ├── api-gateway/
 ├── auth-service/
 ├── listing-service/
+├── moderation-service/
 ├── search-service/
 ├── analytic-scripts/
 ├── analytic-ai/
 ├── parsers/
 ├── messaging-service/
 ├── notification-service/
-├── frontend/                  # клиентская часть и API-обёртки
+├── frontend/                  # многостраничный HTML/CSS/JS-клиент и API-обёртки
 └── nginx/                     # внешний HTTP edge
 ```
 

@@ -1,36 +1,86 @@
 # Внешний API платформы
 
-Все HTTP-запросы из браузера направляются в Nginx на `http://localhost:8080`. Nginx удаляет начальный `/api/` и пересылает запрос в API Gateway. Защищённые методы требуют `Authorization: Bearer <access_token>`.
+Браузер обращается к тому же origin: Nginx на `http://localhost:8080` раздаёт клиент и пересылает `/api/*` в API Gateway. Gateway маршрутизирует запросы к соответствующему микросервису. Фронтенд не обращается напрямую к контейнерным портам и не дублирует бизнес-логику.
+
+Для защищённых HTTP-методов клиент передаёт `Authorization: Bearer <access_token>`. Access JWT хранится в `sessionStorage`, refresh JWT — в HttpOnly cookie. Cookie отправляется автоматически с same-origin запросом.
 
 ## Auth
 
-Создание пользователя: `POST /api/auth/register`. Тело включает `email`, `phone`, `password`, `password_confirm`, `first_name`, `last_name` и `agree_to_terms: true`. После регистрации Auth отправляет код подтверждения, если SMTP настроен.
+- `POST /api/auth/register` — JSON: `email`, `phone`, `password`, `password_confirm`, `first_name`, `last_name`, необязательный `patronymic`, `agree_to_terms: true`. После регистрации Auth устанавливает cookie подтверждения почты.
+- `POST /api/auth/login` — JSON: `login`, `password`, `device_info`; ответ содержит `access_token`, refresh token устанавливается в HttpOnly cookie.
+- `POST /api/auth/refresh` — обновить access token по refresh cookie.
+- `POST /api/auth/logout` — JSON: `{ "logout_all_devices": false }`.
+- `GET /api/auth/me` и `PATCH /api/auth/me` — текущий профиль; patch принимает поля профиля и `notification_preferences`.
+- `POST /api/auth/verify` — JSON: `{ "type": "email", "code": "123456" }`.
+- `POST /api/auth/resend-code` — JSON: `{ "type": "email" }`; требуется cookie подтверждения.
+- `POST /api/auth/forgot-password` — JSON: `{ "email": "user@example.com" }`.
+- `POST /api/auth/reset-password` — JSON: `token_from_email`, `new_password`, `new_password_confirm`.
+- `POST /api/auth/change-password` — JSON: `current_password`, `new_password`, `new_password_confirm`.
 
-Вход: `POST /api/auth/login` с `login` и `password`. Ответ содержит короткоживущий access token; refresh token хранится в защищённой cookie. Другие маршруты профиля, восстановления пароля и сессий описаны в OpenAPI Auth.
+Пароль должен содержать не менее 12 символов. В подтверждении и сбросе пароля используется проверочный код/токен, присланный Auth.
 
-## Объявления
+## Listing — объявления
 
-- `POST /api/v1/listings` — создать черновик объявления.
-- `GET /api/v1/listings` — список собственных объявлений с курсором.
-- `GET /api/v1/listings/{id}` — получить своё объявление.
-- `PATCH /api/v1/listings/{id}` — изменить черновик.
-- `POST /api/v1/listings/{id}/files/{field}` — загрузить один файл как multipart-поле `file`.
-- `POST /api/v1/listings/{id}/submit` — отправить объявление на анализ и модерацию.
-- `GET /api/v1/listings/moderation/queue` — получить очередь (только модератор).
-- `POST /api/v1/listings/{id}/moderation-decision` — принять `approve` или `reject` (только модератор).
+- `POST /api/listings` — создать черновик; JSON-схема `BusinessListingDraft` находится в `listing-service/app/schemas/business_listing.py`.
+- `GET /api/listings` — список собственных объявлений.
+- `GET /api/listings/{id}` — получить своё объявление. Listing проверяет владельца и не отдаёт другим пользователям исходную запись.
+- `PATCH /api/listings/{id}` — сохранить изменения черновика JSON-телом.
+- `POST /api/listings/{id}/files/{field}` — загрузить файл multipart-полем `file`; ответы и GET Listing возвращают только имена полей закрытых документов, без путей хранения.
+- `POST /api/listings/{id}/submit` — отправить черновик на обработку.
+- Очередь и решения модерации находятся в Moderation API, Listing не отдаёт модераторам полную запись.
 
-Внешний путь для объявлений Gateway преобразует в `/api/v1/listings` сервиса Listing. Содержание черновика проверяется строгой схемой Pydantic; точный перечень полей задаёт `BusinessListingDraft`.
+Эти маршруты идут в бизнес-часть Listing. Совместимые старые `/api/v1/listings` тоже требуют access JWT и ограничивают GET объявлениями текущего владельца. Публичный GET разрешён только к одобренной карточке через Search (`/api/catalog/{id}`): это публичная проекция, а не исходная запись Listing и не закрытые файлы.
 
-## Каталог
+## Moderation — очередь и чёрный список
 
-- `GET /api/catalog` — публичный каталог. Поддерживает фильтры `q`, `business_type`, `min_price`, `max_price`, `verification_status`, `sort`, `cursor` и `limit`.
-- `GET /api/search/suggest?q=...` — подсказки поиска.
+Все маршруты требуют access JWT пользователя с ролью `moderator`. Решения и фильтры отправляются JSON-телом; API Gateway проксирует запросы в отдельный `moderation-service`.
 
-## Сообщения и уведомления
+Низкий рейтинг AI, отсутствие сигналов риска, базовый уровень проверки и отсутствие закрытых документов позволяют опубликовать объявление автоматически. Случаи с подозрениями или углублённой проверкой остаются в ручной очереди. Модератор может снять опубликованную карточку с самой страницы объявления в каталоге.
 
-- `POST /api/messages` — отправить сообщение. Тело: `participant_id` (UUID собеседника), `text` и уникальный `client_message_id`. Gateway возвращает `202 Accepted`, так как запись выполняется асинхронно.
-- `GET /api/messages/conversations` — список диалогов; необязательные `filter=all|unread`, `cursor` и `limit`.
+- `GET /api/moderation/cases` — очередь ручной проверки.
+- `GET /api/moderation/cases/{case_id}` — данные объявления, оба аналитических отчёта и доступные названия документов.
+- `GET /api/moderation/cases/auto-releases` — последние автоматически одобренные случаи.
+- `POST /api/moderation/cases/{case_id}/decision` — JSON `{ "verdict": "approve" | "reject", "reason": "...", "verification_level": "basic" | "deep" }`.
+- `POST /api/moderation/catalog/{listing_id}/remove` — JSON `{ "reason": "..." }`; снимает опубликованное объявление с каталога и фиксирует причину в случае модерации.
+- `GET /api/moderation/cases/{case_id}/documents/{field}` — получить закрытый файл текущего случая; файл проходит через Moderation, Listing volume не доступен браузеру.
+- `GET /api/moderation/blacklist` — список активных блокировок.
+- `POST /api/moderation/blacklist` — JSON `{ "user_id": "UUID", "reason": "..." }`; бан отзывает сессии и снимает все объявления с каталога.
+- `DELETE /api/moderation/blacklist/{user_id}` — снять бан. Это не возвращает объявления в каталог автоматически.
+
+## Search — каталог и поиск
+
+Для браузерного каталога используйте POST: фильтры находятся в JSON-теле, не в query string.
+
+- `POST /api/catalog/query` — `q`, `business_type`, `deal_composition`, `property_type`, `property_condition`, `transfer_method`, `min_price`, `max_price`, `verification_status`, `revenue_trend`, `city`, `sort`, `cursor`, `limit`. Поля категорий принимают строку или массив строк.
+- `GET /api/catalog/{listing_id}` — получить публичную карточку опубликованного объявления.
+- `POST /api/search/suggest` — JSON: `{ "q": "кофейня", "limit": 10 }`.
+- `GET /api/catalog` — совместимый маршрут со значениями по умолчанию; новые клиенты должны использовать POST `/query`.
+
+Пример JSON-фильтров:
+
+```json
+{
+  "q": "кофейня",
+  "business_type": ["food", "hospitality"],
+  "min_price": 1000000,
+  "max_price": 15000000,
+  "city": "Екатеринбург",
+  "sort": "price_asc",
+  "limit": 20
+}
+```
+
+Публичный Search-индекс не содержит телефон, email, паспортные данные и закрытые документы продавца. Начать диалог можно по `seller_id` из карточки объявления.
+
+## Messaging — сообщения
+
+- `POST /api/messages` — JSON: `participant_id` (UUID собеседника), `text`, уникальный `client_message_id`. Gateway принимает сообщение асинхронно и отвечает `202 Accepted`.
+- `POST /api/messages/conversations` — JSON: `{ "participant_id": "<UUID>" }`; создать или получить диалог.
+- `GET /api/messages/conversations` — список диалогов.
 - `GET /api/messages/conversations/{conversation_id}/messages` — история диалога.
-- `ws://localhost:8080/ws/notifications?token=<access_token>` — WebSocket с уведомлениями пользователя.
+- `POST /api/messages/read` — JSON: `{ "message_ids": ["..."] }`.
+- `/ws/notifications?token=<access_token>` — WebSocket уведомлений. Query-параметр используется только для handshake WebSocket: браузерный WebSocket API не поддерживает Authorization header.
 
-Публичные изображения доступны через `/public/uploads/`. Частные документы не выдаются через Nginx.
+## Что пока не маршрутизируется
+
+У Gateway пока нет отдельного HTTP API аналитики. Результаты скриптов и AI проходят через внутренние события RabbitMQ и доступны модераторам в карточке случая.

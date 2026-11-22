@@ -79,3 +79,13 @@ class BusinessListing(Base):
     revenue_trend: Mapped[str | None] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class BlockedUser(Base):
+    """Local projection of the moderation blacklist for write-side enforcement."""
+
+    __tablename__ = "blocked_users"
+
+    user_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
+    reason: Mapped[str | None] = mapped_column(String(500))
+    blocked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

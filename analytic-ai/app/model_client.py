@@ -246,6 +246,16 @@ class VisionAnalyzer:
             or base["red_flag_score"] >= 5 or photo_issues
             else "auto_ok"
         )
+        has_verification_documents = (
+            any(value is True for value in data["has_documents"].values())
+            if isinstance(data.get("has_documents"), dict)
+            else False
+        )
+        base["verification_level"] = (
+            "deep"
+            if has_verification_documents or flags or photo_issues or base["moderation_status"] != "auto_ok"
+            else "basic"
+        )
         if base["moderation_status"] == "requires_moderation":
             reasons = [f"{flag['code']}: {flag['evidence']}" for flag in flags]
             reasons.extend(f"Фото {item.get('image_path', '—')}: {item.get('reason', 'нужна проверка')}"
@@ -273,6 +283,7 @@ class VisionAnalyzer:
                    "reason": f"{reason}; фото требует ручной модерации", "confidence": 0.0}
                   for path in image_paths]
         base["moderation_status"] = "requires_moderation"
+        base["verification_level"] = "deep"
         base["moderation_reasons"] = list(dict.fromkeys([*base.get("moderation_reasons", []), "ai_service_unavailable"]))
         base["content_moderation"] = issues
         base["moderator_report"]["photo_issues"] = issues

@@ -1,18 +1,553 @@
-<!-- Для чего нужен этот файл:
-     Начальная HTML-страница фронтенда. Браузер загружает её первой, а затем запускает JavaScript-приложение.
--->
 <!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Платформа готового бизнеса</title>
-    <link rel="stylesheet" href="/src/styles/global.css" />
-  </head>
-  <body>
-    <div id="root">
-      <p style="padding: 2rem; font-family: system-ui">Загрузка платформы…</p>
-    </div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="MieroVenture — платформа для поиска, оценки и покупки готового бизнеса.">
+  <title>MieroVenture — Найдите бизнес, в который стоит инвестировать</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/header.css">
+  <link rel="stylesheet" href="/css/hero.css">
+  <link rel="stylesheet" href="/css/cards.css">
+  <link rel="stylesheet" href="/css/analytics.css">
+  <link rel="stylesheet" href="/css/map.css">
+  <link rel="stylesheet" href="/css/chat.css">
+  <link rel="stylesheet" href="/css/footer.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/section.css">
+  <link rel="stylesheet" href="/css/business-offer.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+  <div class="page">
+
+    <header class="site-header">
+      <div class="header__inner">
+        <a class="header__brand" href="#top">MieroVenture</a>
+        <button class="header__toggle" aria-label="Открыть меню" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <nav class="header__nav">
+          <a class="header__link" href="catalog.html">Каталог</a>
+          <a class="header__link" href="#how">Как это работает</a>
+          <a class="header__link" href="#contact">О нас</a>
+          <a class="header__link" href="registration.html">Регистрация</a>
+          <a class="button button--light header__login" href="login.html">Вход</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+
+        <div class="hero__visual">
+          <div class="hero__image" aria-hidden="true"></div>
+          <div class="container">
+            <img class="hero__logo" src="/assets/icons/logo.svg" alt="MV">
+
+            <div class="hero__content reveal">
+              <h1 class="hero__title">Miero<span class="hero__marker">Venture</span></h1>
+              <p class="hero__subtitle">Находите бизнес, в который стоит инвестировать</p>
+              <p class="hero__description">Сравнивайте доступные предложения, анализируйте перспективы и связывайтесь с
+                владельцами напрямую.</p>
+              <div class="hero__actions">
+                <a class="button button--light" href="catalog.html">Перейти к каталогу</a>
+              </div>
+
+              <div class="hero__features stagger">
+                <article class="feature">
+                  <div class="feature__icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+                      xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <path
+                        d="M15.3334 28C22.329 28 28.0001 22.3289 28.0001 15.3333C28.0001 8.33769 22.329 2.66663 15.3334 2.66663C8.33781 2.66663 2.66675 8.33769 2.66675 15.3333C2.66675 22.3289 8.33781 28 15.3334 28Z"
+                        stroke="#F8F0E3" stroke-width="1.5" stroke-linecap="round" />
+                      <path d="M24.2898 24.2904L29.3333 29.3339" stroke="#F8F0E3" stroke-width="1.5"
+                        stroke-linecap="round" />
+                    </svg></div>
+                  <h3 class="feature__title">Широкий выбор</h3>
+                  <p class="feature__text">Более 1000 проверенных предложений по всей России</p>
+                </article>
+                <article class="feature">
+                  <div class="feature__icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M20.0794 13.9993C20.4472 13.5873 20.4114 12.9552 19.9994 12.5873C19.5874 12.2195 18.9553 12.2553 18.5874 12.6673L14.5716 17.1651L13.4128 15.8673C13.0449 15.4553 12.4127 15.4195 12.0007 15.7873C11.5888 16.1551 11.553 16.7873 11.9208 17.1993L13.8256 19.3326C14.0153 19.5451 14.2866 19.6666 14.5716 19.6666C14.8564 19.6666 15.1277 19.5451 15.3174 19.3326L20.0794 13.9993Z"
+                        fill="#F8F0E3" />
+                      <path fill-rule="evenodd" clip-rule="evenodd"
+                        d="M16 1.66663C14.75 1.66663 13.5564 2.0754 11.6312 2.73479L10.6613 3.06681C8.68616 3.74289 7.16187 4.26465 6.07071 4.70795C5.52104 4.93124 5.04849 5.14752 4.66797 5.36851C4.30179 5.58116 3.93443 5.84641 3.68484 6.20201C3.43813 6.55351 3.31057 6.98561 3.23041 7.40159C3.14708 7.83404 3.09683 8.35281 3.0644 8.94844C3 10.1311 3 11.7513 3 13.8528V15.9885C3 24.1232 9.14404 28.0233 12.7978 29.6194L12.8339 29.6352C13.287 29.8332 13.7128 30.0192 14.2021 30.1445C14.7188 30.2768 15.2676 30.3333 16 30.3333C16.7324 30.3333 17.2812 30.2768 17.7979 30.1445C18.2872 30.0192 18.7131 29.8332 19.166 29.6352L19.2023 29.6194C22.856 28.0233 29 24.1232 29 15.9885V13.853C29 11.7514 29 10.1312 28.9356 8.94844C28.9032 8.35281 28.8529 7.83404 28.7696 7.40159C28.6895 6.98561 28.5619 6.55351 28.3152 6.20201C28.0656 5.84641 27.6983 5.58116 27.332 5.36851C26.9515 5.14752 26.4789 4.93124 25.9293 4.70795C24.8381 4.26465 23.3139 3.74289 21.3387 3.0668L20.3688 2.73479C18.4436 2.0754 17.25 1.66663 16 1.66663ZM12.1075 4.68569C14.2601 3.94881 15.1231 3.66663 16 3.66663C16.8769 3.66663 17.7399 3.94881 19.8925 4.68569L20.6563 4.94712C22.6731 5.63748 24.1439 6.14136 25.1765 6.56088C25.692 6.77028 26.0655 6.94576 26.3276 7.098C26.4571 7.17316 26.5463 7.23519 26.6057 7.2836C26.6563 7.32461 26.6755 7.34785 26.6783 7.35127C26.6808 7.35543 26.6975 7.38312 26.7208 7.44868C26.7475 7.52349 26.7769 7.63075 26.8057 7.78004C26.864 8.08221 26.9081 8.49731 26.9385 9.05719C26.9996 10.1788 27 11.7444 27 13.8889V15.9885C27 22.8886 21.8401 26.2846 18.4016 27.7866C17.9063 28.003 17.6203 28.1254 17.3019 28.2069C16.9977 28.2848 16.6267 28.3333 16 28.3333C15.3733 28.3333 15.0023 28.2848 14.6981 28.2069C14.3797 28.1254 14.0937 28.003 13.5984 27.7866C10.1599 26.2846 5 22.8886 5 15.9885V13.8889C5 11.7444 5.00037 10.1788 5.06144 9.05719C5.09192 8.49731 5.13605 8.08221 5.19428 7.78004C5.22305 7.63075 5.25259 7.52349 5.27924 7.44868C5.30257 7.38316 5.31915 7.35547 5.32172 7.35128C5.32448 7.34789 5.34373 7.32464 5.39423 7.2836C5.45379 7.23519 5.54296 7.17316 5.67239 7.098C5.93453 6.94576 6.308 6.77028 6.82345 6.56088C7.85613 6.14136 9.32695 5.63748 11.3437 4.94712L12.1075 4.68569Z"
+                        fill="#F8F0E3" />
+                    </svg>
+                  </div>
+                  <h3 class="feature__title">Прозрачные данные</h3>
+                  <p class="feature__text">Финансовые показатели, аналитика и оценка бизнеса</p>
+                </article>
+                <article class="feature">
+                  <div class="feature__icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path fill-rule="evenodd" clip-rule="evenodd"
+                        d="M25.2079 5.22922C23.8561 3.84858 21.928 3.33932 20.0407 3.87636C19.5095 4.02751 18.9563 3.71942 18.8053 3.18822C18.654 2.65702 18.9622 2.10386 19.4934 1.95271C22.0777 1.21739 24.7662 1.91942 26.637 3.82996C27.0234 4.22458 27.0167 4.85771 26.6221 5.2441C26.2274 5.6305 25.5943 5.62383 25.2079 5.22922ZM14.9205 4.41115C14.635 3.92171 13.8033 3.6249 12.9583 4.10776C12.1165 4.58887 11.9685 5.43692 12.2489 5.91783L15.6165 11.6927C15.8947 12.1697 15.7334 12.782 15.2563 13.0603C14.7792 13.3385 14.167 13.1772 13.8887 12.7001L10.5212 6.92533C10.521 6.92504 10.5214 6.92562 10.5212 6.92533L9.3987 5.00039C9.11329 4.51095 8.28154 4.21414 7.43665 4.697C6.59484 5.17811 6.44678 6.02616 6.72722 6.50707L11.7785 15.1693C12.0568 15.6464 11.8955 16.2588 11.4184 16.5369C10.9413 16.8152 10.3291 16.654 10.0508 16.1768L7.80581 12.3269C7.5204 11.8375 6.68865 11.5407 5.84376 12.0235C5.00194 12.5046 4.85389 13.3526 5.13433 13.8336L10.1856 22.4958C12.3309 26.1746 17.6247 27.3685 22.114 24.8028C26.6002 22.2389 28.195 17.1169 26.0547 13.4466L22.6871 7.67179C22.4016 7.18236 21.5699 6.88554 20.7251 7.3684C19.8832 7.84951 19.7353 8.69756 20.0156 9.17848L22.2607 13.0284C22.395 13.2588 22.4318 13.5333 22.3627 13.7909C22.2936 14.0486 22.1246 14.268 21.893 14.4004C19.8365 15.5757 19.2062 17.8484 20.1064 19.3924C20.3847 19.8696 20.2235 20.4818 19.7465 20.76C19.2694 21.0382 18.657 20.877 18.3788 20.4C16.9664 17.978 17.8555 14.9824 20.0632 13.2305L14.9205 4.41115ZM18.5581 6.67884L16.6481 3.40366C15.6937 1.76686 13.5506 1.46567 11.966 2.37134C11.4776 2.65046 11.0622 3.03307 10.749 3.47696C9.68222 2.30246 7.84512 2.15998 6.44426 2.96058C4.85646 3.86802 4.04008 5.86926 4.99953 7.51458L6.33576 9.80599C5.82237 9.86176 5.31316 10.0232 4.85137 10.2871C3.26357 11.1946 2.44718 13.1958 3.40664 14.8412L8.45794 23.5033C11.2723 28.3294 17.8773 29.5277 23.1065 26.5392C28.3386 23.5489 30.6017 17.2738 27.7823 12.4391L24.4148 6.6643C23.4603 5.0275 21.3174 4.72631 19.7327 5.63198C19.2659 5.89871 18.8659 6.25994 18.5581 6.67884ZM5.88526 23.812C6.36236 23.5338 6.97465 23.695 7.25286 24.1721C8.35534 26.0628 10.0408 27.4924 12.1193 28.4201C12.6236 28.6452 12.85 29.2365 12.6249 29.7409C12.3998 30.2452 11.8085 30.4716 11.3042 30.2465C8.88882 29.1685 6.86242 27.4728 5.52516 25.1796C5.24694 24.7025 5.40817 24.0902 5.88526 23.812Z"
+                        fill="#F8F0E3" />
+                    </svg>
+                  </div>
+                  <h3 class="feature__title">Прямой контакт</h3>
+                  <p class="feature__text">Общение с владельцем без посредников</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how">
+        <div class="container">
+          <p class="section__eyebrow">Простой путь к вашему бизнесу</p>
+          <h2 class="section__title reveal">Как это работает?</h2>
+          <div class="business-grid stagger" style="margin-top:28px">
+            <article class="business-card">
+              <h3 class="business-card__name">01 &nbsp; Найдите бизнес</h3>
+              <p class="section__lead">Используйте удобные фильтры, чтобы подобрать готовый
+                бизнес под свои интересы, бюджет и цели.</p>
+            </article>
+            <article class="business-card">
+              <h3 class="business-card__name">02 &nbsp; Изучите оценку</h3>
+              <p class="section__lead">Ознакомьтесь с финансовыми показателями, инвестиционным
+                рейтингом и аналитикой.</p>
+            </article>
+            <article class="business-card">
+              <h3 class="business-card__name">03 &nbsp; Свяжитесь с владельцем</h3>
+              <p class="section__lead">Задайте вопросы, уточните детали и обсудите условия
+                покупки напрямую.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section offers" id="offers">
+        <div class="container">
+          <div class="offers__head">
+            <div>
+              <p class="section__eyebrow">Актуальные предложения</p>
+              <h2 class="section__title">Бизнесы с потенциалом</h2>
+            </div>
+            <a class="text-link" href="catalog.html">Смотреть все предложения →</a>
+          </div>
+          <div class="business-grid stagger">
+            <article class="business-offer">
+              <div class="business-offer__media">
+                <div class="business-offer__photo business-offer__photo--placeholder"></div>
+                <div class="business-offer__rating">
+                  <span class="business-offer__rating-mark">A</span>
+                  <span class="business-offer__rating-copy">Инвестиционный<br>рейтинг</span>
+                </div>
+
+                <a class="business-offer__favorite" type="button" aria-label="Добавить в избранное">
+                  <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M6 1C3.239 1 1 3.216 1 5.95C1 8.157 1.875 13.395 10.488 18.69C10.6425 18.7833 10.8195 18.8327 11 18.8327C11.1805 18.8327 11.3575 18.7833 11.512 18.69C20.126 13.395 21 8.157 21 5.95C21 3.216 18.761 1 16 1C13.239 1 11 4 11 4C11 4 8.761 1 6 1Z"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#680A18" />
+                  </svg>
+
+                </a>
+              </div>
+
+              <div class="business-offer__content">
+                <h3 class="business-offer__title">Кофейня «Зёрна» </h3>
+                <p class="business-offer__meta">Казань · общепит</p>
+
+                <div class="business-offer__stats">
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Цена бизнеса</span>
+                    <span class="business-offer__value">4,2 млн ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Прибыль</span>
+                    <span class="business-offer__value">185 000 ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Окупаемость</span>
+                    <span class="business-offer__value">23 мес.</span>
+                  </div>
+                </div>
+
+                <div class="business-offer__footer">
+                  <a class="business-offer__details" href="#analytics">
+                    Подробнее
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M6.53017 0.969811C6.46098 0.898178 6.37822 0.841042 6.28672 0.801735C6.19522 0.762428 6.0968 0.741738 5.99722 0.740873C5.89763 0.740008 5.79887 0.758984 5.7067 0.796695C5.61453 0.834405 5.53079 0.890095 5.46037 0.960515C5.38995 1.03093 5.33426 1.11467 5.29655 1.20685C5.25884 1.29902 5.23986 1.39778 5.24073 1.49736C5.24159 1.59695 5.26228 1.69536 5.30159 1.78686C5.3409 1.87837 5.39803 1.96113 5.46967 2.03031L8.68942 5.25006H1.49992C1.301 5.25006 1.11024 5.32908 0.969586 5.46973C0.828934 5.61038 0.749916 5.80115 0.749916 6.00006C0.749916 6.19897 0.828934 6.38974 0.969586 6.53039C1.11024 6.67104 1.301 6.75006 1.49992 6.75006H8.68942L5.46967 9.96981C5.33305 10.1113 5.25745 10.3007 5.25916 10.4974C5.26087 10.694 5.33975 10.8821 5.4788 11.0212C5.61786 11.1602 5.80597 11.2391 6.00261 11.2408C6.19926 11.2425 6.38871 11.1669 6.53017 11.0303L11.0302 6.53031C11.1708 6.38966 11.2498 6.19893 11.2498 6.00006C11.2498 5.80119 11.1708 5.61046 11.0302 5.46981L6.53017 0.969811Z"
+                        fill="#680A18" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+
+            <article class="business-offer">
+              <div class="business-offer__media">
+                <div class="business-offer__photo business-offer__photo--placeholder"></div>
+                <div class="business-offer__rating">
+                  <span class="business-offer__rating-mark">A</span>
+                  <span class="business-offer__rating-copy">Инвестиционный<br>рейтинг</span>
+                </div>
+
+                <a class="business-offer__favorite" type="button" aria-label="Добавить в избранное">
+                  <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M6 1C3.239 1 1 3.216 1 5.95C1 8.157 1.875 13.395 10.488 18.69C10.6425 18.7833 10.8195 18.8327 11 18.8327C11.1805 18.8327 11.3575 18.7833 11.512 18.69C20.126 13.395 21 8.157 21 5.95C21 3.216 18.761 1 16 1C13.239 1 11 4 11 4C11 4 8.761 1 6 1Z"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#680A18" />
+                  </svg>
+                </a>
+              </div>
+
+              <div class="business-offer__content">
+                <h3 class="business-offer__title">Кофейня «Зёрна» </h3>
+                <p class="business-offer__meta">Казань · общепит</p>
+
+                <div class="business-offer__stats">
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Цена бизнеса</span>
+                    <span class="business-offer__value">4,2 млн ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Прибыль</span>
+                    <span class="business-offer__value">185 000 ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Окупаемость</span>
+                    <span class="business-offer__value">23 мес.</span>
+                  </div>
+                </div>
+
+                <div class="business-offer__footer">
+                  <a class="business-offer__details" href="catalog.html">
+                    Подробнее
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M6.53017 0.969811C6.46098 0.898178 6.37822 0.841042 6.28672 0.801735C6.19522 0.762428 6.0968 0.741738 5.99722 0.740873C5.89763 0.740008 5.79887 0.758984 5.7067 0.796695C5.61453 0.834405 5.53079 0.890095 5.46037 0.960515C5.38995 1.03093 5.33426 1.11467 5.29655 1.20685C5.25884 1.29902 5.23986 1.39778 5.24073 1.49736C5.24159 1.59695 5.26228 1.69536 5.30159 1.78686C5.3409 1.87837 5.39803 1.96113 5.46967 2.03031L8.68942 5.25006H1.49992C1.301 5.25006 1.11024 5.32908 0.969586 5.46973C0.828934 5.61038 0.749916 5.80115 0.749916 6.00006C0.749916 6.19897 0.828934 6.38974 0.969586 6.53039C1.11024 6.67104 1.301 6.75006 1.49992 6.75006H8.68942L5.46967 9.96981C5.33305 10.1113 5.25745 10.3007 5.25916 10.4974C5.26087 10.694 5.33975 10.8821 5.4788 11.0212C5.61786 11.1602 5.80597 11.2391 6.00261 11.2408C6.19926 11.2425 6.38871 11.1669 6.53017 11.0303L11.0302 6.53031C11.1708 6.38966 11.2498 6.19893 11.2498 6.00006C11.2498 5.80119 11.1708 5.61046 11.0302 5.46981L6.53017 0.969811Z"
+                        fill="#680A18" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+
+            <article class="business-offer">
+              <div class="business-offer__media">
+                <div class="business-offer__photo business-offer__photo--placeholder"></div>
+                <div class="business-offer__rating">
+                  <span class="business-offer__rating-mark">A</span>
+                  <span class="business-offer__rating-copy">Инвестиционный<br>рейтинг</span>
+                </div>
+
+                <a class="business-offer__favorite" type="button" aria-label="Добавить в избранное">
+                  <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M6 1C3.239 1 1 3.216 1 5.95C1 8.157 1.875 13.395 10.488 18.69C10.6425 18.7833 10.8195 18.8327 11 18.8327C11.1805 18.8327 11.3575 18.7833 11.512 18.69C20.126 13.395 21 8.157 21 5.95C21 3.216 18.761 1 16 1C13.239 1 11 4 11 4C11 4 8.761 1 6 1Z"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#680A18" />
+                  </svg>
+                </a>
+              </div>
+
+              <div class="business-offer__content">
+                <h3 class="business-offer__title">Кофейня «Зёрна» </h3>
+                <p class="business-offer__meta">Казань · общепит</p>
+
+                <div class="business-offer__stats">
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Цена бизнеса</span>
+                    <span class="business-offer__value">4,2 млн ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Прибыль</span>
+                    <span class="business-offer__value">185 000 ₽</span>
+                  </div>
+                  <div class="business-offer__stat">
+                    <span class="business-offer__label">Окупаемость</span>
+                    <span class="business-offer__value">23 мес.</span>
+                  </div>
+                </div>
+
+                <div class="business-offer__footer">
+                  <a class="business-offer__details" href="catalog.html">
+                    Подробнее
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M6.53017 0.969811C6.46098 0.898178 6.37822 0.841042 6.28672 0.801735C6.19522 0.762428 6.0968 0.741738 5.99722 0.740873C5.89763 0.740008 5.79887 0.758984 5.7067 0.796695C5.61453 0.834405 5.53079 0.890095 5.46037 0.960515C5.38995 1.03093 5.33426 1.11467 5.29655 1.20685C5.25884 1.29902 5.23986 1.39778 5.24073 1.49736C5.24159 1.59695 5.26228 1.69536 5.30159 1.78686C5.3409 1.87837 5.39803 1.96113 5.46967 2.03031L8.68942 5.25006H1.49992C1.301 5.25006 1.11024 5.32908 0.969586 5.46973C0.828934 5.61038 0.749916 5.80115 0.749916 6.00006C0.749916 6.19897 0.828934 6.38974 0.969586 6.53039C1.11024 6.67104 1.301 6.75006 1.49992 6.75006H8.68942L5.46967 9.96981C5.33305 10.1113 5.25745 10.3007 5.25916 10.4974C5.26087 10.694 5.33975 10.8821 5.4788 11.0212C5.61786 11.1602 5.80597 11.2391 6.00261 11.2408C6.19926 11.2425 6.38871 11.1669 6.53017 11.0303L11.0302 6.53031C11.1708 6.38966 11.2498 6.19893 11.2498 6.00006C11.2498 5.80119 11.1708 5.61046 11.0302 5.46981L6.53017 0.969811Z"
+                        fill="#680A18" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="sell-banner" id="sell">
+        <div class="container">
+          <div class="sell-banner__inner reveal">
+            <img class="sell-banner__logo" src="/assets/icons/logo.svg" alt="">
+            <div>
+              <h2 class="sell-banner__title">Планируете продать бизнес?</h2>
+              <p class="sell-banner__text">Разместите свое объявление на MieroVenture и найдите покупателя, которому
+                будет интересен ваш бизнес.</p>
+            </div>
+            <a class="button button--light sell-banner__button" href="login.html">Разместить бизнес <span
+                class="icon-arrow"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10.8838 1.61623C10.7685 1.49684 10.6305 1.40161 10.478 1.3361C10.3255 1.27059 10.1615 1.23611 9.99552 1.23467C9.82955 1.23322 9.66495 1.26485 9.51133 1.3277C9.35771 1.39055 9.21815 1.48337 9.10078 1.60074C8.98341 1.7181 8.8906 1.85767 8.82775 2.01129C8.7649 2.16491 8.73327 2.32951 8.73471 2.49548C8.73615 2.66146 8.77063 2.82548 8.83615 2.97799C8.90166 3.13049 8.99689 3.26842 9.11627 3.38373L14.4825 8.74998H2.50002C2.1685 8.74998 1.85056 8.88168 1.61614 9.1161C1.38172 9.35052 1.25002 9.66846 1.25002 9.99998C1.25002 10.3315 1.38172 10.6494 1.61614 10.8839C1.85056 11.1183 2.1685 11.25 2.50002 11.25H14.4825L9.11627 16.6162C8.88858 16.852 8.76258 17.1677 8.76543 17.4955C8.76828 17.8232 8.89974 18.1367 9.1315 18.3685C9.36326 18.6003 9.67677 18.7317 10.0045 18.7346C10.3323 18.7374 10.648 18.6114 10.8838 18.3837L18.3838 10.8837C18.6181 10.6493 18.7498 10.3314 18.7498 9.99998C18.7498 9.66852 18.6181 9.35064 18.3838 9.11623L10.8838 1.61623Z"
+                    fill="#680A18" />
+                </svg>
+              </span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="analytics">
+        <div class="container">
+
+          <div class="analytics__grid">
+            <div class="analytics__copy reveal">
+              <p class="section__eyebrow">Аналитика и оценка</p>
+              <h2 class="section__title analytics__title">Инвестиционная оценка бизнеса</h2>
+              <p class="section__lead">Получите объективную оценку и сравните несколько вариантов по ключевым
+                показателям. Наши инструменты помогут определить инвестиционную привлекательность и возможные риски.</p>
+              <a class="button button--primary analytics__button" href="login.html">Перейти к аналитике <span
+                  class="icon-arrow"><svg width="21" height="22" viewBox="0 0 21 22" fill="none"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M11.428 1.77793C11.3069 1.6466 11.1621 1.54185 11.0019 1.46979C10.8418 1.39772 10.6696 1.35979 10.4953 1.35821C10.321 1.35662 10.1482 1.39141 9.98691 1.46055C9.82561 1.52968 9.67906 1.63178 9.55583 1.76088C9.4326 1.88998 9.33514 2.04351 9.26915 2.21249C9.20315 2.38147 9.16994 2.56253 9.17146 2.7451C9.17297 2.92767 9.20918 3.1081 9.27797 3.27586C9.34675 3.44361 9.44674 3.59534 9.5721 3.72218L15.2067 9.62505H2.62504C2.27694 9.62505 1.9431 9.76992 1.69696 10.0278C1.45082 10.2856 1.31254 10.6354 1.31254 11.0001C1.31254 11.3647 1.45082 11.7145 1.69696 11.9723C1.9431 12.2302 2.27694 12.3751 2.62504 12.3751H15.2067L9.5721 18.2779C9.33302 18.5373 9.20072 18.8846 9.20371 19.2451C9.20671 19.6056 9.34474 19.9505 9.58809 20.2054C9.83144 20.4604 10.1606 20.605 10.5048 20.6081C10.8489 20.6112 11.1804 20.4726 11.428 20.2222L19.303 11.9722C19.549 11.7143 19.6873 11.3647 19.6873 11.0001C19.6873 10.6354 19.549 10.2858 19.303 10.0279L11.428 1.77793Z"
+                      fill="#F8F0E3" />
+                  </svg>
+
+                </span></a>
+            </div>
+
+            <div class="chart reveal">
+              <div class="chart__head"><span>Кофейня «Зёрна» - динамика стоимости</span><span>млн ₽, оценка</span></div>
+              <p class="chart__address">ул. Полевая, 14</p>
+              <svg class="chart__svg" viewBox="0 0 640 190" preserveAspectRatio="none"
+                aria-label="График роста стоимости">
+                <line class="chart__gridline" x1="0" y1="70" x2="640" y2="70" />
+                <line class="chart__gridline" x1="0" y1="115" x2="640" y2="115" />
+                <line class="chart__axis" x1="0" y1="154" x2="640" y2="154" />
+                <polyline class="chart__line" points="0,112 128,104 256,87 384,63 512,47 620,23" />
+                <circle class="chart__point" cx="620" cy="23" r="6" />
+              </svg>
+              <div class="chart__years">
+                <span>2021</span><span>2022</span><span>2023</span><span>2024</span><span>2025</span><span>2026</span>
+              </div>
+              <div class="chart__metrics">
+                <div><span class="chart__metric-label">Ориентировочная цена</span><span class="chart__metric-value">4,2
+                    млн ₽</span></div>
+                <div><span class="chart__metric-label">Инвестиционный рейтинг</span><span
+                    class="chart__metric-value">B+</span></div>
+                <div><span class="chart__metric-label">Рост за три года</span><span
+                    class="chart__metric-value">+18%</span></div>
+              </div>
+            </div>
+
+            <div class="analytics__steps stagger">
+              <article class="analytics-step">
+                <div class="analytics-step__number">01</div>
+                <div>
+                  <h3 class="analytics-step__title">Похожие лоты</h3>
+                  <p class="analytics-step__text">Сравнивайте объекты в выбранном регионе по ключевым параметрам.</p>
+                </div>
+              </article>
+              <article class="analytics-step">
+                <div class="analytics-step__number">02</div>
+                <div>
+                  <h3 class="analytics-step__title">История цен</h3>
+                  <p class="analytics-step__text">Анализируйте динамику цен и рыночные тенденции.</p>
+                </div>
+              </article>
+              <article class="analytics-step">
+                <div class="analytics-step__number">03</div>
+                <div>
+                  <h3 class="analytics-step__title">Спрос и сроки</h3>
+                  <p class="analytics-step__text">Оценивайте скорость продажи объектов в выбранном районе.</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section map-section" id="map">
+        <div class="container">
+          <p class="section__eyebrow">Расположение</p>
+          <h2 class="section__title">Карта объектов</h2>
+          <p class="section__lead">Изучайте готовый бизнес в разных районах города, оценивайте расположение и
+            сравнивайте инвестиционные возможности.</p>
+
+          <div class="map__layout" style="margin-top:28px">
+            <div class="map__visual reveal">
+
+              <span class="map-pin map-pin--1"></span><span class="map-pin map-pin--2"></span><span
+                class="map-pin map-pin--3"></span><span class="map-pin map-pin--4"></span>
+            </div>
+            <div class="map-list stagger">
+              <article class="map-item">
+                <div class="map-item__image placeholder"></div>
+                <div>
+                  <h3 class="map-item__name">Кофейня «Зёрна»</h3>
+                  <p class="map-item__meta">Казань · общепит</p>
+                  <div class="map-item__data"><span>Стоимость<strong>4,2 млн ₽</strong></span><span>Чистая
+                      прибыль<strong>240 тыс. ₽</strong></span></div>
+                </div>
+                <button class="heart" aria-label="Добавить в избранное" aria-pressed="false">♡</button>
+              </article>
+              <article class="map-item">
+                <div class="map-item__image placeholder"></div>
+                <div>
+                  <h3 class="map-item__name">Кофейня «Зёрна»</h3>
+                  <p class="map-item__meta">Казань · общепит</p>
+                  <div class="map-item__data"><span>Стоимость<strong>4,2 млн ₽</strong></span><span>Чистая
+                      прибыль<strong>240 тыс. ₽</strong></span></div>
+                </div>
+                <button class="heart" aria-label="Добавить в избранное" aria-pressed="false">♡</button>
+              </article>
+              <article class="map-item">
+                <div class="map-item__image placeholder"></div>
+                <div>
+                  <h3 class="map-item__name">Кофейня «Зёрна»</h3>
+                  <p class="map-item__meta">Казань · общепит</p>
+                  <div class="map-item__data"><span>Стоимость<strong>4,2 млн ₽</strong></span><span>Чистая
+                      прибыль<strong>240 тыс. ₽</strong></span></div>
+                </div>
+                <button class="heart" aria-label="Добавить в избранное" aria-pressed="false">♡</button>
+              </article>
+
+            </div>
+
+          </div>
+          <a class="button button--primary map__button" href="login.html">Больше объявлений на карте <span
+              class="icon-arrow"><svg width="21" height="22" viewBox="0 0 21 22" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M11.428 1.77793C11.3069 1.6466 11.1621 1.54185 11.0019 1.46979C10.8418 1.39772 10.6696 1.35979 10.4953 1.35821C10.321 1.35662 10.1482 1.39141 9.98691 1.46055C9.82561 1.52968 9.67906 1.63178 9.55583 1.76088C9.4326 1.88998 9.33514 2.04351 9.26915 2.21249C9.20315 2.38147 9.16994 2.56253 9.17146 2.7451C9.17297 2.92767 9.20918 3.1081 9.27797 3.27586C9.34675 3.44361 9.44674 3.59534 9.5721 3.72218L15.2067 9.62505H2.62504C2.27694 9.62505 1.9431 9.76992 1.69696 10.0278C1.45082 10.2856 1.31254 10.6354 1.31254 11.0001C1.31254 11.3647 1.45082 11.7145 1.69696 11.9723C1.9431 12.2302 2.27694 12.3751 2.62504 12.3751H15.2067L9.5721 18.2779C9.33302 18.5373 9.20072 18.8846 9.20371 19.2451C9.20671 19.6056 9.34474 19.9505 9.58809 20.2054C9.83144 20.4604 10.1606 20.605 10.5048 20.6081C10.8489 20.6112 11.1804 20.4726 11.428 20.2222L19.303 11.9722C19.549 11.7143 19.6873 11.3647 19.6873 11.0001C19.6873 10.6354 19.549 10.2858 19.303 10.0279L11.428 1.77793Z"
+                  fill="#F8F0E3" />
+              </svg>
+            </span></a>
+        </div>
+      </section>
+
+      <section class="section" id="contact">
+        <div class="container">
+          <div class="contact__grid">
+            <div class="contact__copy reveal">
+              <p class="section__eyebrow">Общение</p>
+              <h2 class="section__title">Обсуждайте детали напрямую</h2>
+              <p class="section__lead" style="margin-top:24px">Связывайтесь с владельцами бизнеса, уточняйте финансовые
+                показатели и
+                договаривайтесь о встрече в удобном формате.</p>
+
+              <div class="contact__list">
+                <article class="contact-item">
+                  <div class="contact-item__icon"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M16.6666 36.6667C24.0304 36.6667 29.9999 30.6972 29.9999 23.3333C29.9999 15.9695 24.0304 10 16.6666 10C9.30278 10 3.33325 15.9695 3.33325 23.3333C3.33325 25.3925 3.80005 27.3427 4.63359 29.0837C4.92007 29.6822 5.02067 30.3602 4.84917 31.001L4.30244 33.0445C3.8715 34.655 5.34493 36.1283 6.9555 35.6975L8.9989 35.1507C9.6398 34.9793 10.3178 35.0798 10.9162 35.3663C12.6573 36.1998 14.6074 36.6667 16.6666 36.6667Z"
+                        stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+                      <path
+                        d="M29.9999 24.1696C30.1108 24.1234 30.2206 24.0754 30.3294 24.0258C30.9329 23.7501 31.6101 23.6469 32.2509 23.8184L33.0444 24.0308C34.6549 24.4616 36.1283 22.9883 35.6974 21.3778L35.4851 20.5843C35.3136 19.9434 35.4168 19.2663 35.6924 18.6628C36.3179 17.2933 36.6666 15.7706 36.6666 14.1666C36.6666 8.1835 31.8164 3.33325 25.8333 3.33325C21.3294 3.33325 17.4676 6.08157 15.8333 9.99259"
+                        stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+                      <path d="M10.8638 23.333H10.8788M16.6816 23.333H16.6966M22.5 23.333H22.515" stroke-width="1.5"
+                        stroke-linecap="round" stroke-linejoin="round" stroke="#F8F0E3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="contact-item__title">Задавайте вопросы</h3>
+                    <p class="contact-item__text">Уточняйте детали работы и финансовые показатели бизнеса</p>
+                  </div>
+                </article>
+                <article class="contact-item">
+                  <div class="contact-item__icon"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M26.6667 6.66699C30.2917 6.68718 32.2548 6.84793 33.5355 8.12856C35 9.59302 35 11.95 35 16.6641V26.6642C35 31.3782 35 33.7352 33.5355 35.1997C32.071 36.6642 29.714 36.6642 25 36.6642H15C10.286 36.6642 7.92893 36.6642 6.46447 35.1997C5 33.7352 5 31.3782 5 26.6642V16.6641C5 11.95 5 9.59302 6.46447 8.12856C7.7451 6.84793 9.70828 6.68718 13.3333 6.66699"
+                        stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+                      <path d="M15 22.3335L17.8572 25.0002L25 18.3335" stroke-width="1.5" stroke-linecap="round"
+                        stroke-linejoin="round" stroke="#F8F0E3" />
+                      <path
+                        d="M13.3333 5.8335C13.3333 4.45278 14.4525 3.3335 15.8333 3.3335H24.1666C25.5473 3.3335 26.6666 4.45278 26.6666 5.8335V7.50016C26.6666 8.88088 25.5473 10.0002 24.1666 10.0002H15.8333C14.4525 10.0002 13.3333 8.88088 13.3333 7.50016V5.8335Z"
+                        stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="contact-item__title">Обсуждайте условия</h3>
+                    <p class="contact-item__text">Договаривайтесь о встрече и обсуждайте детали сделки</p>
+                  </div>
+                </article>
+                <article class="contact-item">
+                  <div class="contact-item__icon"><svg width="40" height="40" viewBox="0 0 40 40" fill="none"
+                      xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M9.55454 3.405C11.5834 1.38764 14.9241 1.74673 16.6229 4.01603L18.7246 6.82337C20.1069 8.66985 19.9849 11.2505 18.3441 12.8821L17.9461 13.2778C17.9287 13.3282 17.8866 13.4869 17.9334 13.7885C18.0387 14.4677 18.6059 15.9083 20.9867 18.2757C23.3667 20.6422 24.8176 21.2088 25.5064 21.3145C25.8186 21.3623 25.9819 21.3177 26.0324 21.3L26.7124 20.6238C28.1711 19.1735 30.4126 18.9023 32.2186 19.8842L35.4027 21.6152C38.1292 23.0973 38.8182 26.8035 36.5842 29.0247L34.2167 31.3788C33.4707 32.1205 32.4676 32.739 31.2432 32.8532C28.2282 33.1343 21.1979 32.7757 13.8111 25.4307C6.91454 18.5733 5.59111 12.5933 5.42366 9.64695C5.33899 8.1571 6.04301 6.8966 6.93854 6.00615L9.55454 3.405ZM14.6216 5.51427C13.7772 4.38637 12.2034 4.29668 11.3173 5.1778L8.70128 7.77895C8.15141 8.3257 7.88684 8.92825 7.91963 9.50512C8.05268 11.8461 9.12151 17.2422 15.5738 23.6578C22.3429 30.3885 28.5949 30.5893 31.0112 30.364C31.5049 30.318 31.9959 30.0615 32.4541 29.606L34.8216 27.2518C35.7841 26.295 35.5717 24.5525 34.2087 23.8115L31.0246 22.0807C30.1452 21.6027 29.1151 21.7603 28.4751 22.3967L27.7161 23.1515L26.8347 22.265C27.7161 23.1515 27.7149 23.1527 27.7137 23.1538L27.7112 23.1562L27.7061 23.1612L27.6952 23.1717L27.6709 23.1943C27.6534 23.2103 27.6332 23.2278 27.6107 23.2467C27.5654 23.2842 27.5097 23.3265 27.4432 23.3712C27.3097 23.4605 27.1336 23.5578 26.9121 23.6402C26.4607 23.8083 25.8654 23.8987 25.1274 23.7855C23.6827 23.564 21.7691 22.579 19.2241 20.0485C16.6799 17.5188 15.6866 15.6139 15.4629 14.1718C15.3485 13.4344 15.4398 12.8389 15.61 12.3871C15.6934 12.1657 15.7917 11.9896 15.8819 11.8565C15.9269 11.7901 15.9697 11.7346 16.0075 11.6895C16.0264 11.6669 16.0441 11.647 16.0601 11.6295L16.083 11.6052L16.0935 11.5944L16.0985 11.5894L16.1009 11.587C16.1021 11.5858 16.1033 11.5846 16.9847 12.471L16.1033 11.5846L16.5813 11.1093C17.2957 10.399 17.3957 9.2199 16.7232 8.32162L14.6216 5.51427Z"
+                        fill-rule="evenodd" clip-rule="evenodd" fill="#F8F0E3" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="contact-item__title">Будьте на связи</h3>
+                    <p class="contact-item__text">Продолжайте переписку по интересующему вас предложению в удобном
+                      мессенджере</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <img class="chat__image" src="/assets/images/chat.png" alt="Чат с владельцем бизнеса">
+
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer__main">
+        <div>
+          <div class="footer__brand"><img class="footer__logo" src="/assets/icons/logo.svg" alt=""><span
+              class="footer__name">MieroVenture</span></div>
+          <p class="footer__tagline">Сервис для размещения, покупки и оценки готового бизнеса.</p>
+        </div>
+        <div>
+          <p class="footer__col-title">Регистрация</p>
+          <div class="footer__links"><a class="footer__link" href="login.html">Вход</a></div>
+        </div>
+        <div>
+          <p class="footer__col-title">Владельцам</p>
+          <div class="footer__links"><a class="footer__link" href="login.html">Разместить свой бизнес</a><a
+              class="footer__link" href="#how">Как это работает?</a></div>
+        </div>
+        <div>
+          <p class="footer__col-title">Каталог</p>
+          <div class="footer__links"><a class="footer__link" href="#analytics">Аналитика</a><a class="footer__link"
+              href="#map">Карта</a></div>
+        </div>
+      </div>
+      <div class="container footer__bottom"><span>2026 MieroVenture</span><span>Политика
+          конфиденциальности</span><span>Условия пользования</span></div>
+    </footer>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <a class="back-to-top" href="#top" aria-label="Вернуться наверх">
+    ↑
+  </a>
+  <script type="module" src="/js/app.js"></script>
+</body>
+
 </html>

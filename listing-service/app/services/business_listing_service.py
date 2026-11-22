@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import AsyncSessionLocal
-from app.models.business_listing import BusinessListing
+from app.models.business_listing import BlockedUser, BusinessListing
 from app.models.outbox import OutboxEvent
 from app.rabbitmq.publisher import publisher
 from app.schemas.business_listing import BusinessListingDraft, BusinessListingResponse
@@ -104,14 +104,51 @@ def _public_data(row: BusinessListing) -> dict[str, Any]:
     files = row.files or {}
     ai_report = (row.analytics_results or {}).get("ai_report", {})
     return {
+        "seller_id": str(row.user_id),
+        "seller_name": row.seller_name,
         "business_name": row.business_name,
         "short_description": row.short_description,
+        "full_description": row.full_description,
         "business_type": row.business_type,
         "sale_price": float(row.sale_price) if row.sale_price is not None else None,
+        "stock_included": row.stock_included,
+        "stock_value": float(row.stock_value) if row.stock_value is not None else None,
+        "area_sqm": row.area_sqm,
+        "floor_number": row.floor_number,
+        "has_separate_entrance": row.has_separate_entrance,
+        "parking_spaces": row.parking_spaces,
+        "ceiling_height": row.ceiling_height,
+        "equipment_list": row.equipment_list or [],
+        "staff_count": row.staff_count,
+        "staff_details": row.staff_details or [],
+        "working_hours": row.working_hours,
+        "business_age_months": row.business_age_months,
+        "has_licenses": row.has_licenses,
+        "has_contracts": row.has_contracts,
+        "sale_reason": row.sale_reason,
+        "stay_as_consultant_months": row.stay_as_consultant_months,
+        "monthly_financials": row.monthly_financials or [],
+        "average_check": float(row.average_check) if row.average_check is not None else None,
+        "monthly_orders": row.monthly_orders,
+        "monthly_clients_unique": row.monthly_clients_unique,
+        "cost_structure": row.cost_structure or [],
+        "seasonality_months": row.seasonality_months or [],
+        "peak_hours": row.peak_hours or [],
+        "supplier_contracts": row.supplier_contracts,
+        "supplier_details": row.supplier_details,
+        "debts_receivable": float(row.debts_receivable) if row.debts_receivable is not None else None,
+        "debts_payable": float(row.debts_payable) if row.debts_payable is not None else None,
+        "legal_claims": row.legal_claims,
+        "legal_claims_details": row.legal_claims_details,
+        "equipment_lease": row.equipment_lease,
+        "monthly_loan_payments": float(row.monthly_loan_payments) if row.monthly_loan_payments is not None else None,
+        "customer_base_size": row.customer_base_size,
+        "repeat_customer_rate": row.repeat_customer_rate,
         "avg_monthly_revenue": avg_revenue,
-        "location": {"country": row.country, "city": row.city, "street": row.street},
+        "location": {"country": row.country, "city": row.city, "street": row.street, "house": row.house},
         "photos": [*files.get("photos", [])],
         "main_photo": files.get("main_photo"),
+        "floor_plan_image": files.get("floor_plan_image"),
         "video": row.video_url or files.get("video"),
         "deal_composition": row.deal_composition,
         "property_type": row.property_type,
@@ -128,6 +165,8 @@ class BusinessListingService:
         self.session = session
 
     async def create_draft(self, user_id: UUID, body: BusinessListingDraft) -> BusinessListingResponse:
+        if await self.session.get(BlockedUser, user_id):
+            raise HTTPException(status_code=403, detail="Account is blocked")
         row = BusinessListing(user_id=user_id, **_field_values(body))
         self.session.add(row)
         await self.session.flush()
@@ -151,6 +190,8 @@ class BusinessListingService:
         return to_response(row)
 
     async def upload_file(self, user_id: UUID, listing_id: UUID, field: str, upload: UploadFile) -> dict[str, Any]:
+        if await self.session.get(BlockedUser, user_id):
+            raise HTTPException(status_code=403, detail="Account is blocked")
         row = await self.get(user_id, listing_id)
         if row.status != "draft":
             raise HTTPException(status_code=409, detail="Files can only be uploaded to a draft")
@@ -194,10 +235,17 @@ class BusinessListingService:
             row.documents = documents
             result_path = relative
         await self.session.flush()
-        return {"field": field, "path": result_path, "size_bytes": size, "visibility": "public" if is_public else "private"}
+        return {
+            "field": field,
+            "path": result_path if is_public else None,
+            "size_bytes": size,
+            "visibility": "public" if is_public else "private",
+        }
 
     async def submit(self, user_id: UUID, listing_id: UUID) -> BusinessListingResponse:
         row = await self.get(user_id, listing_id)
+        if await self.session.get(BlockedUser, user_id):
+            raise HTTPException(status_code=403, detail="Account is blocked")
         if row.status != "draft":
             raise HTTPException(status_code=409, detail="Listing was already submitted")
         required = {
@@ -222,12 +270,7 @@ class BusinessListingService:
             raise HTTPException(status_code=422, detail={"missing_fields": missing})
 
         correlation_id = str(uuid.uuid4())
-        critical_documents_attached = bool(SENSITIVE_MODERATION_DOCUMENTS.intersection(row.documents or {}))
-        if critical_documents_attached:
-            row.status = "on_moderation"
-            row.verification_status = "deep"
-        else:
-            row.status = "processing"
+        row.status = "processing"
         payload = {
             "event": "listing.creation.started",
             "correlation_id": correlation_id,
@@ -257,37 +300,6 @@ class BusinessListingService:
                 "ttl_seconds": 120,
             }))
         self.session.add(OutboxEvent(routing_key="listing.creation.started", payload=payload))
-        if critical_documents_attached:
-            self.session.add(OutboxEvent(
-                routing_key="listing.on_moderation",
-                payload={"event": "listing.on_moderation", "listing_id": str(row.id), "user_id": str(row.user_id), "verification_status": "deep"},
-            ))
-        await self.session.flush()
-        return to_response(row)
-
-    async def moderate(self, listing_id: UUID, verdict: str, user_safe_reason: str | None) -> BusinessListingResponse:
-        """Applies the final human decision and emits only the corresponding public event."""
-        row = await self.session.scalar(
-            select(BusinessListing).where(BusinessListing.id == listing_id).with_for_update()
-        )
-        if row is None:
-            raise HTTPException(status_code=404, detail="Listing not found")
-        if row.status != "on_moderation":
-            raise HTTPException(status_code=409, detail="Listing is not waiting for moderation")
-        has_sensitive_docs = bool(SENSITIVE_MODERATION_DOCUMENTS.intersection(row.documents or {}))
-        if verdict == "approve":
-            row.status = "published"
-            row.verification_status = "deep" if has_sensitive_docs else "basic"
-            self.session.add(OutboxEvent(routing_key="listing.creation.completed", payload={
-                "event": "listing.creation.completed", "listing_id": str(row.id),
-                "user_id": str(row.user_id), "public_data": _public_data(row),
-            }))
-        else:
-            row.status = "rejected"
-            self.session.add(OutboxEvent(routing_key="listing.rejected", payload={
-                "event": "listing.rejected", "listing_id": str(row.id),
-                "user_id": str(row.user_id), "user_safe_reason": user_safe_reason or "Объявление не прошло проверку. Проверьте данные и обратитесь в поддержку.",
-            }))
         await self.session.flush()
         return to_response(row)
 

@@ -1,0 +1,564 @@
+/* =========================================================
+   MAP SECTION
+   ========================================================= */
+
+.map-section {
+  overflow: hidden;
+  padding: 50px;
+}
+
+.map-section .section__eyebrow {
+  margin-bottom: 20px;
+}
+
+.map-section .section__title {
+  margin-bottom: 10px;
+}
+
+.map-section .section__lead {
+  width: 100%;
+  max-width: 700px;
+  margin: 0;
+}
+
+
+/* =========================================================
+   ОСНОВНАЯ СЕТКА
+   ========================================================= */
+
+.map__layout {
+  width: 100%;
+
+  display: grid;
+
+  /*
+        Левая колонка — карта
+        Правая колонка — объявления
+    */
+
+  grid-template-columns: minmax(0, 1.415fr) minmax(0, 1fr);
+
+  column-gap: 20px;
+
+  align-items: start;
+
+  margin-top: 0;
+}
+
+
+/* =========================================================
+   КАРТА
+   ========================================================= */
+
+.map__visual {
+  position: relative;
+
+  /*
+        Карта начинается ниже описания.
+        Поэтому поднимаем правую колонку,
+        а самой карте задаём отступ сверху.
+    */
+
+  width: 100%;
+  height: 100%;
+
+  margin-top: 0px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  border: 1px solid var(--color-muted);
+
+  background: var(--color-background);
+}
+
+
+/* =========================================================
+   MAP PLACEHOLDER
+   ========================================================= */
+
+.map__visual::before {
+  content: "";
+
+  position: absolute;
+
+  inset: 0;
+  /* background:
+    linear-gradient(25deg,
+      transparent 48%,
+      var(--color-muted) 48.2%,
+      var(--color-muted) 48.6%,
+      transparent 48.8%),
+    linear-gradient(110deg,
+      transparent 42%,
+      var(--color-accent) 42.4%,
+      var(--color-accent) 43%,
+      transparent 43.4%),
+    linear-gradient(175deg,
+      transparent 50%,
+      var(--color-muted) 50.2%,
+      transparent 50.5%); */
+
+  opacity: .45;
+}
+
+
+/* =========================================================
+   MAP PINS
+   ========================================================= */
+
+.map-pin {
+  position: absolute;
+
+  z-index: 2;
+
+  width: 22px;
+  height: 22px;
+
+  border-radius: 50% 50% 50% 0;
+
+  background: var(--color-dark);
+
+  transform: rotate(-45deg);
+}
+
+.map-pin::after {
+  content: "";
+
+  position: absolute;
+
+  width: 7px;
+  height: 7px;
+
+  top: 7px;
+  left: 7px;
+
+  border-radius: 50%;
+
+  background: var(--color-background);
+}
+
+.map-pin--1 {
+  left: 20%;
+  top: 18%;
+}
+
+.map-pin--2 {
+  left: 43%;
+  top: 42%;
+
+  width: 26px;
+  height: 26px;
+
+  background: var(--color-primary);
+}
+
+.map-pin--2::after {
+  top: 8px;
+  left: 8px;
+}
+
+.map-pin--3 {
+  left: 58%;
+  top: 32%;
+}
+
+.map-pin--4 {
+  left: 32%;
+  top: 60%;
+}
+
+
+/* =========================================================
+   ПРАВАЯ КОЛОНКА
+   ========================================================= */
+
+.map-list {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 11px;
+
+  /*
+        На макете правая колонка начинается
+        на уровне текста описания.
+    */
+
+  margin-top: 0;
+}
+
+
+/* =========================================================
+   КАРТОЧКА
+   ========================================================= */
+
+.map-item {
+  position: relative;
+
+  width: 100%;
+  height: 136px;
+
+  min-width: 0;
+
+  box-sizing: border-box;
+
+  display: grid;
+
+  grid-template-columns: 110px minmax(0, 1fr) 24px;
+
+  column-gap: 15px;
+
+  align-items: center;
+
+  padding: 12px;
+
+  background: var(--color-background);
+
+  border: 1px solid var(--color-muted);
+
+  border-radius: 4px;
+}
+
+
+/* =========================================================
+   КАРТИНКА
+   ========================================================= */
+
+.map-item__image {
+  width: 110px;
+  height: 110px;
+
+  box-sizing: border-box;
+
+  overflow: hidden;
+
+  border: 1px solid var(--color-dark);
+
+  background: var(--color-muted);
+}
+
+.map-item__image img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+
+/* =========================================================
+   КОНТЕНТ КАРТОЧКИ
+   ========================================================= */
+
+.map-item>div:nth-child(2) {
+  min-width: 0;
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+}
+
+
+/* =========================================================
+   НАЗВАНИЕ
+   ========================================================= */
+
+.map-item__name {
+  margin: 0 0 5px;
+
+  overflow: hidden;
+
+  color: var(--color-dark);
+
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 400;
+
+  line-height: 21px;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   META
+   ========================================================= */
+
+.map-item__meta {
+  margin: 0 0 15px;
+
+  color: var(--color-dark);
+
+  font-family: var(--font-mono);
+  font-size: 10px;
+
+  line-height: 13px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   DATA
+   ========================================================= */
+
+.map-item__data {
+  width: 100%;
+  min-width: 0;
+
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+}
+
+.map-item__data>span {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  color: var(--color-dark);
+
+  font-family: var(--font-mono);
+  font-size: 9px;
+
+  line-height: 13px;
+}
+
+.map-item__data>span+span {
+  padding-left: 16px;
+
+  border-left: 1px solid var(--color-muted);
+}
+
+.map-item__data strong {
+  margin-top: 2px;
+
+  color: var(--color-primary);
+
+  font-size: 11px;
+  font-weight: 400;
+
+  line-height: 14px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   HEART
+   ========================================================= */
+
+.map-item .heart {
+  width: 24px;
+  height: 24px;
+
+  padding: 0;
+
+  align-self: start;
+  justify-self: end;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--color-primary);
+
+  font-size: 27px;
+  line-height: 1;
+
+  border: 0;
+  background: transparent;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   КНОПКА
+   ========================================================= */
+
+.map__button {
+  width: 400px;
+  height: 48px;
+
+  margin-top: 24px;
+  margin-left: auto;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 18px;
+
+  border-radius: 16px;
+
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+.map__button .icon-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 21px;
+  height: 22px;
+}
+
+.map__button .icon-arrow svg {
+  display: block;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1050px) {
+
+  .map__layout {
+    grid-template-columns: 1fr;
+
+    row-gap: 24px;
+  }
+
+  .map__visual {
+    order: 1;
+
+    width: 100%;
+    height: 420px;
+
+    margin-top: 0;
+  }
+
+  .map-list {
+    order: 2;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .map__layout {
+    grid-template-columns: minmax(0, 1fr);
+
+    width: 100%;
+  }
+
+  .map__visual {
+    width: 100%;
+    height: 300px;
+  }
+
+  .map-item {
+    height: 120px;
+
+    grid-template-columns: 86px minmax(0, 1fr) 24px;
+
+    column-gap: 12px;
+
+    padding: 9px;
+  }
+
+  .map-item__image {
+    width: 86px;
+    height: 100px;
+  }
+
+  .map-item__name {
+    font-size: 15px;
+    line-height: 18px;
+  }
+
+  .map-item__meta {
+    margin-bottom: 9px;
+
+    font-size: 9px;
+  }
+
+  .map-item__data>span {
+    font-size: 8px;
+    line-height: 11px;
+  }
+
+  .map-item__data strong {
+    font-size: 10px;
+    line-height: 13px;
+  }
+
+  .map-item__data>span+span {
+    padding-left: 8px;
+  }
+
+  .map__button {
+    height: 46px;
+
+    font-size: 12px;
+
+    gap: 10px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .map__visual {
+    height: 260px;
+  }
+
+  .map-item {
+    height: 110px;
+
+    grid-template-columns: 72px minmax(0, 1fr) 22px;
+
+    column-gap: 9px;
+
+    padding: 8px;
+  }
+
+  .map-item__image {
+    width: 72px;
+    height: 92px;
+  }
+
+  .map-item__name {
+    font-size: 14px;
+  }
+
+  .map-item__meta {
+    font-size: 8px;
+  }
+
+  .map-item__data>span {
+    font-size: 7px;
+  }
+
+  .map-item__data strong {
+    font-size: 9px;
+  }
+
+  .map-item .heart {
+    font-size: 23px;
+  }
+}

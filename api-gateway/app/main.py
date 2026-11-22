@@ -42,6 +42,35 @@ async def lifespan(app: FastAPI):
         arguments={"x-dead-letter-exchange": "", "x-dead-letter-routing-key": "messaging.in.dlq"},
     )
     await messaging_queue.bind(app.state.messaging_exchange, routing_key="message.send")
+
+    moderation_exchange = await channel.declare_exchange("listings", aio_pika.ExchangeType.TOPIC, durable=True)
+    await channel.declare_queue("gateway.moderation.blacklist.dlq", durable=True)
+    blacklist_queue = await channel.declare_queue(
+        "gateway.moderation.blacklist", durable=True,
+        arguments={"x-dead-letter-exchange": "", "x-dead-letter-routing-key": "gateway.moderation.blacklist.dlq"},
+    )
+    await blacklist_queue.bind(moderation_exchange, routing_key="moderation.user.blacklisted")
+    await blacklist_queue.bind(moderation_exchange, routing_key="moderation.user.unblocked")
+
+    async def update_blocked_user(message: aio_pika.IncomingMessage) -> None:
+        async with message.process(requeue=False):
+            body = json.loads(message.body.decode("utf-8"))
+            user_id = str(body.get("user_id", ""))
+            if not user_id:
+                raise ValueError("moderation event has no user_id")
+            key = f"gateway:blocked-user:{user_id}"
+            if body.get("event") == "moderation.user.blacklisted":
+                await app.state.redis.set(key, "1")
+                legacy_user_id = body.get("legacy_user_id")
+                if legacy_user_id is not None:
+                    await app.state.redis.set(f"gateway:blocked-legacy-user:{legacy_user_id}", "1")
+            else:
+                await app.state.redis.delete(key)
+                legacy_user_id = body.get("legacy_user_id")
+                if legacy_user_id is not None:
+                    await app.state.redis.delete(f"gateway:blocked-legacy-user:{legacy_user_id}")
+
+    await blacklist_queue.consume(update_blocked_user)
     yield
     await app.state.http.aclose()
     await app.state.redis.aclose()
@@ -51,7 +80,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="API Gateway", version="1.0.0", lifespan=lifespan)
 
 
-def _verify_token(request: Request) -> dict:
+async def _verify_token(request: Request) -> dict:
     authorization = request.headers.get("Authorization", "")
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
@@ -62,6 +91,12 @@ def _verify_token(request: Request) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token") from exc
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token required")
+    user_id = payload.get("user_id")
+    if user_id and await request.app.state.redis.get(f"gateway:blocked-user:{user_id}"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is blocked")
+    legacy_user_id = payload.get("sub")
+    if legacy_user_id and await request.app.state.redis.get(f"gateway:blocked-legacy-user:{legacy_user_id}"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is blocked")
     return payload
 
 
@@ -73,6 +108,18 @@ def _is_public_auth(method: str, path: str) -> bool:
         ("POST", "/auth/verify"), ("POST", "/auth/resend-code"),
     }
     return (method, endpoint) in public
+
+
+def _is_public_catalog(method: str, path: str) -> bool:
+    """Public Search + Catalog reads and JSON filtering do not require a login."""
+    if method == "GET" and (
+        path == "/catalog"
+        or path.startswith("/catalog/")
+        or path == "/search"
+        or path == "/search/suggest"
+    ):
+        return True
+    return method == "POST" and path in {"/catalog/query", "/search/suggest"}
 
 
 def _service_path(path: str, prefix: str, upstream_prefix: str | None = None) -> str:
@@ -95,8 +142,13 @@ async def route_request(path: str, request: Request) -> Response:
         raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": "60"})
 
     claims = None
-    if not (full_path.startswith("/auth/") or full_path.startswith("/api/v1/auth/")) or not _is_public_auth(request.method, full_path):
-        claims = _verify_token(request)
+    public_auth = (full_path.startswith("/auth/") or full_path.startswith("/api/v1/auth/")) and _is_public_auth(request.method, full_path)
+    if not public_auth and not _is_public_catalog(request.method, full_path):
+        claims = await _verify_token(request)
+
+    moderation_path = full_path.startswith(("/moderation", "/v1/moderation", "/api/v1/moderation"))
+    if moderation_path and claims and claims.get("role") != "moderator":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Moderator role required")
 
     if full_path == "/messages" and request.method == "POST":
         body = await request.json()
@@ -158,6 +210,15 @@ async def route_request(path: str, request: Request) -> Response:
     elif full_path.startswith("/api/v1/search"):
         base_url = settings.search_url
         upstream_path = full_path
+    elif full_path.startswith("/v1/moderation"):
+        base_url = settings.moderation_url
+        upstream_path = "/api" + full_path
+    elif full_path.startswith("/api/v1/moderation"):
+        base_url = settings.moderation_url
+        upstream_path = full_path
+    elif full_path == "/moderation" or full_path.startswith("/moderation/"):
+        base_url = settings.moderation_url
+        upstream_path = "/api/v1" + full_path
     elif full_path.startswith("/notifications"):
         base_url = settings.notification_url
         upstream_path = full_path

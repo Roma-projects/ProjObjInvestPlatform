@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     search_url: str = "http://search-service:8000"
     notification_url: str = "http://notification-service:8000"
     messaging_url: str = "http://messaging-service:8000"
+    moderation_url: str = "http://moderation-service:8000"
     rate_limit_per_minute: int = 120
 
 

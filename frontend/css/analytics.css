@@ -1,0 +1,90 @@
+.analytics__grid {
+  display: grid;
+  grid-template-columns: .82fr 1.18fr;
+  gap: clamp(40px, 7vw, 100px);
+  align-items: center;
+}
+
+.analytics__copy { max-width: 450px; }
+.analytics__title { max-width: 440px; }
+
+.analytics__button { margin-top: 30px; }
+
+.chart {
+  padding: 24px 24px 20px;
+  border: 2px solid rgba(104,10,24,.65);
+  border-radius: var(--radius-md);
+  background: rgba(248,240,227,.6);
+}
+
+.chart__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart__address { margin: 24px 0 8px; color: #705f58; font-size: 13px; }
+
+.chart__svg { width: 100%; height: 190px; overflow: visible; }
+.chart__line {
+  fill: none;
+  stroke: var(--color-dark);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chart__gridline { stroke: rgba(104,10,24,.22); stroke-dasharray: 3 6; }
+.chart__axis { stroke: rgba(104,10,24,.7); }
+.chart__point { fill: var(--color-dark); }
+
+.chart__years {
+  display: flex;
+  justify-content: space-between;
+  color: #705f58;
+  font-size: 11px;
+}
+
+.chart__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid rgba(104,10,24,.25);
+}
+
+.chart__metric-label { display: block; color: #705f58; font-size: 9px; }
+.chart__metric-value { display: block; margin-top: 5px; color: var(--color-primary); font-size: 14px; font-weight: 700; }
+
+.analytics__steps {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 12px;
+}
+
+.analytics-step {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 16px;
+  padding-right: 25px;
+  border-right: 1px solid rgba(104,10,24,.24);
+}
+.analytics-step:last-child { border-right: 0; }
+
+.analytics-step__number {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-background);
+  font: 22px var(--font-display);
+}
+
+.analytics-step__title { margin: 0 0 6px; font: 20px var(--font-display); }
+.analytics-step__text { margin: 0; color: #5e4f4a; font-size: 12px; }

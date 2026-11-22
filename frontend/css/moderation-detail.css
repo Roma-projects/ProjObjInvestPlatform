@@ -1,0 +1,694 @@
+/* ==========================================================================
+   moderation-detail.css — карточка объявления на модерации, MieroVenture
+   Основано на moderation-queue.css / catalog.css.
+   Подключается после variables.css, reset.css, base.css, catalog.css.
+   ========================================================================== */
+
+:root {
+  --catalog-sidebar: 242px;
+  --color-text: #67493E;
+  --color-success: #0B6B1F;
+  --color-success-bg: #E6F3E7;
+  --color-warning-bg: #F9E1E4;
+  --color-warning-border: #B5424F;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-dark);
+}
+
+/* ---------- Заглушки под SVG-иконки ---------- */
+
+.icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+/* размеры только для пустых заглушек, чтобы не ломать вставленные SVG */
+.icon--12:empty { width: 12px; height: 12px; }
+.icon--16:empty { width: 16px; height: 16px; }
+.icon--20:empty { width: 20px; height: 20px; }
+.icon--24:empty { width: 24px; height: 24px; }
+.icon--40:empty { width: 40px; height: 40px; }
+
+/* ---------- Сайдбар (идентичен moderation-queue) ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 22px 8px 26px;
+  background: var(--color-sidebar);
+  color: var(--color-background);
+  overflow-y: auto;
+}
+
+.sidebar__logo {
+  margin: 0 0 34px;
+  padding-left: 40px;
+  gap: 8px;
+  color: var(--color-background);
+}
+
+.sidebar__logo-text {
+  color: var(--color-background);
+}
+
+.nav {
+  gap: 5px;
+}
+
+.nav__link {
+  min-height: 42px;
+  height: auto;
+  padding: 7px 18px;
+  gap: 14px;
+  color: var(--color-background);
+}
+
+.nav__link:hover {
+  background: var(--color-dark);
+  color: var(--color-background);
+}
+
+.nav__link--active,
+.nav__link--active:hover {
+  background: var(--color-muted);
+  color: var(--color-dark);
+}
+
+.nav__text {
+  line-height: 1.15;
+}
+
+.nav__link .icon {
+  flex: 0 0 auto;
+}
+
+/* ---------- Каркас страницы ---------- */
+
+.detail {
+  min-width: 0;
+  padding-bottom: 56px;
+  color: var(--color-text);
+}
+
+.detail__topbar,
+.detail__container {
+  width: min(calc(100% - 60px), 1100px);
+  margin-inline: auto;
+}
+
+.detail__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 90px;
+}
+
+.detail__bell {
+  display: grid;
+  place-items: center;
+  color: var(--color-dark);
+}
+
+.detail__bell:hover {
+  color: var(--color-primary);
+}
+
+.detail__bell svg path {
+  fill: currentColor;
+}
+
+/* ---------- Карточка объекта ---------- */
+
+.object-card {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 200px;
+  gap: 20px;
+  min-height: 349px;
+  padding: 15px 38px;
+  border: 1px solid var(--color-muted);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.object-gallery {
+  min-width: 0;
+}
+
+/* вместо фото — пустое место нужного размера */
+.object-gallery__main {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--color-muted);
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.object-gallery__thumbs {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.gallery-thumb,
+.gallery-more {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--color-muted);
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.gallery-more {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* стрелки выходят за края ряда миниатюр, как в макете */
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 34px;
+  transform: translateY(-50%);
+}
+
+.gallery-arrow--prev { left: -14px; color: var(--color-muted); }
+.gallery-arrow--next { right: -14px; color: var(--color-text); }
+
+.object-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 24px;
+}
+
+.object-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.object-address {
+  margin-top: 20px;
+  font-size: 15px;
+  color: var(--color-text);
+}
+
+.object-price {
+  margin-top: 56px;
+  color: var(--color-primary);
+  font-size: 22px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.object-divider {
+  width: 100%;
+  height: 1px;
+  margin: 24px 0;
+  border: 0;
+  background: var(--color-muted);
+}
+
+.object-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.object-stats div {
+  text-align: center;
+}
+
+.object-stats strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.object-stats span {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--color-text);
+}
+
+.object-metrics {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin-block: 9px;
+  padding-left: 16px;
+  border-left: 1px solid var(--color-muted);
+}
+
+.object-metrics div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 6px;
+  border-bottom: 1px solid var(--color-muted);
+}
+
+.object-metrics div:last-child {
+  border-bottom: 0;
+}
+
+.object-metrics span {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.object-metrics strong {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* ---------- Заголовки секций и карточки графиков ---------- */
+
+.section-title {
+  margin: 31px 0 13px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.chart-card,
+.checks-card {
+  border: 1px solid var(--color-muted);
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.chart-card {
+  overflow-x: auto;
+}
+
+.revenue-chart,
+.donut-chart,
+.bars-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-grid line {
+  stroke: var(--color-soft);
+  stroke-width: 1;
+}
+
+.chart-ticks line {
+  stroke: var(--color-dark);
+  stroke-width: 1;
+}
+
+.chart-axis-labels text {
+  fill: var(--color-dark);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* Выручка */
+.revenue-area { fill: rgba(104, 10, 24, .12); }
+.revenue-line { fill: none; stroke: var(--color-primary); stroke-width: 2; }
+.revenue-points circle { fill: var(--color-primary); }
+.revenue-values text { fill: var(--color-primary); font-family: var(--font-mono); font-size: 10px; }
+
+/* Структура расходов */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 10px;
+}
+
+.donut-seg { fill: none; stroke-width: 35; }
+.donut-seg--purchase  { stroke: #3D0610; }
+.donut-seg--utilities { stroke: var(--color-dark); }
+.donut-seg--taxes     { stroke: var(--color-accent); }
+.donut-seg--marketing { stroke: var(--color-muted); }
+.donut-seg--rent      { stroke: var(--color-text); }
+.donut-seg--salary    { stroke: var(--color-primary); }
+
+.donut-labels text {
+  fill: var(--color-dark);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.donut-leader {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1;
+}
+
+/* Сезонность */
+.bars-chart text {
+  fill: var(--color-dark);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
+.bars-chart .bars-title { font-size: 13px; }
+.bars path { fill: var(--color-primary); }
+
+/* ---------- Проверка согласованности ---------- */
+
+.checks-card {
+  overflow: hidden;
+}
+
+.checks-card__head,
+.check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checks-card__head {
+  min-height: 60px;
+  padding: 0 30px 0 21px;
+  border-bottom: 1px solid var(--color-muted);
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--color-text);
+}
+
+.checks-card__head span:last-child {
+  color: var(--color-primary);
+}
+
+.check-row {
+  gap: 20px;
+  min-height: 84px;
+  padding: 12px 30px 12px 29px;
+  border-bottom: 1px solid var(--color-muted);
+}
+
+.check-row:last-child {
+  border-bottom: 0;
+}
+
+.check-row > div {
+  min-width: 0;
+}
+
+.check-row strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--color-text);
+}
+
+.check-row div span {
+  display: block;
+  margin-top: 6px;
+  font-size: 17px;
+  color: var(--color-text);
+}
+
+.check-status {
+  flex: none;
+  min-width: 127px;
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.check-status--passed {
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.check-status--warning {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  color: var(--color-primary);
+}
+
+/* ---------- Решение ---------- */
+
+.decision-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 29px;
+  margin-top: 31px;
+}
+
+.decision {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  min-height: 100px;
+  padding: 12px 20px 12px 34px;
+  border: 2px solid var(--color-primary);
+  border-radius: 4px;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.decision:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+.decision__text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  text-align: left;
+}
+
+.decision__text strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.decision__text span {
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.decision--filled {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: var(--color-background);
+}
+
+.decision--outline {
+  border-color: var(--color-success);
+  background: var(--color-surface);
+  color: var(--color-success);
+}
+
+.decision--reject {
+  justify-content: center;
+  padding-inline: 20px;
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Адаптив (как в moderation-queue / catalog)
+   ========================================================================== */
+
+/* Карточка объекта: метрики уходят под фото и описание */
+@media (max-width: 1280px) {
+  .object-card {
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    grid-template-areas:
+      "gallery main"
+      "metrics metrics";
+    padding: 20px;
+  }
+
+  .object-gallery { grid-area: gallery; }
+  .object-main { grid-area: main; padding-top: 6px; }
+
+  .object-metrics {
+    grid-area: metrics;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--color-muted);
+  }
+
+  .object-metrics div {
+    flex: none;
+    justify-content: flex-start;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .decision-row { gap: 14px; }
+  .decision { padding-left: 20px; gap: 12px; }
+  .decision__text span { font-size: 15px; }
+}
+
+/* Ноутбуки / планшеты landscape: компактный сайдбар */
+@media (max-width: 1180px) {
+  :root {
+    --catalog-sidebar: 84px;
+  }
+
+  .sidebar {
+    padding: 24px 12px;
+  }
+
+  .sidebar__logo {
+    padding-left: 0;
+    margin: 0 0 28px;
+    justify-content: center;
+  }
+
+  .sidebar__logo-text,
+  .nav__text {
+    display: none;
+  }
+
+  .nav__link {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Планшеты */
+@media (max-width: 900px) {
+  .object-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "gallery"
+      "main"
+      "metrics";
+  }
+
+  .object-gallery { max-width: 480px; }
+  .object-main { padding-top: 0; }
+  .object-price { margin-top: 24px; }
+
+  .object-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .decision-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .decision__text span { font-size: 16px; }
+}
+
+/* Мобильные: сайдбар превращается в нижнюю панель */
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    height: auto;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--color-sidebar);
+    overflow: visible;
+  }
+
+  .sidebar__logo {
+    display: none;
+  }
+
+  .nav {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+  }
+
+  .nav__link {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .detail {
+    padding-bottom: 98px;
+  }
+
+  .detail__topbar,
+  .detail__container {
+    width: min(calc(100% - 28px), 1100px);
+  }
+
+  .detail__topbar {
+    height: 64px;
+  }
+
+  .object-card {
+    padding: 14px;
+  }
+
+  .object-title { font-size: 20px; }
+
+  .analysis-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  /* графики не сжимаем до нечитаемого — внутри карточки прокрутка */
+  .revenue-chart { min-width: 640px; }
+  .donut-chart,
+  .bars-chart { min-width: 440px; }
+
+  .checks-card__head { min-height: 50px; padding: 0 16px; font-size: 16px; }
+  .check-row { align-items: flex-start; flex-direction: column; gap: 10px; padding: 12px 16px; }
+  .check-row strong,
+  .check-row div span { font-size: 15px; }
+}
+
+/* Узкие телефоны */
+@media (max-width: 420px) {
+  .object-title { font-size: 18px; }
+  .object-price { font-size: 20px; }
+  .object-stats { gap: 8px; }
+  .object-stats strong { font-size: 16px; }
+  .object-stats span { font-size: 12px; }
+  .object-gallery__thumbs { gap: 6px; }
+  .section-title { font-size: 18px; margin-top: 24px; }
+  .decision { min-height: 76px; }
+  .decision--reject { font-size: 24px; }
+  .decision__text strong { font-size: 18px; }
+  .decision__text span { font-size: 14px; }
+}

@@ -1,0 +1,525 @@
+/* ==========================================================================
+   moderator-profile.css — личный кабинет модератора MieroVenture
+   Основано на структуре profile.css / catalog.css.
+   ========================================================================== */
+
+:root {
+  --catalog-sidebar: 242px;
+
+  /* Палитра макета */
+  --color-primary: #67493E;
+  --color-background: #F8F0E3;
+  --color-dark: #20232A;
+  --color-muted: #BAA7A0;
+  --color-accent: #D9C6A5;
+  --color-sidebar: #1B1E24;
+  --color-surface: #FFFFFF;
+  --color-soft: #D9D9D9;
+  --color-black: #000000;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-dark);
+}
+
+/* ---------- Сайдбар ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 22px 8px 26px;
+  background: var(--color-sidebar);
+  color: var(--color-background);
+  overflow-y: auto;
+}
+
+.sidebar__logo {
+  margin: 0 0 34px;
+  padding-left: 40px;
+  gap: 8px;
+  color: var(--color-background);
+}
+
+.sidebar__logo-text {
+  color: var(--color-background);
+}
+
+.nav {
+  gap: 5px;
+}
+
+.nav__link {
+  min-height: 42px;
+  height: auto;
+  padding: 7px 18px;
+  gap: 14px;
+  color: var(--color-background);
+}
+
+.nav__link:hover {
+  background: var(--color-dark);
+  color: var(--color-background);
+}
+
+.nav__link--active,
+.nav__link--active:hover {
+  background: var(--color-muted);
+  color: var(--color-dark);
+}
+
+.nav__link--active svg path {
+  stroke: var(--color-dark);
+}
+
+.nav__text {
+  line-height: 1.15;
+}
+
+.nav__link .icon {
+  flex: 0 0 auto;
+}
+
+/* Не рисуем заглушки для отсутствующих в исходниках SVG. */
+.nav__link>.icon:not(:has(> svg)) {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border: 0;
+}
+
+/* ---------- Основной профиль ---------- */
+
+.profile {
+  min-width: 0;
+  padding-bottom: 56px;
+}
+
+.profile__container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 3vw, 28px);
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  min-height: 276px;
+  background: var(--color-dark);
+  color: var(--color-background);
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--color-dark);
+  background-image: url("../assets/images/profile-moderator-banner.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.hero__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 310px;
+  padding-block: 22px 18px;
+}
+
+.hero__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hero__eyebrow {
+  font-size: 14px;
+}
+
+.hero__bell {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--color-background);
+}
+
+.hero__bell:hover {
+  color: var(--color-accent);
+}
+
+.hero__user {
+  margin-top: 22px;
+}
+
+.avatar {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.avatar__img {
+  width: 80px;
+  height: 80px;
+  border: 1px solid var(--color-background);
+  border-radius: 50%;
+  background: var(--color-dark);
+}
+
+.avatar__edit {
+  position: absolute;
+  right: -1px;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-background);
+  border-radius: 50%;
+  background: var(--color-background);
+  color: var(--color-dark);
+}
+
+.hero__name {
+  margin: 10px 0 7px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.hero__contacts {
+  display: grid;
+  gap: 6px;
+}
+
+.hero__contacts li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: var(--color-background);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.hero__contacts a {
+  color: var(--color-background);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.hero__edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+  margin-top: auto;
+  padding: 4px 9px;
+  border: 1px solid var(--color-background);
+  border-radius: var(--radius-md);
+  background: var(--color-dark);
+  color: var(--color-background);
+  font-size: 11px;
+}
+
+.hero__edit:hover {
+  background: var(--color-background);
+  color: var(--color-dark);
+}
+
+.hero__edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.hero__edit svg path {
+  fill: currentColor;
+}
+
+/* ---------- Настройки аккаунта ---------- */
+
+.settings {
+  margin-top: 24px;
+}
+
+.section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 25px;
+  font-weight: 400;
+  color: var(--color-dark);
+}
+
+.settings__card {
+  margin-top: 15px;
+  padding: 13px 13px 14px;
+  border: 1px solid var(--color-muted);
+  border-radius: 7px;
+  background: var(--color-surface);
+  color: var(--color-dark);
+}
+
+.settings__heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 15px;
+  color: var(--color-dark);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.settings__heading .icon {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+
+.settings__heading .icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.settings__heading .icon svg path {
+  fill: var(--color-dark);
+}
+
+.settings__group-title {
+  margin: 0 0 8px;
+  color: var(--color-dark);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.settings__divider {
+  height: 1px;
+  margin: 10px 0 11px;
+  border: 0;
+  background: var(--color-muted);
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 19px;
+  margin-bottom: 7px;
+  color: var(--color-dark);
+  font-size: 12px;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.setting>span:first-child {
+  min-width: 0;
+}
+
+.setting--last {
+  margin-bottom: 0;
+}
+
+/* ---------- Переключатель ---------- */
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 17px;
+}
+
+.switch input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch__track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--color-muted);
+  transition: background var(--transition-fast);
+}
+
+.switch__track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  transition: transform var(--transition-fast);
+}
+
+.switch input:checked+.switch__track {
+  background: var(--color-dark);
+}
+
+.switch input:checked+.switch__track::after {
+  transform: translateX(15px);
+}
+
+.switch input:focus-visible+.switch__track {
+  outline: 2px solid var(--color-dark);
+  outline-offset: 2px;
+}
+
+/* ---------- Адаптив как в profile/catalog ---------- */
+
+@media (max-width: 1180px) {
+  :root {
+    --catalog-sidebar: 84px;
+  }
+
+  .sidebar {
+    padding: 24px 12px;
+  }
+
+  .sidebar__logo {
+    padding-left: 0;
+    margin: 0 0 28px;
+    justify-content: center;
+  }
+
+  .sidebar__logo-text,
+  .nav__text {
+    display: none;
+  }
+
+  .nav__link {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    height: auto;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--color-sidebar);
+    overflow: visible;
+  }
+
+  .sidebar__logo {
+    display: none;
+  }
+
+  .nav {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+  }
+
+  .nav__link {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .nav__link>.icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .profile {
+    padding-bottom: 96px;
+  }
+
+  .hero,
+  .hero__inner {
+    min-height: 0;
+  }
+
+  .hero__inner {
+    padding-block: 16px 12px;
+  }
+
+  .hero__user {
+    margin-top: 18px;
+  }
+
+  .hero__name {
+    font-size: 24px;
+  }
+
+  .hero__eyebrow {
+    font-size: 9px;
+  }
+
+  .settings {
+    margin-top: 24px;
+  }
+
+  .settings__card {
+    padding: 13px;
+  }
+
+  .setting {
+    font-size: 10px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .profile__container {
+    padding-inline: 14px;
+  }
+
+  .hero__name {
+    font-size: 22px;
+  }
+
+  .section-title {
+    font-size: 19px;
+  }
+
+  .settings__heading {
+    font-size: 15px;
+  }
+
+  .settings__group-title {
+    font-size: 9px;
+  }
+
+  .setting {
+    font-size: 9px;
+  }
+
+  .switch {
+    width: 30px;
+    height: 16px;
+  }
+
+  .switch__track::after {
+    width: 12px;
+    height: 12px;
+  }
+
+  .switch input:checked+.switch__track::after {
+    transform: translateX(14px);
+  }
+}

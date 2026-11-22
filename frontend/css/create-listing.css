@@ -1,0 +1,525 @@
+/* ==========================================================================
+   create-listing.css — страница «Создание объявления» (мастер из 9 шагов)
+   Подключать после catalog.css: оттуда берутся .layout, .sidebar, .nav,
+   .icon, .page-head, .dropdown*, .option*, .btn, .visually-hidden
+   ========================================================================== */
+
+:root {
+  --color-label: #67493e;
+  --color-success: #0f6b1e;
+  --field-h: 32px;
+}
+
+/* активный пункт меню — бордовый текст */
+.nav__link--active,
+.nav__link--active:hover { color: var(--color-primary); }
+
+/* svg вместо заглушек: рамка пропадает */
+.icon:has(> img),
+.icon:has(> svg) { border: 0; }
+.icon > img { width: 100%; height: 100%; }
+
+.create { padding-bottom: 56px; }
+.page-head__bell { margin-left: auto; color: var(--color-dark); }
+
+.create__lead {
+  margin-top: 10px;
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   Мастер: шаги переключаются через :target (без JS)
+   ========================================================================== */
+.step {
+  display: none;
+  scroll-margin-top: 150px;
+}
+.step:target { display: block; }
+/* пока нет #step-N в адресе — виден первый шаг */
+.wizard__form:not(:has(.step:target)) .step:first-child { display: block; }
+
+/* кнопка «Назад» стоит на строке подзаголовка справа */
+.step__bar {
+  display: flex;
+  justify-content: flex-end;
+  height: 26px;
+  margin: -26px 0 30px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.back:hover { background: var(--color-primary); color: var(--color-background); }
+
+.step__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 26px;
+}
+
+.next {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background var(--transition-fast);
+}
+.next:hover { background: var(--color-dark); }
+
+/* ==========================================================================
+   Карточки формы
+   ========================================================================== */
+.form-card {
+  padding: 22px 24px 26px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+.form-card + .form-card { margin-top: 24px; }
+
+.form-card__title {
+  margin: 0 0 14px;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.form-card--bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 22px;
+}
+.form-card--bar .form-card__title { margin: 0; }
+
+.form-card__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.form-card__row .field__label { margin: 0; }
+
+/* сетки */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 40px;
+  align-items: start;
+}
+.field--full { grid-column: 1 / -1; }
+
+.cols3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin-bottom: 12px;
+}
+.cols2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 40px;
+  align-items: start;
+}
+.stack { display: grid; gap: 12px; min-width: 0; }
+
+/* ==========================================================================
+   Поля
+   ========================================================================== */
+.field { display: block; min-width: 0; }
+
+.field__label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-label);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.field__label--section { margin: 18px 0 8px; }
+
+.field__input,
+.field__textarea,
+.select {
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 12px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-dark);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color var(--transition-fast);
+}
+.field__textarea {
+  height: auto;
+  min-height: var(--field-h);
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.4;
+}
+.field__input::placeholder,
+.field__textarea::placeholder,
+.upload__link::placeholder {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+.field__input:focus,
+.field__textarea:focus,
+.select:focus,
+.upload__link:focus { outline: 0; border-color: var(--color-primary); }
+
+/* Время (маска ЧЧ:ММ): красная рамка, если введено неполное или неверное значение */
+.js-time:not(:placeholder-shown):not(:focus):invalid { border-color: #b3261e; }
+
+/* Режим работы: «С» и «До» рядом */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+/* Нативный select (месяц, состояние оборудования) */
+.select-wrap { position: relative; display: block; }
+.select { appearance: none; padding-right: 32px; cursor: pointer; }
+.select:has(option[value=""]:checked) { color: var(--color-muted); }
+.select-wrap .icon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--color-label);
+}
+.select-wrap--sm .select { padding: 0 24px 0 8px; font-size: 10px; }
+.select-wrap--sm .icon { right: 6px; --size: 12px; }
+
+/* ---------- Выпадающий список в форме (варианты из catalog.css) ---------- */
+.dropdown--field .dropdown__toggle {
+  height: var(--field-h);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 11px;
+}
+.dropdown--field .dropdown__value { color: var(--color-muted); }
+.dropdown--field:has(.option__input:checked:not([value="all"])) .dropdown__value { color: var(--color-dark); }
+
+.dropdown--field .dropdown__panel {
+  top: calc(100% + 2px);
+  width: 100%;
+  max-width: none;
+  padding: 8px;
+  gap: 8px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-card);
+}
+.dropdown--field .dropdown__list { gap: 2px; padding: 0; }
+.dropdown--field .option { gap: 8px; padding: 3px 4px; font-size: 11px; }
+.dropdown--field .option__mark { width: 16px; height: 16px; }
+.dropdown--field .option__mark::after { inset: 3px; }
+.dropdown--field .dropdown__apply { height: 28px; font-size: 12px; }
+
+/* ---------- ДА / НЕТ ---------- */
+.yn { margin: 0; padding: 0; border: 0; }
+.yn legend { padding: 0; }
+.yn__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 12px;
+  min-height: 24px;
+}
+.yn__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-label);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.yn__input { position: absolute; opacity: 0; pointer-events: none; }
+.yn__box {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  transition: border-color var(--transition-fast);
+}
+.yn__input:checked + .yn__box { border-color: var(--color-label); }
+.yn__input:checked + .yn__box::after {
+  content: "";
+  width: 5px;
+  height: 10px;
+  margin-top: -2px;
+  border: solid var(--color-label);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.yn__input:focus-visible + .yn__box { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/* ---------- Загрузка файлов ---------- */
+.upload-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.upload-row .field__label { margin: 0; }
+
+.upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: var(--field-h);
+  padding: 0 12px;
+  border: 1px solid var(--color-muted);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+.upload:hover,
+.upload-row:has(input:focus-visible) .upload { border-color: var(--color-primary); }
+.upload__text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.upload__link {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  color: var(--color-dark);
+}
+.uploads { margin-top: 18px; }
+
+/* ---------- Кнопки «+ Добавить …» ---------- */
+.outline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.outline-btn:hover { background: var(--color-primary); color: var(--color-background); }
+.outline-btn--sm { height: 28px; padding: 0 12px; font-size: 11px; }
+
+/* ---------- Сотрудники ---------- */
+.staff {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.field__label + .outline-btn--sm,
+.field__label--section + .outline-btn--sm { display: inline-flex; }
+
+/* ---------- Финансы по месяцам ---------- */
+
+.month {
+  display: grid;
+  grid-template-columns: 72px repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  padding: 12px 0 14px;
+  border-top: 1px solid var(--color-muted);
+}
+.month__cell { display: grid; grid-template-rows: 2.4em auto; gap: 6px; align-items: end; text-align: center; min-width: 0; }
+.month__cell .field__label {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.15;
+}
+.money { position: relative; display: block; }
+.money .field__input { height: 28px; padding: 0 16px 0 8px; color: var(--color-primary); font-size: 10px; }
+.money::after {
+  content: "₽";
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  color: var(--color-muted);
+  font-size: 9px;
+  pointer-events: none;
+}
+
+/* ---------- Выпадающий список месяцев ---------- */
+.dropdown--month .dropdown__toggle { height: 28px; padding: 0 6px 0 8px; font-size: 10px; }
+.dropdown--month .dropdown__value { color: var(--color-dark); }
+.dropdown--month .icon { --size: 12px; }
+.dropdown--month .dropdown__panel {
+  width: max(100%, 120px);
+  padding: 0;
+  gap: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.dropdown--month .dropdown__list { gap: 0; max-height: none; padding: 0; }
+.dropdown--month .option {
+  justify-content: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid rgba(185, 167, 160, .5);
+  border-radius: 0;
+  font-size: 12px;
+}
+.dropdown--month .option:last-child { border-bottom: 0; }
+.dropdown--month .option__mark { display: none; }
+.dropdown--month .option:has(.option__input:checked) { background: rgba(104, 10, 24, .08); color: var(--color-primary); }
+
+/* средние экраны и телефоны: ячейки переносятся, горизонтального скролла нет */
+@media (max-width: 1320px) {
+  .month { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .month__cell { grid-template-rows: auto auto; text-align: left; }
+  .month__cell:first-child { grid-column: 1 / -1; }
+  .month__cell:first-child .dropdown { max-width: 140px; }
+  .month__cell .field__label { justify-content: flex-start; font-size: 11px; }
+}
+
+/* ==========================================================================
+   Экран «Отправлено на модерацию»  (#success)
+   ========================================================================== */
+.done { display: none; min-height: 60vh; place-items: center; padding-top: 10px; }
+.done:target { display: grid; }
+.create:has(#success:target) .wizard__form,
+.create:has(#success:target) .page-title,
+.create:has(#success:target) .create__lead { display: none; }
+
+.done__card {
+  width: min(100%, 330px);
+  padding: 44px 28px 40px;
+  border: 2px solid var(--color-success);
+  border-radius: 20px;
+  background: #fff;
+  text-align: center;
+}
+.done__check {
+  position: relative;
+  display: block;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+.done__check::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 7px;
+  width: 6px;
+  height: 12px;
+  border: solid #fff;
+  border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+.done__title {
+  margin: 0 0 22px;
+  color: var(--color-success);
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.15;
+}
+.done__text { margin-bottom: 22px; color: var(--color-primary); font-size: 12px; }
+.done__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-size: 11px;
+  font-weight: 700;
+  transition: background var(--transition-fast);
+}
+.done__btn:hover { background: var(--color-dark); }
+
+/* ==========================================================================
+   Адаптив
+   ========================================================================== */
+@media (max-width: 900px) {
+  .form-grid,
+  .cols2,
+  .cols3,
+  .staff { grid-template-columns: minmax(0, 1fr); }
+
+  .upload-row { grid-template-columns: minmax(0, 1fr); gap: 6px; margin-bottom: 14px; }
+  .upload-row .field__label { margin-bottom: 0; }
+
+  .form-card--bar,
+  .form-card__row { flex-wrap: wrap; }
+}
+
+@media (max-width: 720px) {
+  .create { padding-bottom: 96px; }          /* место под нижнюю панель */
+
+  .create__lead { font-size: 11px; }
+  .step__bar { height: auto; margin: 14px 0 16px; justify-content: flex-start; }
+
+  .form-card { padding: 16px; }
+  .step__footer { margin-top: 18px; }
+  .next { width: 100%; justify-content: center; }
+
+
+  .done__title { font-size: 24px; }
+}
+
+@media (max-width: 420px) {
+  .pair { gap: 10px; }
+  .outline-btn { width: 100%; }
+  .form-card--bar .outline-btn { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

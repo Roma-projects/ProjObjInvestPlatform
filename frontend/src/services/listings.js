@@ -1,45 +1,41 @@
-/* Для чего нужен этот файл:
- * Содержит правила работы этой части приложения. Сервисный слой связывает API, проверку данных и хранилище.
- */
+/** Listing API is routed by the API Gateway to the Listing microservice. */
+import { API_BASE, apiRequest } from './api.js';
 
-/** Запросы фронтенда для создания, чтения, обновления и загрузки объявлений. */
-import { API_BASE, apiRequest } from './api';
-
-export async function createListing(payload) {
-  return apiRequest(API_BASE.listings, '/api/v1/listings', {
+export function createListing(payload) {
+  return apiRequest(API_BASE.listings, '/api/listings', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-export async function getListings(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  return apiRequest(API_BASE.listings, `/api/v1/listings?${qs}`);
+export function getListings() {
+  return apiRequest(API_BASE.listings, '/api/listings');
 }
 
-export async function getListing(id) {
-  return apiRequest(API_BASE.listings, `/api/v1/listings/${id}`);
+export function getListing(id) {
+  return apiRequest(API_BASE.listings, `/api/listings/${encodeURIComponent(id)}`);
 }
 
-export async function updateListing(id, payload) {
-  return apiRequest(API_BASE.listings, `/api/v1/listings/${id}`, {
+export function updateListing(id, payload) {
+  return apiRequest(API_BASE.listings, `/api/listings/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
 }
 
-export async function deleteListing(id) {
-  return apiRequest(API_BASE.listings, `/api/v1/listings/${id}`, {
-    method: 'DELETE',
+export function submitListing(id) {
+  return apiRequest(API_BASE.listings, `/api/listings/${encodeURIComponent(id)}/submit`, {
+    method: 'POST',
   });
 }
 
-/** Загружает файл в закрытый API Listing; поле задаёт тип документа или медиа. */
-export async function uploadListingFile(listingId, field, file) {
+/** Uploads one file to the visibility class selected by the Listing service. */
+export function uploadListingFile(listingId, field, file) {
   const form = new FormData();
   form.append('file', file);
-  return apiRequest(API_BASE.listings, `/api/v1/listings/${listingId}/files/${encodeURIComponent(field)}`, {
-    method: 'POST',
-    body: form,
-  });
+  return apiRequest(
+    API_BASE.listings,
+    `/api/listings/${encodeURIComponent(listingId)}/files/${encodeURIComponent(field)}`,
+    { method: 'POST', body: form },
+  );
 }

@@ -21,17 +21,25 @@ class NotificationService:
 
     def __init__(self) -> None:
         self.client = AsyncIOMotorClient(settings.mongodb_url)
-        self.collection = self.client.get_default_database()["notifications"]
+        database = self.client.get_default_database()
+        self.collection = database["notifications"]
+        self.blocked_users_collection = database["blocked_users"]
         self.connections: dict[str, set[WebSocket]] = {}
+        self.blocked_users: set[str] = set()
 
     async def connect(self) -> None:
         await self.collection.create_index([("user_id", 1), ("created_at", -1)])
         await self.collection.create_index("event_id", unique=True, sparse=True)
+        await self.blocked_users_collection.create_index("_id", unique=True)
 
     async def close(self) -> None:
         self.client.close()
 
     async def add_connection(self, user_id: str, socket: WebSocket) -> None:
+        if user_id in self.blocked_users or await self.blocked_users_collection.find_one({"_id": user_id}):
+            self.blocked_users.add(user_id)
+            await socket.close(code=4403, reason="Account is blocked")
+            return
         await socket.accept()
         self.connections.setdefault(user_id, set()).add(socket)
         pending = await self.collection.find({"user_id": user_id, "is_read": False}).sort("created_at", -1).limit(100).to_list(100)
@@ -41,6 +49,19 @@ class NotificationService:
                 "type": row["type"], "payload": row["payload"],
                 "created_at": row["created_at"].isoformat(), "is_read": False,
             })
+
+    async def block_user(self, user_id: str) -> None:
+        self.blocked_users.add(user_id)
+        await self.blocked_users_collection.update_one({"_id": user_id}, {"$set": {"blocked": True}}, upsert=True)
+        for socket in tuple(self.connections.pop(user_id, ())):
+            try:
+                await socket.close(code=4403, reason="Account is blocked")
+            except Exception:
+                logger.debug("WebSocket for blocked user was already closed: user=%s", user_id)
+
+    async def unblock_user(self, user_id: str) -> None:
+        self.blocked_users.discard(user_id)
+        await self.blocked_users_collection.delete_one({"_id": user_id})
 
     async def mark_read(self, user_id: str, event_id: str) -> None:
         await self.collection.update_one(

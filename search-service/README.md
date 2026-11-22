@@ -11,7 +11,9 @@ docker compose up --build -d search-service
 docker compose logs -f search-service
 ```
 
-Публичный маршрут каталога: `http://localhost:8080/api/catalog`. Порт контейнера наружу не публикуется.
+Публичные маршруты Search + Catalog идут через API Gateway: `POST http://localhost:8080/api/catalog/query` принимает JSON фильтры, `GET /api/catalog/{listing_id}` отдаёт одну опубликованную карточку, `POST /api/search/suggest` принимает поисковую строку в JSON. Совместимый `GET /api/catalog` оставлен для старых клиентов. Порт контейнера наружу не публикуется.
+
+Search принимает в каталог только `listing.creation.completed` от Listing. Событие `moderation.user.blacklisted` сохраняет блокировку продавца в MongoDB и удаляет все его карточки; параллельно Search отклоняет запоздавшие события публикации. Снятие блокировки не восстанавливает удалённые карточки автоматически.
 
 ## Зависимости и локальный запуск
 

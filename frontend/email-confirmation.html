@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MieroVenture — Подтверждение почты</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/email-confirmation.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body class="email-confirmation-page">
+  <main class="email-confirmation">
+    <section class="email-confirmation__form-panel">
+      <div class="email-confirmation__form-wrap">
+
+        <div class="email-confirmation__header">
+          <a class="email-confirmation__brand" href="index.html" aria-label="MieroVenture">
+            <svg class="email-confirmation__brand-mark" width="60" height="40" viewBox="0 0 962 638" fill="none"
+              xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path
+                d="M0 613.582C71.1338 591.326 100.803 564.746 101.429 486.483C102.055 408.22 104.56 94.5418 103.933 59.4799C103.307 24.4181 67.2011 13.0801 25.0442 0H193.466L389.437 353.123L603.565 0H752.578C709.48 10.3816 683.081 20.6614 683.707 64.4887C684.333 108.316 683.707 547.841 683.707 547.841L585.408 322.444V66.3671L335.592 473.961L120.838 86.4024C120.838 86.4024 120.838 413.855 120.838 486.483C120.838 559.111 152.514 589.437 231.659 613.582H0Z"
+                fill="#680A18" />
+              <path
+                d="M647.43 494.482L421.445 6.89355L347.487 120.33L598.124 638L663.874 501.229L654.083 481.646C649.831 489.869 647.43 494.482 647.43 494.482Z"
+                fill="#20232A" />
+              <path
+                d="M684.262 422.871L682.988 461.468L843.969 126.597C882.446 47.6769 908.356 21.1381 961.07 0.626465H787.13C847.709 16.9795 852.048 46.4013 827.534 120.957C810.679 172.215 731.87 329.548 684.262 422.871Z"
+                fill="#20232A" />
+            </svg>
+            <span>MieroVenture</span>
+          </a>
+        </div>
+
+        <div class="email-confirmation__intro">
+          <h1>Подтвердите<br>электронную почту</h1>
+          <p>
+            Мы отправили код подтверждения на вашу электронную почту.
+            Введите его ниже, чтобы продолжить регистрацию.
+          </p>
+        </div>
+
+        <form class="email-confirmation__form" action="#" method="post">
+          <label class="email-confirmation__field">
+            <span class="visually-hidden">Код подтверждения</span>
+            <div class="email-confirmation__input-wrap">
+              <span class="email-confirmation__input-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="6" width="18" height="12" rx="3" stroke="currentColor" stroke-width="1.5" />
+                  <circle cx="8" cy="12" r="1" fill="currentColor" />
+                  <circle cx="12" cy="12" r="1" fill="currentColor" />
+                  <circle cx="16" cy="12" r="1" fill="currentColor" />
+                </svg>
+              </span>
+              <input type="text" name="verification_code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                placeholder="Введите код из письма" aria-label="Введите код из письма">
+            </div>
+          </label>
+
+          <button class="email-confirmation__submit" type="submit">Подтвердить</button>
+
+          <div class="email-confirmation__resend">
+            <button type="button" class="email-confirmation__resend-button">
+              Отправить код повторно
+            </button>
+            <span class="email-confirmation__timer" aria-live="polite">00:58</span>
+          </div>
+        </form>
+
+        <p class="email-confirmation__wrong-data">
+          Указали неверные данные?
+          <a href="registration.html">Изменить данные</a>
+        </p>
+
+        <a class="email-confirmation__back" href="registration.html">
+          <span aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 6H2M5 9L2 6L5 3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                stroke="#680A18" />
+            </svg>
+          </span>
+          Назад
+        </a>
+      </div>
+    </section>
+
+    <section class="email-confirmation__visual" aria-label="MieroVenture">
+      <div class="email-confirmation__visual-overlay"></div>
+
+      <div class="email-confirmation__visual-content">
+        <svg class="email-confirmation__visual-mark" width="150" height="100" viewBox="0 0 962 638" fill="none"
+          xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M0 613.582C71.1338 591.326 100.803 564.746 101.429 486.483C102.055 408.22 104.56 94.5418 103.933 59.4799C103.307 24.4181 67.2011 13.0801 25.0442 0H193.466L389.437 353.123L603.565 0H752.578C709.48 10.3816 683.081 20.6614 683.707 64.4887C684.333 108.316 683.707 547.841 683.707 547.841L585.408 322.444V66.3671L335.592 473.961L120.838 86.4024C120.838 86.4024 120.838 413.855 120.838 486.483C120.838 559.111 152.514 589.437 231.659 613.582H0Z"
+            fill="#F8F0E3" />
+          <path
+            d="M647.43 494.482L421.445 6.89355L347.487 120.33L598.124 638L663.874 501.229L654.083 481.646C649.831 489.869 647.43 494.482 647.43 494.482Z"
+            fill="#D9C6A5" />
+          <path
+            d="M684.262 422.871L682.988 461.468L843.969 126.597C882.446 47.6769 908.356 21.1381 961.07 0.626465H787.13C847.709 16.9795 852.048 46.4013 827.534 120.957C810.679 172.215 731.87 329.548 684.262 422.871Z"
+            fill="#D9C6A5" />
+        </svg>
+
+        <h2>Находите бизнес, в который<br class="email-confirmation__desktop-break"> стоит инвестировать</h2>
+        <p>ИНВЕСТИРУЙТЕ В ГОТОВЫЙ БИЗНЕС.<br>СОЗДАВАЙТЕ СВОИ ВОЗМОЖНОСТИ</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+
+</html>

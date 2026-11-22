@@ -1,0 +1,120 @@
+.hero {
+  min-height: 700px;
+  background: var(--color-dark);
+}
+
+.hero__visual {
+  position: relative;
+  min-height: 688px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.hero__image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.82) 0%,
+            rgba(0, 0, 0, 0.62) 38%,
+            rgba(0, 0, 0, 0.10) 76%
+        ),
+        url("../assets/images/hero.jpg");
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.hero__image::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .26;
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(248,240,227,.25) 49.2% 50%, transparent 50.2%),
+    linear-gradient(0deg, transparent 54%, rgba(248,240,227,.20) 54.2% 54.5%, transparent 54.7%);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
+  width: min(600px, 100%);
+  padding: 64px 0 72px;
+  color: var(--color-background);
+}
+
+.hero__title {
+  margin: 0 0 30px;
+  font: 400 clamp(62px, 8vw, 92px) var(--font-display);
+  line-height: .9;
+  letter-spacing: -.045em;
+}
+
+.hero__subtitle {
+  max-width: 580px;
+  margin: 0 0 5px;
+  font-size: 36px;
+  font-weight: 500;
+}
+
+.hero__description {
+  max-width: 490px;
+  margin: 0 0 38px;
+  color: #BAA7A0;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.hero__actions {
+  margin-bottom: 30px;
+}
+
+.hero__features {
+  display: grid;
+  grid-template-columns: repeat(3, 203px);
+  gap: 20px;
+  max-width: 720px;
+}
+
+.feature {
+  min-height: 115px;
+  max-width: 203px;
+  max-height: 140px;
+  padding: 10px 10px 12px 23px;
+  border-radius: 14px;
+  background: rgba(104, 10, 24, 0.6);
+  backdrop-filter: blur(8px);
+  transition: transform var(--transition-base), background var(--transition-base);
+}
+
+.feature:hover { transform: translateY(-5px); background: rgba(104,10,24,.96); }
+
+.feature__icon { width: 32px; height: 32px; margin-bottom: 7px; }
+.feature__title { margin: 0 0 7px; font-size: 15px; }
+.feature__text { margin: 0; color: #D9C6A5; font-size: 12px; }
+
+.hero__logo {
+  position: absolute;
+  z-index: 3;
+
+  top: 20px;
+  right: max(24px, calc((100vw - 1150px) / 2));
+
+  width: 226px;
+  height: auto;
+}
+
+.hero__marker {
+  color: var(--color-accent)
+}
+
+/* .hero__container {
+  margin: 0 60px;
+  max-width: 1380px;
+} */

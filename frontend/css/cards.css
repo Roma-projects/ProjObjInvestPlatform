@@ -1,0 +1,110 @@
+.offers { background: rgba(217,198,165,.42); }
+
+.offers__head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.text-link {
+  display: flex;
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.business-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 34px;
+}
+
+.business-card {
+  overflow: hidden;
+  padding: 17px 17px 30px;
+  border: 2px solid rgba(104,10,24,.5);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.business-card:hover { transform: translateY(-8px); box-shadow: 0 16px 30px rgba(32,35,42,.15); }
+
+.business-card__image {
+  height: 98px;
+  margin: 7px 7px 0;
+  border-radius: 5px;
+}
+
+.business-card__body { padding: 0 21px 17px; }
+
+.business-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.business-card__rating {
+  margin-top: -1px;
+  padding: 7px 10px;
+  border-radius: 0 0 0 8px;
+  background: rgba(217,198,165,.78);
+  color: var(--color-dark);
+  font-size: 9px;
+}
+
+.business-card__name {
+  margin: 7px 0 3px;
+  font: 23px var(--font-display);
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.business-card__meta { margin: 0; color: #705f58; font-size: 10px; }
+
+.business-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 14px;
+  border-top: 1px solid rgba(104,10,24,.24);
+  border-bottom: 1px solid rgba(104,10,24,.24);
+}
+
+.stat {
+  padding: 12px 8px;
+  border-right: 1px solid rgba(104,10,24,.24);
+}
+.stat:last-child { border-right: 0; }
+
+.stat__label { display: block; margin-bottom: 3px; color: #705f58; font-size: 8px; }
+.stat__value { display: block; font-size: 11px; font-weight: 700; }
+
+.business-card__footer { padding-top: 12px; }
+.business-card__link { color: var(--color-primary); font-size: 10px; font-weight: 700; }
+
+.sell-banner {
+  padding-top: 42px;
+  padding-bottom: 0;
+}
+
+.sell-banner__inner {
+  min-height: 132px;
+  padding: 22px 34px;
+  display: grid;
+  grid-template-columns: 130px 1fr auto;
+  align-items: center;
+  gap: 30px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+.sell-banner__logo { width: 96px; height: 74px; object-fit: contain; filter: brightness(0) invert(1); }
+.sell-banner__title { margin: 0 0 7px; font: 35px var(--font-display); }
+.sell-banner__text { margin: 0; max-width: 650px; font-size: 14px; }

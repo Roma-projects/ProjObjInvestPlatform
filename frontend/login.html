@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MieroVenture — Вход</title>
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/login.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body class="login-page">
+  <main class="login">
+    <section class="login__form-panel">
+      <div class="login__form-wrap">
+        <a class="login__brand" href="index.html" aria-label="MieroVenture">
+          <svg class="login__brand-mark" width="60" height="40" viewBox="0 0 962 638" fill="none"
+            xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path
+              d="M0 613.582C71.1338 591.326 100.803 564.746 101.429 486.483C102.055 408.22 104.56 94.5418 103.933 59.4799C103.307 24.4181 67.2011 13.0801 25.0442 0H193.466L389.437 353.123L603.565 0H752.578C709.48 10.3816 683.081 20.6614 683.707 64.4887C684.333 108.316 683.707 547.841 683.707 547.841L585.408 322.444V66.3671L335.592 473.961L120.838 86.4024C120.838 86.4024 120.838 413.855 120.838 486.483C120.838 559.111 152.514 589.437 231.659 613.582H0Z"
+              fill="#680A18" />
+            <path
+              d="M647.43 494.482L421.445 6.89355L347.487 120.33L598.124 638L663.874 501.229L654.083 481.646C649.831 489.869 647.43 494.482 647.43 494.482Z"
+              fill="#20232A" />
+            <path
+              d="M684.262 422.871L682.988 461.468L843.969 126.597C882.446 47.6769 908.356 21.1381 961.07 0.626465H787.13C847.709 16.9795 852.048 46.4013 827.534 120.957C810.679 172.215 731.87 329.548 684.262 422.871Z"
+              fill="#20232A" />
+          </svg>
+          <span>MieroVenture</span>
+        </a>
+
+        <div class="login__intro">
+          <h1>Добро пожаловать<br>в MieroVenture</h1>
+          <p>Войдите в свой аккаунт, чтобы получить доступ<br class="login__desktop-break"> к лучшим инвестиционным
+            возможностям.</p>
+        </div>
+
+        <div class="login__tabs" role="tablist" aria-label="Авторизация">
+          <button class="login__tab is-active" type="button">Вход</button>
+          <a href="registration.html" class="login__tab">Регистрация</a>
+        </div>
+
+        <form class="login__form" action="#" method="post">
+          <label class="login__field">
+            <span>Электронная почта или телефон</span>
+            <input type="text" name="login" placeholder="Введите вашу электронную почту или номер телефона"
+              autocomplete="username">
+          </label>
+
+          <label class="login__field">
+            <span>Пароль</span>
+            <input type="password" name="password" placeholder="Введите пароль" autocomplete="current-password">
+          </label>
+
+          <a class="login__forgot" href="password-recovery.html">Забыли пароль?</a>
+
+          <button class="login__submit" type="submit">Войти</button>
+
+          <p class="login__register">
+            Ещё нет аккаунта?
+            <a href="registration.html">Зарегистрироваться</a>
+          </p>
+        </form>
+      </div>
+    </section>
+
+    <section class="login__visual" aria-label="MieroVenture">
+      <div class="login__visual-overlay"></div>
+      <div class="login__visual-content">
+        <svg class="login__visual-mark" width="150" height="100" viewBox="0 0 962 638" fill="none"
+          xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path
+            d="M0 613.582C71.1338 591.326 100.803 564.746 101.429 486.483C102.055 408.22 104.56 94.5418 103.933 59.4799C103.307 24.4181 67.2011 13.0801 25.0442 0H193.466L389.437 353.123L603.565 0H752.578C709.48 10.3816 683.081 20.6614 683.707 64.4887C684.333 108.316 683.707 547.841 683.707 547.841L585.408 322.444V66.3671L335.592 473.961L120.838 86.4024C120.838 86.4024 120.838 413.855 120.838 486.483C120.838 559.111 152.514 589.437 231.659 613.582H0Z"
+            fill="#F8F0E3" />
+          <path
+            d="M647.43 494.482L421.445 6.89355L347.487 120.33L598.124 638L663.874 501.229L654.083 481.646C649.831 489.869 647.43 494.482 647.43 494.482Z"
+            fill="#D9C6A5" />
+          <path
+            d="M684.262 422.871L682.988 461.468L843.969 126.597C882.446 47.6769 908.356 21.1381 961.07 0.626465H787.13C847.709 16.9795 852.048 46.4013 827.534 120.957C810.679 172.215 731.87 329.548 684.262 422.871Z"
+            fill="#D9C6A5" />
+        </svg>
+        <h2>Находите бизнес, в который<br class="login__desktop-break"> стоит инвестировать</h2>
+        <p>ИНВЕСТИРУЙТЕ В ГОТОВЫЙ БИЗНЕС.<br>СОЗДАВАЙТЕ СВОИ ВОЗМОЖНОСТИ</p>
+
+      </div>
+    </section>
+  </main>
+  <script type="module" src="/js/app.js"></script>
+</body>
+
+</html>

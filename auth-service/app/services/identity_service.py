@@ -112,7 +112,7 @@ class IdentityService:
         user = await self.session.scalar(
             select(User).where(or_(func.lower(User.email) == login.lower(), User.phone == login))
         )
-        if not user or not verify_password(password, user.password_hash) or not user.is_active:
+        if not user or not verify_password(password, user.password_hash) or not user.is_active or user.is_banned:
             raise HTTPException(status_code=401, detail="Invalid login or password")
         if not user.email_verified:
             await self._send_verification(user)
@@ -138,7 +138,7 @@ class IdentityService:
         if not db_session or db_session.is_revoked or db_session.expires_at <= datetime.now(timezone.utc):
             raise HTTPException(status_code=401, detail="Refresh session expired or revoked")
         user = await self.session.get(User, db_session.user_id)
-        if not user or not user.is_active or not user.email_verified:
+        if not user or not user.is_active or user.is_banned or not user.email_verified:
             raise HTTPException(status_code=401, detail="User is unavailable")
 
         db_session.is_revoked = True

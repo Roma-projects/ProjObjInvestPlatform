@@ -22,3 +22,5 @@ python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Нужны MongoDB (`MONGODB_URL`), RabbitMQ (`RABBITMQ_URL`) и тот же JWT secret/algorithm, что и у Auth (`JWT_SECRET_KEY`, `JWT_ALGORITHM`).
+
+Notification хранит активные blacklist UUID в собственной MongoDB, закрывает уже открытые WebSocket-соединения по `moderation.user.blacklisted` и отклоняет новые соединения заблокированного пользователя. Событие `moderation.user.unblocked` снимает ограничение на WebSocket.

@@ -14,6 +14,8 @@ from app.database import init_db
 from app.exceptions import AppError
 from app.routers import auth as auth_router
 from app.routers import identity as identity_router
+from app.routers import internal as internal_router
+from app.rabbitmq.moderation_consumer import moderation_consumer
 from app.rabbitmq.publisher import publisher as auth_publisher
 
 settings = get_settings()
@@ -37,8 +39,13 @@ async def lifespan(_app: FastAPI):
         await auth_publisher.connect()
     except Exception as exc:
         logger.warning("RabbitMQ unavailable during startup: %s", exc)
+    try:
+        await moderation_consumer.start()
+    except Exception as exc:
+        logger.warning("Moderation blacklist consumer unavailable during startup: %s", exc)
     yield
     await auth_publisher.close()
+    await moderation_consumer.stop()
     logger.info("Shutting down %s", settings.service_name)
 
 
@@ -74,3 +81,4 @@ async def health() -> dict:
 app.include_router(auth_router.router)
 # Keep the existing v1 routes while exposing the paths required by the new contract.
 app.include_router(identity_router.router)
+app.include_router(internal_router.router)

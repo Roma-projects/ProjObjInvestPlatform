@@ -36,7 +36,7 @@ async def create_listing(
 async def list_listings(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    owner_id: int | None = None,
+    owner_id: int = Depends(get_current_user_id),
     type: str | None = None,
     status_filter: str | None = Query(None, alias="status"),
     min_price: Decimal | None = None,
@@ -59,10 +59,14 @@ async def list_listings(
 @router.get("/{listing_id}", response_model=ListingResponse)
 async def get_listing(
     listing_id: int,
+    owner_id: int = Depends(get_current_user_id),
     service: ListingService = Depends(get_listing_service),
 ) -> ListingResponse:
     try:
-        return await service.get(listing_id)
+        listing = await service.get(listing_id)
+        if listing.owner_id != owner_id:
+            raise HTTPException(status_code=404, detail="Listing not found")
+        return listing
     except ListingNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

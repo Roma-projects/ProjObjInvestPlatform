@@ -62,18 +62,15 @@ def detect_red_flags(data: dict[str, Any], registry: dict[str, Any] | None = Non
         flags.append({"code": "REG-007", "severity": "high", "evidence": "seller INN failed format or checksum validation"})
     documents = data.get("has_documents")
     if isinstance(documents, dict):
-        required_docs = ("tax_certificate_doc", "income_statement_doc")
-        missing_or_unreadable = []
-        for name in required_docs:
-            document = documents.get(name, False)
-            if isinstance(document, dict):
-                if not document.get("uploaded") or document.get("readable") is False:
-                    missing_or_unreadable.append(name)
-            elif document is not True:
-                missing_or_unreadable.append(name)
-        if missing_or_unreadable:
+        unreadable_documents = [
+            name for name in ("tax_certificate_doc", "income_statement_doc")
+            if isinstance(documents.get(name), dict)
+            and documents[name].get("uploaded") is True
+            and documents[name].get("readable") is False
+        ]
+        if unreadable_documents:
             flags.append({"code": "DOC-002", "severity": "medium",
-                          "evidence": "missing or unreadable tax/income documents: " + ", ".join(missing_or_unreadable)})
+                          "evidence": "uploaded tax/income documents are marked unreadable: " + ", ".join(unreadable_documents)})
     if registry and registry.get("status") not in (None, "действующая", "active"):
         flags.append({"code": "REG-001", "severity": "critical", "evidence": "registry record is not active"})
     if registry and registry.get("ogrnip") and data.get("seller_ogrnip") and registry["ogrnip"] != data["seller_ogrnip"]:

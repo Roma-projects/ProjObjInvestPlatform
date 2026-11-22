@@ -1,0 +1,504 @@
+/* ==========================================================================
+   moderation-queue.css — страница «Очередь на модерацию» MieroVenture
+   Основано на структуре moderator-profile.css / catalog.css.
+   Подключается после variables.css, reset.css, base.css, catalog.css.
+   ========================================================================== */
+
+:root {
+  --catalog-sidebar: 242px;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-dark);
+}
+
+/* ---------- Заглушки под SVG-иконки ---------- */
+
+.icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+}
+
+/* размеры только для пустых заглушек, чтобы не ломать вставленные SVG */
+.icon--12:empty { width: 12px; height: 12px; }
+.icon--16:empty { width: 16px; height: 16px; }
+.icon--18:empty { width: 18px; height: 18px; }
+.icon--20:empty { width: 20px; height: 20px; }
+.icon--22:empty { width: 22px; height: 22px; }
+.icon--24:empty { width: 24px; height: 24px; }
+.icon--gauge:empty { width: 124px; height: 66px; }
+
+/* ---------- Сайдбар ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 22px 8px 26px;
+  background: var(--color-sidebar);
+  color: var(--color-background);
+  overflow-y: auto;
+}
+
+.sidebar__logo {
+  margin: 0 0 34px;
+  padding-left: 40px;
+  gap: 8px;
+  color: var(--color-background);
+}
+
+.sidebar__logo-text {
+  color: var(--color-background);
+}
+
+.nav {
+  gap: 5px;
+}
+
+.nav__link {
+  min-height: 42px;
+  height: auto;
+  padding: 7px 18px;
+  gap: 14px;
+  color: var(--color-background);
+}
+
+.nav__link:hover {
+  background: var(--color-dark);
+  color: var(--color-background);
+}
+
+.nav__link--active,
+.nav__link--active:hover {
+  background: var(--color-muted);
+  color: var(--color-dark);
+}
+
+.nav__text {
+  line-height: 1.15;
+}
+
+.nav__link .icon {
+  flex: 0 0 auto;
+}
+
+/* ---------- Шапка страницы ---------- */
+
+.queue {
+  min-width: 0;
+}
+
+.page-head__bell {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--color-dark);
+}
+
+.page-head__bell:hover {
+  color: var(--color-primary);
+}
+
+.queue__subtitle {
+  margin-bottom: 22px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ---------- Сортировка (на базе catalog.css) ---------- */
+
+.queue .sorting {
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.queue .sorting__icon {
+  margin-top: 0;
+  color: var(--color-dark);
+}
+
+.queue .sorting__list {
+  grid-template-columns: minmax(0, 460px);
+}
+
+.queue .dropdown__toggle {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 14px;
+}
+
+/* единственный список раскрывается вправо от своей левой границы */
+.queue .sorting__list>.dropdown .dropdown__panel,
+.queue .sorting__list>.dropdown:last-child .dropdown__panel {
+  left: 0;
+  right: auto;
+}
+
+/* ---------- Список карточек ---------- */
+
+.queue__list {
+  display: grid;
+  gap: 18px;
+}
+
+.mod-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) 164px;
+  gap: 16px 22px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.mod-card:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+/* вместо фото — пустое место нужного размера */
+.mod-card__image {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--radius-md);
+  border: 1px solid;
+}
+
+/* ---------- Информация об объекте ---------- */
+
+.mod-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mod-card__title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.mod-card__meta {
+  display: grid;
+  gap: 6px;
+}
+
+.mod-card__meta li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mod-card__price {
+  margin-top: auto;
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mod-card__date {
+  color: var(--color-primary);
+  font-size: 12px;
+}
+
+/* ---------- Score of AI ---------- */
+
+.score {
+  align-self: start;
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px 8px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.score__label {
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+
+.score__gauge {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.score__value {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  color: var(--color-primary);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.score__value strong {
+  font-size: 22px;
+  font-weight: 400;
+}
+
+/* ---------- Ошибки и уровень риска ---------- */
+
+.mod-card__issues {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 24px;
+  min-width: 0;
+}
+
+.issues__title {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.issues__list {
+  display: grid;
+  gap: 8px;
+}
+
+.issue {
+  display: grid;
+  gap: 2px;
+}
+
+.issue__code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.issue__code::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.issue__text {
+  font-size: 10px;
+}
+
+.mod-card__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.risk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mod-card__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: gap var(--transition-fast);
+}
+
+.mod-card__more:hover {
+  gap: 12px;
+}
+
+/* ==========================================================================
+   Адаптив (как в moderator-profile / catalog)
+   ========================================================================== */
+
+/* Широкие экраны: ошибки — четвёртая колонка в одной строке с фото */
+@media (min-width: 1600px) {
+  .mod-card {
+    grid-template-columns: minmax(200px, 280px) minmax(0, 1fr) 170px minmax(0, 1.5fr);
+  }
+}
+
+/* Ниже 1600px ошибки уходят отдельной строкой под фото */
+@media (max-width: 1599px) {
+  .mod-card__issues {
+    grid-column: 1 / -1;
+    padding-top: 14px;
+    border-top: 1px solid rgba(185, 167, 160, .6);
+  }
+}
+
+/* Ноутбуки / планшеты landscape: компактный сайдбар */
+@media (max-width: 1180px) {
+  :root {
+    --catalog-sidebar: 84px;
+  }
+
+  .sidebar {
+    padding: 24px 12px;
+  }
+
+  .sidebar__logo {
+    padding-left: 0;
+    margin: 0 0 28px;
+    justify-content: center;
+  }
+
+  .sidebar__logo-text,
+  .nav__text {
+    display: none;
+  }
+
+  .nav__link {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* Планшеты: счёт и ошибки на всю ширину карточки */
+@media (max-width: 900px) {
+  .mod-card {
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  }
+
+  .score {
+    grid-column: 1 / -1;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .score__gauge {
+    flex: none;
+    width: 124px;
+  }
+}
+
+/* Мобильные: сайдбар превращается в нижнюю панель */
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    height: auto;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--color-sidebar);
+    overflow: visible;
+  }
+
+  .sidebar__logo {
+    display: none;
+  }
+
+  .nav {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+  }
+
+  .nav__link {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .queue {
+    padding-bottom: 96px;
+  }
+
+  .queue__subtitle {
+    margin-bottom: 16px;
+    font-size: 12px;
+  }
+
+  .queue .sorting {
+    margin-bottom: 16px;
+  }
+
+  .queue .dropdown__toggle {
+    height: 42px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .queue__list {
+    gap: 12px;
+  }
+
+  .mod-card {
+    grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+    gap: 12px 14px;
+    padding: 10px;
+  }
+
+  .mod-card__title {
+    font-size: 19px;
+  }
+
+  .mod-card__price {
+    font-size: 17px;
+  }
+
+  .mod-card__meta li,
+  .mod-card__date {
+    font-size: 12px;
+  }
+}
+
+/* Узкие телефоны: фото над текстом */
+@media (max-width: 520px) {
+  .mod-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mod-card__image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .mod-card__price {
+    margin-top: 2px;
+  }
+
+  .mod-card__issues {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mod-card__side {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .risk {
+    white-space: normal;
+    font-size: 14px;
+  }
+}

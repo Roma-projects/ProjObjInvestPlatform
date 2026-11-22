@@ -1,0 +1,513 @@
+/* =========================================================
+   BUSINESS OFFERS
+   ========================================================= */
+
+.business-offer-grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 30px;
+
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+}
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
+
+.business-offer {
+    position: relative;
+
+    width: 100%;
+    min-width: 0;
+    height: 289px;
+
+    box-sizing: border-box;
+    overflow: hidden;
+
+    background: var(--color-background);
+
+    border: 1px solid var(--color-muted);
+    border-radius: 6px;
+
+    box-shadow: 0 2px 0 rgba(32, 35, 42, .12);
+}
+
+
+/* =========================================================
+   IMAGE
+   ========================================================= */
+
+.business-offer__media {
+    position: relative;
+
+    width: calc(100% - 20px);
+    height: 117px;
+
+    margin: 10px;
+
+    box-sizing: border-box;
+    overflow: hidden;
+
+    border: 1px solid var(--color-dark);
+    border-radius: 5px;
+
+    background: var(--color-muted);
+}
+
+.business-offer__photo {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+    object-position: center;
+}
+
+.business-offer__photo--placeholder {
+    background: var(--color-muted);
+}
+
+
+/* =========================================================
+   RATING
+   ========================================================= */
+
+.business-offer__rating {
+    position: absolute;
+
+    top: 4px;
+    right: 4px;
+
+    /* width: 124px;
+    height: 30px; */
+
+    display: flex;
+    align-items: center;
+
+    box-sizing: border-box;
+
+    padding: 5px;
+
+    background: #F8F0E3A6;
+
+    border-radius: 6px;
+
+    color: var(--color-dark);
+
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #67493E;
+}
+
+.business-offer__rating-mark {
+    width: 30px;
+    height: 30px;
+
+    flex: 0 0 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-right: 6px;
+
+    border-radius: 50%;
+
+    background: #67493E;
+    color: var(--color-background);
+
+    font-family: var(--font-mono);
+    font-size: 17px;
+    line-height: 1;
+}
+
+.business-offer__rating-copy {
+    display: block;
+
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   FAVORITE
+   ========================================================= */
+
+.business-offer__favorite {
+    position: absolute;
+
+    right: 5px;
+    bottom: 5px;
+
+    width: 24px;
+    height: 24px;
+
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-sizing: border-box;
+
+    background: transparent;
+    border: 0;
+
+    color: var(--color-primary);
+
+    cursor: pointer;
+}
+
+.business-offer__favorite svg {
+    width: 24px;
+    height: 24px;
+
+    display: block;
+}
+
+.business-offer__favorite svg path {
+    fill: transparent;
+    stroke: var(--color-primary);
+    transition: fill var(--transition-fast), transform var(--transition-fast);
+}
+
+.business-offer__favorite:hover svg {
+    transform: scale(1.1);
+}
+
+.business-offer__favorite.is-active svg path {
+    fill: var(--color-primary);
+}
+
+.business-offer__favorite.is-active svg {
+    animation: heart-pop .35s ease;
+    /* keyframes уже есть в components.css */
+}
+
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.business-offer__content {
+    width: calc(100% - 46px);
+    height: 151px;
+
+    margin: 0 23px;
+
+    box-sizing: border-box;
+
+    min-width: 0;
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+.business-offer__title {
+    height: 23px;
+
+    margin: 10px 0 0;
+
+    overflow: hidden;
+
+    color: var(--color-dark);
+
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 400;
+
+    line-height: 23px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   META
+   ========================================================= */
+
+.business-offer__meta {
+    height: 18px;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    color: var(--color-primary);
+
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 400;
+
+    line-height: 18px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   STATS
+   ========================================================= */
+
+.business-offer__stats {
+    width: 100%;
+    height: 52px;
+
+    margin-top: 10px;
+
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+
+    box-sizing: border-box;
+
+    border-top: 1px solid var(--color-muted);
+    border-bottom: 1px solid var(--color-muted);
+}
+
+.business-offer__stat {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    box-sizing: border-box;
+
+    padding: 4px 10px;
+
+    overflow: hidden;
+}
+
+.business-offer__stat:first-child {
+    padding-left: 0;
+}
+
+.business-offer__stat:last-child {
+    padding-right: 0;
+}
+
+.business-offer__stat+.business-offer__stat {
+    border-left: 1px solid var(--color-muted);
+}
+
+
+/* =========================================================
+   STAT TEXT
+   ========================================================= */
+
+.business-offer__label {
+    display: block;
+
+    margin: 0 0 2px;
+
+    overflow: hidden;
+
+    color: var(--color-dark);
+
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 400;
+
+    line-height: 13px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.business-offer__value {
+    display: block;
+
+    margin: 0;
+
+    overflow: hidden;
+
+    color: var(--color-dark);
+
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 400;
+
+    line-height: 17px;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.business-offer__footer {
+    height: 34px;
+
+    display: flex;
+    align-items: center;
+
+    box-sizing: border-box;
+}
+
+.business-offer__details {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    color: var(--color-primary);
+
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 16px;
+
+    text-decoration: none;
+}
+
+.business-offer__details:hover {
+    text-decoration: underline;
+}
+
+.business-offer__details svg {
+    width: 12px;
+    height: 12px;
+
+    display: block;
+
+    flex: 0 0 12px;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+
+    .business-offer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+    }
+
+    .business-offer__value {
+        font-size: 12px;
+    }
+}
+
+
+/* =========================================================
+   SMALL TABLET
+   ========================================================= */
+
+@media (max-width: 760px) {
+
+    .business-offer-grid {
+        grid-template-columns: 1fr;
+
+        gap: 20px;
+
+        width: 100%;
+    }
+
+    .business-offer {
+        width: 100%;
+        max-width: 500px;
+
+        margin: 0 auto;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 500px) {
+
+    .business-offer-grid {
+        grid-template-columns: 1fr;
+
+        gap: 16px;
+    }
+
+    .business-offer {
+        width: 100%;
+        max-width: none;
+
+        height: 289px;
+    }
+
+    .business-offer__media {
+        width: calc(100% - 20px);
+    }
+
+    .business-offer__content {
+        width: calc(100% - 36px);
+
+        margin-left: 18px;
+        margin-right: 18px;
+    }
+
+    .business-offer__rating {
+        width: 124px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+    .business-offer {
+        height: 289px;
+    }
+
+    .business-offer__rating {
+        width: 112px;
+
+        font-size: 8px;
+    }
+
+    .business-offer__rating-mark {
+        width: 24px;
+        height: 24px;
+
+        flex-basis: 24px;
+
+        margin-right: 4px;
+
+        font-size: 15px;
+    }
+
+    .business-offer__content {
+        width: calc(100% - 28px);
+
+        margin-left: 14px;
+        margin-right: 14px;
+    }
+
+    .business-offer__value {
+        font-size: 12px;
+    }
+
+    .business-offer__label {
+        font-size: 9px;
+    }
+}

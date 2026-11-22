@@ -4,7 +4,12 @@ import base64
 from datetime import datetime
 from uuid import UUID
 
+import hmac
+import mimetypes
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,11 +21,13 @@ from app.schemas.business_listing import (
     BusinessListingDraft,
     BusinessListingResponse,
     CursorListingResponse,
-    ModeratorDecisionBody,
 )
-from app.services.business_listing_service import BusinessListingService, to_response
+from app.services.business_listing_service import PRIVATE_FIELDS, BusinessListingService
+from app.config import get_settings
 
 router = APIRouter(prefix="/listings", tags=["business listings"], dependencies=[Depends(require_gateway)])
+internal_router = APIRouter(prefix="/internal/listings", tags=["private listing files"])
+settings = get_settings()
 
 
 def _detail(row: BusinessListing) -> BusinessListingDetail:
@@ -30,7 +37,8 @@ def _detail(row: BusinessListing) -> BusinessListingDetail:
         "status": row.status,
         "verification_status": row.verification_status,
         "files": row.files or {},
-        "documents": row.documents or {},
+        # Never return private storage paths from Listing's owner-facing API.
+        "document_fields": sorted((row.documents or {}).keys()),
         "created_at": row.created_at,
         "updated_at": row.updated_at,
     })
@@ -49,12 +57,6 @@ def _decode_cursor(cursor: str) -> tuple[datetime, UUID]:
         return datetime.fromisoformat(created), UUID(listing_id)
     except (ValueError, UnicodeDecodeError) as exc:
         raise HTTPException(status_code=400, detail="Invalid cursor") from exc
-
-
-def _require_moderator(request: Request) -> None:
-    """Проверяет роль из заголовка, который добавляет доверенный API Gateway."""
-    if request.headers.get("X-Authenticated-User-Role") != "moderator":
-        raise HTTPException(status_code=403, detail="Moderator role required")
 
 
 @router.post("", response_model=BusinessListingResponse, status_code=status.HTTP_201_CREATED)
@@ -92,32 +94,6 @@ async def get_listing(
     return _detail(await BusinessListingService(session).get(user_id, listing_id))
 
 
-@router.get("/moderation/queue", response_model=CursorListingResponse)
-async def moderation_queue(
-    request: Request,
-    cursor: str | None = None,
-    limit: int = Query(50, ge=1, le=200),
-    session: AsyncSession = Depends(get_db),
-) -> CursorListingResponse:
-    """Показывает модератору объявления, которые ожидают ручного решения."""
-    _require_moderator(request)
-    query = select(BusinessListing).where(BusinessListing.status == "on_moderation")
-    if cursor:
-        created, listing_id = _decode_cursor(cursor)
-        query = query.where(or_(BusinessListing.created_at < created, and_(
-            BusinessListing.created_at == created, BusinessListing.id < listing_id
-        )))
-    rows = list((await session.scalars(query.order_by(
-        BusinessListing.created_at.desc(), BusinessListing.id.desc()
-    ).limit(limit + 1))).all())
-    has_more = len(rows) > limit
-    rows = rows[:limit]
-    return CursorListingResponse(
-        items=[_detail(row) for row in rows],
-        next_cursor=_encode_cursor(rows[-1]) if has_more and rows else None,
-    )
-
-
 @router.patch("/{listing_id}", response_model=BusinessListingResponse)
 async def update_listing(
     listing_id: UUID,
@@ -148,15 +124,31 @@ async def submit_listing(
     return await BusinessListingService(session).submit(user_id, listing_id)
 
 
-@router.post("/{listing_id}/moderation-decision", response_model=BusinessListingResponse)
-async def moderate_listing(
+async def require_moderation_service(request: Request) -> None:
+    supplied = request.headers.get("X-Moderation-Token", "")
+    if not hmac.compare_digest(supplied, settings.moderation_service_shared_secret):
+        raise HTTPException(status_code=403, detail="Moderation service required")
+
+
+@internal_router.get("/{listing_id}/documents/{field}", dependencies=[Depends(require_moderation_service)])
+async def get_private_document(
     listing_id: UUID,
-    body: ModeratorDecisionBody,
-    request: Request,
+    field: str,
     session: AsyncSession = Depends(get_db),
-) -> BusinessListingResponse:
-    """Принимает решение только от пользователя, которому Gateway выдал роль moderator."""
-    _require_moderator(request)
-    return await BusinessListingService(session).moderate(
-        listing_id, body.verdict, body.user_safe_reason
+) -> FileResponse:
+    if field not in PRIVATE_FIELDS:
+        raise HTTPException(status_code=404, detail="Document not found")
+    row = await session.get(BusinessListing, listing_id)
+    relative = (row.documents or {}).get(field) if row else None
+    if not relative:
+        raise HTTPException(status_code=404, detail="Document not found")
+    root = Path(settings.private_upload_dir).resolve()
+    path = (root / relative).resolve()
+    if root not in path.parents or not path.is_file():
+        raise HTTPException(status_code=404, detail="Document not found")
+    return FileResponse(
+        path,
+        media_type=mimetypes.guess_type(path.name)[0] or "application/octet-stream",
+        filename=f"{field}{path.suffix.lower()}",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     )

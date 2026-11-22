@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Создание объявления — MieroVenture</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="/css/variables.css">
+  <link rel="stylesheet" href="/css/reset.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/catalog.css">
+  <link rel="stylesheet" href="/css/create-listing.css">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body>
+  <div class="layout">
+
+    <!-- Сайдбар (тот же, что в остальных кабинетных страницах) -->
+    <aside class="sidebar">
+      <a class="sidebar__logo" href="index.html" aria-label="MieroVenture">
+        <span class="icon icon--26" aria-hidden="true"><svg width="40" height="27" viewBox="0 0 40 27" fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M0 25.5375C2.9607 24.6112 4.19557 23.5049 4.22163 20.2476C4.24769 16.9902 4.35193 3.93485 4.32587 2.47557C4.29981 1.01629 2.79701 0.544396 1.04238 0H8.05237L16.209 14.6971L25.1213 0H31.3234C29.5296 0.432085 28.4308 0.859935 28.4569 2.68404C28.483 4.50814 28.4569 22.8013 28.4569 22.8013L24.3656 13.4202V2.76222L13.9679 19.7264L5.02947 3.59609C5.02947 3.59609 5.02947 17.2248 5.02947 20.2476C5.02947 23.2704 6.34787 24.5325 9.64199 25.5375H0Z"
+              fill="#F8F0E3" />
+            <path
+              d="M26.948 20.5804L17.5421 0.286896L14.4639 5.00815L24.8958 26.5537L27.6324 20.8613L27.2249 20.0462C27.0479 20.3885 26.948 20.5804 26.948 20.5804Z"
+              fill="#D9C6A5" />
+            <path
+              d="M28.4788 17.6L28.4258 19.2064L35.126 5.26897C36.7275 1.98428 37.8059 0.879731 40 0.0260315H32.7603C35.2817 0.706648 35.4623 1.93119 34.442 5.03421C33.7405 7.16758 30.4603 13.7158 28.4788 17.6Z"
+              fill="#D9C6A5" />
+          </svg></span>
+        <span class="sidebar__logo-text">MieroVenture</span>
+      </a>
+      <nav class="nav" aria-label="Основная навигация">
+        <a class="nav__link" href="catalog.html"><span class="icon icon--30" aria-hidden="true">
+            <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M11.3831 9.63318C11.3831 8.52326 11.3812 7.78465 11.3074 7.23571C11.2372 6.71413 11.1172 6.50609 10.9839 6.37268C10.8505 6.23925 10.6417 6.11938 10.1196 6.0492C9.57068 5.97545 8.832 5.97351 7.72218 5.97351C6.61225 5.97351 5.87364 5.97539 5.32471 6.0492C4.80296 6.11939 4.59508 6.23929 4.46168 6.37268C4.32828 6.50608 4.20838 6.71396 4.13819 7.23571C4.06439 7.78465 4.0625 8.52326 4.0625 9.63318C4.0625 10.743 4.06444 11.4817 4.13819 12.0306C4.20838 12.5526 4.32824 12.7615 4.46168 12.8949C4.59508 13.0283 4.80311 13.1483 5.32471 13.2184C5.87364 13.2921 6.61225 13.2941 7.72218 13.2941C8.83198 13.2941 9.57068 13.2921 10.1196 13.2184C10.6417 13.1483 10.8505 13.0284 10.9839 12.8949C11.1173 12.7615 11.2372 12.5526 11.3074 12.0306C11.3811 11.4817 11.3831 10.743 11.3831 9.63318ZM13.258 9.63318C13.258 10.6903 13.2598 11.5779 13.1653 12.2809C13.0671 13.0109 12.8495 13.6807 12.3096 14.2206C11.7697 14.7605 11.0998 14.9781 10.3699 15.0763C9.6669 15.1707 8.77929 15.1691 7.72218 15.1691C6.6654 15.1691 5.77852 15.1707 5.07569 15.0763C4.34579 14.9781 3.67584 14.7604 3.13599 14.2206C2.59611 13.6807 2.37841 13.0109 2.28028 12.2809C2.18578 11.5779 2.1875 10.6903 2.1875 9.63318C2.1875 8.57639 2.18583 7.68953 2.28028 6.9867C2.37841 6.25674 2.59611 5.58688 3.13599 5.047C3.67586 4.50713 4.34573 4.28943 5.07569 4.19129C5.77852 4.09684 6.66539 4.09851 7.72218 4.09851C8.7793 4.09851 9.6669 4.09678 10.3699 4.19129C11.0998 4.28943 11.7697 4.50713 12.3096 5.047C12.8494 5.58685 13.0671 6.2568 13.1653 6.9867C13.2598 7.68951 13.258 8.57641 13.258 9.63318Z"
+                fill="#F8F0E3" />
+              <path
+                d="M24.0267 22.2766C24.0267 21.1668 24.0248 20.4281 23.9509 19.8791C23.8808 19.3575 23.7608 19.1495 23.6276 19.0161C23.4941 18.8826 23.2853 18.7629 22.7633 18.6926C22.2143 18.6189 21.4756 18.617 20.3658 18.617C19.2558 18.617 18.5173 18.6189 17.9683 18.6926C17.4466 18.7629 17.2387 18.8828 17.1053 19.0161C16.9719 19.1495 16.8521 19.3574 16.7818 19.8791C16.7081 20.4281 16.7061 21.1668 16.7061 22.2766C16.7061 23.3864 16.7081 24.1251 16.7818 24.6741C16.8519 25.1961 16.9718 25.4049 17.1053 25.5384C17.2387 25.6716 17.4467 25.7916 17.9683 25.8619C18.5173 25.9356 19.2558 25.9375 20.3658 25.9375C21.4756 25.9375 22.2143 25.9355 22.7633 25.8619C23.2853 25.7916 23.4941 25.6718 23.6276 25.5384C23.7609 25.4049 23.8808 25.1961 23.9509 24.6741C24.0247 24.1251 24.0267 23.3864 24.0267 22.2766ZM25.9017 22.2766C25.9017 23.3338 25.9034 24.2214 25.8089 24.9244C25.7108 25.6543 25.4931 26.3241 24.9532 26.864C24.4133 27.4039 23.7434 27.6216 23.0134 27.7198C22.3106 27.8143 21.4229 27.8125 20.3658 27.8125C19.3091 27.8125 18.4222 27.8141 17.7193 27.7198C16.9894 27.6216 16.3194 27.4038 15.7796 26.864C15.2397 26.3241 15.0221 25.6543 14.9239 24.9244C14.8294 24.2214 14.8311 23.3338 14.8311 22.2766C14.8311 21.2199 14.8294 20.333 14.9239 19.6301C15.0221 18.9001 15.2397 18.2303 15.7796 17.6904C16.3194 17.1505 16.9893 16.9329 17.7193 16.8348C18.4222 16.7403 19.3091 16.742 20.3658 16.742C21.4229 16.742 22.3106 16.7403 23.0134 16.8348C23.7434 16.9329 24.4133 17.1505 24.9532 17.6904C25.4929 18.2303 25.7108 18.9003 25.8089 19.6301C25.9033 20.333 25.9017 21.2199 25.9017 22.2766Z"
+                fill="#F8F0E3" />
+              <path
+                d="M11.3831 22.2766C11.3831 21.1668 11.3812 20.4281 11.3074 19.8791C11.2372 19.3575 11.1172 19.1495 10.9839 19.0161C10.8505 18.8826 10.6417 18.7629 10.1196 18.6926C9.57068 18.6189 8.832 18.617 7.72218 18.617C6.61225 18.617 5.87364 18.6189 5.32471 18.6926C4.80296 18.7629 4.59508 18.8828 4.46168 19.0161C4.32828 19.1495 4.20838 19.3574 4.13819 19.8791C4.06439 20.4281 4.0625 21.1668 4.0625 22.2766C4.0625 23.3864 4.06444 24.1251 4.13819 24.6741C4.20838 25.1961 4.32824 25.4049 4.46168 25.5384C4.59508 25.6716 4.80311 25.7916 5.32471 25.8619C5.87364 25.9356 6.61225 25.9375 7.72218 25.9375C8.83198 25.9375 9.57068 25.9355 10.1196 25.8619C10.6417 25.7916 10.8505 25.6718 10.9839 25.5384C11.1173 25.4049 11.2372 25.1961 11.3074 24.6741C11.3811 24.1251 11.3831 23.3864 11.3831 22.2766ZM13.258 22.2766C13.258 23.3338 13.2598 24.2214 13.1653 24.9244C13.0671 25.6543 12.8495 26.3241 12.3096 26.864C11.7697 27.4039 11.0998 27.6216 10.3699 27.7198C9.6669 27.8143 8.77929 27.8125 7.72218 27.8125C6.6654 27.8125 5.77852 27.8141 5.07569 27.7198C4.34579 27.6216 3.67584 27.4038 3.13599 26.864C2.59611 26.3241 2.37841 25.6543 2.28028 24.9244C2.18578 24.2214 2.1875 23.3338 2.1875 22.2766C2.1875 21.2199 2.18583 20.333 2.28028 19.6301C2.37841 18.9001 2.59611 18.2303 3.13599 17.6904C3.67586 17.1505 4.34573 16.9329 5.07569 16.8348C5.77852 16.7403 6.66539 16.742 7.72218 16.742C8.7793 16.742 9.6669 16.7403 10.3699 16.8348C11.0998 16.9329 11.7697 17.1505 12.3096 17.6904C12.8494 18.2303 13.0671 18.9003 13.1653 19.6301C13.2598 20.333 13.258 21.2199 13.258 22.2766Z"
+                fill="#F8F0E3" />
+              <path
+                d="M26.5628 8.04931C26.5626 7.8607 26.4988 7.62911 26.1795 7.21069C25.8435 6.77036 25.3236 6.24625 24.5389 5.46143C23.7539 4.67643 23.23 4.15559 22.7895 3.81958C22.3709 3.50015 22.1384 3.4375 21.9498 3.4375C21.7611 3.4376 21.5294 3.50052 21.1111 3.81958C20.6708 4.15559 20.1469 4.67643 19.3619 5.46143C18.5769 6.24644 18.056 6.7703 17.72 7.21069C17.4009 7.62892 17.338 7.86075 17.3379 8.04931C17.3379 8.238 17.4005 8.47046 17.72 8.88916C18.056 9.32956 18.5769 9.85343 19.3619 10.6384C20.1466 11.4233 20.6708 11.9431 21.1111 12.2791C21.5295 12.5983 21.7611 12.6622 21.9498 12.6624C22.1384 12.6624 22.3708 12.5985 22.7895 12.2791C23.2299 11.943 23.754 11.4232 24.5389 10.6384C25.3236 9.85363 25.8434 9.32949 26.1795 8.88916C26.499 8.47039 26.5628 8.23801 26.5628 8.04931ZM28.4378 8.04931C28.4378 8.81281 28.1179 9.44131 27.6711 10.0268C27.2409 10.5907 26.612 11.2166 25.8645 11.9641C25.117 12.7116 24.4911 13.3405 23.9273 13.7708C23.3418 14.2175 22.7133 14.5374 21.9498 14.5374C21.1865 14.5372 20.5588 14.2174 19.9734 13.7708C19.4095 13.3405 18.7836 12.7116 18.0361 11.9641C17.2888 11.2167 16.6598 10.5907 16.2295 10.0268C15.7828 9.44131 15.4629 8.81281 15.4629 8.04931C15.463 7.28604 15.7829 6.65842 16.2295 6.073C16.6598 5.50909 17.2886 4.88325 18.0361 4.13574C18.7836 3.38822 19.4095 2.75935 19.9734 2.3291C20.5589 1.88244 21.1864 1.56264 21.9498 1.5625C22.7133 1.5625 23.3418 1.88234 23.9273 2.3291C24.4911 2.75935 25.1171 3.38831 25.8645 4.13574C26.612 4.88321 27.2409 5.50911 27.6711 6.073C28.1178 6.6584 28.4376 7.28607 28.4378 8.04931Z"
+                fill="#F8F0E3" />
+            </svg>
+
+          </span><span class="nav__text">Каталог</span></a>
+        <a class="nav__link" href="#"><span class="icon icon--30" aria-hidden="true"><svg width="30" height="30"
+              viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M20 17.5569V14.436C20 11.7556 20 10.4154 19.2677 9.58269C18.5355 8.75 17.357 8.75 15 8.75C12.643 8.75 11.4645 8.75 10.7322 9.58269C10 10.4154 10 11.7556 10 14.436V17.5569C10 19.4921 10 20.4599 10.4078 20.8827C10.6023 21.0844 10.8479 21.211 11.1094 21.2448C11.6578 21.3153 12.2982 20.6781 13.579 19.4036C14.1451 18.8402 14.4282 18.5586 14.7557 18.4844C14.917 18.4479 15.083 18.4479 15.2443 18.4844C15.5718 18.5586 15.8549 18.8402 16.421 19.4036C17.7019 20.6781 18.3423 21.3153 18.8906 21.2448C19.1521 21.211 19.3976 21.0844 19.5921 20.8827C20 20.4599 20 19.4921 20 17.5569Z"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+              <path
+                d="M27.5 15C27.5 21.9035 21.9035 27.5 15 27.5C8.09644 27.5 2.5 21.9035 2.5 15C2.5 8.09644 8.09644 2.5 15 2.5C21.9035 2.5 27.5 8.09644 27.5 15Z"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+            </svg></span><span class="nav__text">Избранное</span></a>
+        <a class="nav__link nav__link--active" href="my-listings.html" aria-current="page"><span class="icon icon--30"
+            aria-hidden="true"><svg width="30" height="30" viewBox="0 0 30 30" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M2.5 17.5C2.5 12.786 2.5 10.4289 3.96446 8.96446C5.42894 7.5 7.78595 7.5 12.5 7.5H17.5C22.214 7.5 24.5711 7.5 26.0355 8.96446C27.5 10.4289 27.5 12.786 27.5 17.5C27.5 22.214 27.5 24.5711 26.0355 26.0355C24.5711 27.5 22.214 27.5 17.5 27.5H12.5C7.78595 27.5 5.42894 27.5 3.96446 26.0355C2.5 24.5711 2.5 22.214 2.5 17.5Z"
+                stroke-linecap="round" stroke="#680A18" />
+              <path d="M10 13.75V16.25" stroke-linecap="round" stroke="#680A18" />
+              <path d="M20 13.75V16.25" stroke-linecap="round" stroke="#680A18" />
+              <path d="M11.4639 5C11.9787 3.54351 13.3677 2.5 15.0005 2.5C16.6332 2.5 18.0224 3.54351 18.5371 5"
+                stroke-linecap="round" stroke="#680A18" />
+              <path
+                d="M27.0951 10.8821L26.995 10.9472C23.2989 13.3497 21.4163 14.5734 19.4509 15.184C16.5522 16.0847 13.4485 16.0847 10.5498 15.184C8.56664 14.5679 6.66463 13.3395 2.90234 10.894"
+                stroke-linecap="round" stroke="#680A18" />
+            </svg></span><span class="nav__text">Мои
+            объявления</span></a>
+        <a class="nav__link" href="#"><span class="icon icon--30" aria-hidden="true"><svg width="30" height="30"
+              viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M15 27.5C21.9035 27.5 27.5 21.9035 27.5 15C27.5 8.09644 21.9035 2.5 15 2.5C8.09644 2.5 2.5 8.09644 2.5 15C2.5 16.9996 2.96952 18.8895 3.80432 20.5656C4.02617 21.011 4.10001 21.5201 3.9714 22.0007L3.22689 24.7834C2.90369 25.9913 4.00876 27.0963 5.21669 26.7731L7.99924 26.0286C8.47991 25.9 8.98901 25.9739 9.43441 26.1956C11.1105 27.0305 13.0004 27.5 15 27.5Z"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+              <path d="M10 15H10.0112M14.9888 15H15M19.9888 15H20" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round" stroke="#F8F0E3" />
+            </svg></span><span class="nav__text">Сообщения</span><span class="nav__badge">1</span></a>
+        <a class="nav__link" href="profile.html"><span class="icon icon--30" aria-hidden="true"><svg width="30"
+              height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M18.75 11.25C18.75 13.3211 17.0711 15 15 15C12.9289 15 11.25 13.3211 11.25 11.25C11.25 9.17893 12.9289 7.5 15 7.5C17.0711 7.5 18.75 9.17893 18.75 11.25Z"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+              <path
+                d="M27.5 15C27.5 21.9036 21.9036 27.5 15 27.5C8.09644 27.5 2.5 21.9036 2.5 15C2.5 8.09644 8.09644 2.5 15 2.5C21.9036 2.5 27.5 8.09644 27.5 15Z"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+              <path d="M22.461 25C22.2621 21.3856 21.1555 18.75 14.9995 18.75C8.84365 18.75 7.73702 21.3856 7.53809 25"
+                stroke-width="1.5" stroke-linecap="round" stroke="#F8F0E3" />
+            </svg>
+          </span><span class="nav__text">Профиль</span></a>
+      </nav>
+    </aside>
+
+    <main class="content create">
+      <header class="page-head">
+        <h1 class="page-title">Создание объявления</h1>
+        <button class="page-head__bell" type="button" aria-label="Уведомления"><span class="icon icon--28"
+            aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
+              <path
+                d="M14.0002 1.45834C9.00663 1.45834 4.95854 5.50643 4.95854 10.5V11.3215C4.95854 12.1345 4.71787 12.9295 4.26686 13.6059L2.92682 15.616C1.37154 17.9489 2.55887 21.1199 5.26389 21.8576C6.14544 22.0981 7.03443 22.3014 7.92857 22.4678L7.93079 22.4737C8.82794 24.8676 11.2258 26.5417 14.0002 26.5417C16.7745 26.5417 19.1723 24.8676 20.0695 22.4737L20.0717 22.4678C20.9659 22.3014 21.855 22.0981 22.7365 21.8576C25.4415 21.1199 26.6289 17.9489 25.0736 15.616L23.7335 13.6059C23.2825 12.9295 23.0418 12.1345 23.0418 11.3215V10.5C23.0418 5.50643 18.9937 1.45834 14.0002 1.45834ZM17.9393 22.7932C15.3226 23.1058 12.6776 23.1057 10.0609 22.7931C10.8903 23.9849 12.333 24.7917 14.0002 24.7917C15.6672 24.7917 17.1099 23.9849 17.9393 22.7932ZM6.70854 10.5C6.70854 6.47293 9.97313 3.20834 14.0002 3.20834C18.0273 3.20834 21.2918 6.47293 21.2918 10.5V11.3215C21.2918 12.4801 21.6348 13.6127 22.2774 14.5767L23.6175 16.5867C24.5102 17.9257 23.8287 19.7458 22.276 20.1693C16.8578 21.647 11.1426 21.647 5.72434 20.1693C4.17171 19.7458 3.49021 17.9257 4.38291 16.5867L5.72294 14.5767C6.3656 13.6127 6.70854 12.4801 6.70854 11.3215V10.5Z"
+                fill-rule="evenodd" clip-rule="evenodd" fill="currentColor" />
+            </svg></span></button>
+      </header>
+      <p class="create__lead">Заполните информацию о бизнесе, чтобы привлечь покупателей и инвесторов</p>
+
+      <!--
+        Мастер из 9 шагов без JS: каждый шаг — <section id="step-N">,
+        показывается через :target. Первый шаг виден по умолчанию.
+      -->
+      <form class="wizard__form catalog-form" action="#" method="post" enctype="multipart/form-data">
+
+        <section class="step" id="step-1" aria-label="Шаг 1 из 9">
+          <div class="step__bar"><a class="back" href="my-listings.html"><span class="icon icon--12"
+                aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Основная информация о бизнесе</h2>
+            <div class="form-grid">
+              <div class="field"><span class="field__label">Тип бизнеса</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите категорию</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="business_type" value="all"
+                          checked><span class="option__mark"></span><span>Все категории</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="food"><span class="option__mark"></span><span>Рестораны, кафе, бары</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="retail"><span class="option__mark"></span><span>Магазины, лавки</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="services"><span class="option__mark"></span><span>Салоны, мастерские</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="beauty"><span class="option__mark"></span><span>Салоны красоты, барбершопы,
+                          фитнес</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="entertainment"><span class="option__mark"></span><span>Развлечения и
+                          досуг</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="education"><span class="option__mark"></span><span>Образование</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="logistics"><span class="option__mark"></span><span>ПВЗ и логистика</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="auto"><span class="option__mark"></span><span>Автобизнес (СТО, автомойки,
+                          прокат)</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="hospitality"><span class="option__mark"></span><span>Хостелы, мини-отели</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="manufacturing"><span class="option__mark"></span><span>Производство и
+                          ремесло</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="itd"><span class="option__mark"></span><span>Айти студии, агентства</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="vending"><span class="option__mark"></span><span>Вендинг и автоматизированные
+                          точки</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="business_type"
+                          value="other"><span class="option__mark"></span><span>Другое</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+              <div class="field"><span class="field__label">Тип коммерческой недвижимости</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите категорию</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="property_type" value="all"
+                          checked><span class="option__mark"></span><span>Все категории</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="property_type"
+                          value="psn"><span class="option__mark"></span><span>Универсальное Помещение свободного
+                          назначения (ПСН)</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="property_type"
+                          value="production"><span class="option__mark"></span><span>Складское и
+                          производственное</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="property_type"
+                          value="kiosk"><span class="option__mark"></span><span>Нестационарный торговый объект
+                          (киоски)</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+              <div class="field"><span class="field__label">Способ передачи бизнеса</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите категорию</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="transfer_method" value="all"
+                          checked><span class="option__mark"></span><span>Все категории</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="transfer_method"
+                          value="full_transfer_training"><span class="option__mark"></span><span>Полная передача с
+                          обучением</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="transfer_method"
+                          value="transfer_no_training"><span class="option__mark"></span><span>Передача без
+                          обучения</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="transfer_method"
+                          value="assets_only"><span class="option__mark"></span><span>Только передача
+                          активов</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+              <div class="field"><span class="field__label">Состав сделки</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите категорию</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="deal_composition"
+                          value="all" checked><span class="option__mark"></span><span>Все категории</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="deal_composition"
+                          value="owner"><span class="option__mark"></span><span>Бизнес с помещением
+                          (собственность)</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="deal_composition"
+                          value="owner_with_rent"><span class="option__mark"></span><span>Бизнес с помещением
+                          (аренда)</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="deal_composition"
+                          value="with_stock"><span class="option__mark"></span><span>Бизнес с товарным
+                          остатком</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="deal_composition"
+                          value="with_contracts"><span class="option__mark"></span><span>Бизнес с долгосрочными
+                          контрактами</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+              <label class="field field--full"><span class="field__label">Название точки/бренда</span><input
+                  class="field__input" type="text" name="title" placeholder="Введите название..."></label>
+              <label class="field field--full"><span class="field__label">Краткое описание бизнеса</span><textarea
+                  class="field__textarea" name="short_description" rows="2"
+                  placeholder="Кратко опишите ваш бизнес..."></textarea></label>
+              <label class="field field--full"><span class="field__label">Полное описание</span><textarea
+                  class="field__textarea" name="full_description" rows="5"
+                  placeholder="Расскажите подробнее о бизнесе, его преимуществах и особенностях..."></textarea></label>
+              <label class="field"><span class="field__label">Цена продажи, ₽</span><input class="field__input"
+                  type="text" name="price" placeholder="Введите цену" inputmode="numeric"></label>
+              <fieldset class="field yn">
+                <legend class="field__label">Включен ли товарный остаток в цену</legend>
+                <div class="yn__row"><label class="yn__item"><span>ДА</span><input class="yn__input" type="radio"
+                      name="stock_included" value="yes" checked><span class="yn__box"></span></label><label
+                    class="yn__item"><span>НЕТ</span><input class="yn__input" type="radio" name="stock_included"
+                      value="no"><span class="yn__box"></span></label></div>
+              </fieldset>
+              <label class="field field--full"><span class="field__label">Стоимость товарного остатка (если
+                  включен)</span><input class="field__input" type="text" name="stock_price" placeholder="Введите сумму"
+                  inputmode="numeric"></label>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-2">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-2" aria-label="Шаг 2 из 9">
+          <div class="step__bar"><a class="back" href="#step-1"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Помещение и локация</h2>
+            <div class="form-grid">
+              <label class="field"><span class="field__label">Страна</span><input class="field__input" type="text"
+                  name="country" placeholder="Введите название страны"></label>
+              <label class="field"><span class="field__label">Город</span><input class="field__input" type="text"
+                  name="city" placeholder="Введите название города"></label>
+              <label class="field"><span class="field__label">Улица</span><input class="field__input" type="text"
+                  name="street" placeholder="Введите название улицы"></label>
+              <label class="field"><span class="field__label">Дом</span><input class="field__input" type="text"
+                  name="house" placeholder="Введите номер дома"></label>
+              <label class="field field--full"><span class="field__label">Уточнения</span><textarea
+                  class="field__textarea" name="address_notes" rows="2"
+                  placeholder="Корпус, особенности входа и так далее..."></textarea></label>
+              <label class="field"><span class="field__label">Площадь помещения в м²</span><input class="field__input"
+                  type="text" name="area" placeholder="Введите площадь помещения в м²" inputmode="decimal"></label>
+              <label class="field"><span class="field__label">Этаж</span><input class="field__input" type="text"
+                  name="floor" placeholder="Введите номер этажа" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Высота потолков</span><input class="field__input"
+                  type="text" name="ceiling_height" placeholder="Введите высоту потолков" inputmode="decimal"></label>
+              <label class="field"><span class="field__label">Количество парковочных мест</span><input
+                  class="field__input" type="text" name="parking" placeholder="Введите количество парковочных мест"
+                  inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Состояние помещения</span><select class="field__input" name="condition">
+                  <option value="">Выберите состояние</option>
+                  <option value="needs_repair">Требует ремонта</option>
+                  <option value="cosmetic_repair">Косметический ремонт</option>
+                  <option value="good_condition">Хорошее</option>
+                  <option value="excellent_condition">Отличное</option>
+                </select></label>
+              <fieldset class="field yn">
+                <legend class="field__label">Имеется отдельный вход</legend>
+                <div class="yn__row"><label class="yn__item"><span>ДА</span><input class="yn__input" type="radio"
+                      name="separate_entrance" value="yes" checked><span class="yn__box"></span></label><label
+                    class="yn__item"><span>НЕТ</span><input class="yn__input" type="radio" name="separate_entrance"
+                      value="no"><span class="yn__box"></span></label></div>
+              </fieldset>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-3">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-3" aria-label="Шаг 3 из 9">
+          <div class="step__bar"><a class="back" href="#step-2"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card form-card--bar">
+            <h2 class="form-card__title">Оборудование</h2>
+            <button class="outline-btn" type="button" data-add="equipment">+ Добавить оборудование</button>
+          </div>
+          <div class="form-card" data-repeat="equipment">
+            <div class="form-grid">
+              <label class="field"><span class="field__label">Наименование</span><input class="field__input" type="text"
+                  name="equipment_name[]" placeholder="Введите название оборудования"></label>
+              <label class="field"><span class="field__label">Бренд/модель</span><input class="field__input" type="text"
+                  name="equipment_brand[]" placeholder="Введите бренд или модель оборудования"></label>
+              <label class="field"><span class="field__label">Год приобретения</span><input class="field__input"
+                  type="text" name="equipment_year[]" placeholder="Введите год приобретения оборудования"
+                  inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Стоимость, ₽</span><input class="field__input" type="text"
+                  name="equipment_price[]" placeholder="Введите стоимость оборудования" inputmode="numeric"></label>
+              <div class="field"><span class="field__label">Состояние</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите из списка</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="excellent"><span class="option__mark"></span><span>Отличное</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="good"><span class="option__mark"></span><span>Хорошее</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="repair"><span class="option__mark"></span><span>Требует ремонта/замены</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+          <div class="form-card" data-repeat="equipment">
+            <div class="form-grid">
+              <label class="field"><span class="field__label">Наименование</span><input class="field__input" type="text"
+                  name="equipment_name[]" placeholder="Введите название оборудования"></label>
+              <label class="field"><span class="field__label">Бренд/модель</span><input class="field__input" type="text"
+                  name="equipment_brand[]" placeholder="Введите бренд или модель оборудования"></label>
+              <label class="field"><span class="field__label">Год приобретения</span><input class="field__input"
+                  type="text" name="equipment_year[]" placeholder="Введите год приобретения оборудования"
+                  inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Стоимость, ₽</span><input class="field__input" type="text"
+                  name="equipment_price[]" placeholder="Введите стоимость оборудования" inputmode="numeric"></label>
+              <div class="field"><span class="field__label">Состояние</span>
+                <details class="dropdown dropdown--field" name="form-dropdown">
+                  <summary class="dropdown__toggle"><span class="dropdown__value">Выберите из списка</span><span
+                      class="icon icon--16" aria-hidden="true"><img src="/assets/icons/chevron-down.svg" alt=""
+                        aria-hidden="true"></span></summary>
+                  <div class="dropdown__panel">
+                    <div class="dropdown__list">
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="excellent"><span class="option__mark"></span><span>Отличное</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="good"><span class="option__mark"></span><span>Хорошее</span></label>
+                      <label class="option"><input class="option__input" type="radio" name="equipment_condition_1"
+                          value="repair"><span class="option__mark"></span><span>Требует ремонта/замены</span></label>
+                    </div>
+                    <button class="btn btn--primary dropdown__apply" type="button">Применить</button>
+                  </div>
+                </details>
+              </div>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-4">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-4" aria-label="Шаг 4 из 9">
+          <div class="step__bar"><a class="back" href="#step-3"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Пожарная безопасность</h2>
+            <label class="upload-row"><span class="field__label">План эвакуации</span><span class="upload"><input
+                  class="upload__input visually-hidden" type="file" name="fire_plan"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">Декларация о пожарной безопасности</span><span
+                class="upload"><input class="upload__input visually-hidden" type="file" name="fire_declaration"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">Договор на обслуживание систем ПБ</span><span
+                class="upload"><input class="upload__input visually-hidden" type="file" name="fire_contract"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">Санитарно-эпидемиологическое заключение</span><span
+                class="upload"><input class="upload__input visually-hidden" type="file" name="sanitary_conclusion"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-5">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-5" aria-label="Шаг 5 из 9">
+          <div class="step__bar"><a class="back" href="#step-4"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Персонал и операционная информация</h2>
+            <div class="form-grid">
+              <label class="field"><span class="field__label">Количество персонала</span><input class="field__input"
+                  type="text" name="staff_total" placeholder="Введите количество персонала" inputmode="numeric"></label>
+              <span class="field" aria-hidden="true"></span>
+              <div class="field"><span class="field__label">Режим работы</span>
+                <div class="pair">
+                  <input class="field__input js-time" type="text" name="work_from" inputmode="numeric" maxlength="5"
+                    placeholder="С" aria-label="Режим работы: с">
+                  <input class="field__input js-time" type="text" name="work_to" inputmode="numeric" maxlength="5"
+                    placeholder="До" aria-label="Режим работы: до">
+                </div>
+              </div>
+              <label class="field"><span class="field__label">Возраст бизнеса в месяцах</span><input
+                  class="field__input" type="text" name="business_age" placeholder="Введите возраст бизнеса в месяцах"
+                  inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Наличие лицензий</span><input class="field__input"
+                  type="text" name="licenses" placeholder="Впишите имеющиеся лицензии"></label>
+              <label class="field"><span class="field__label">Наличие долгосрочных контрактов с клиентами</span><input
+                  class="field__input" type="text" name="long_contracts"
+                  placeholder="Впишите имеющиеся долгосрочные контракты"></label>
+            </div>
+            <span class="field__label field__label--section">Список сотрудников с их параметрами</span>
+            <button class="outline-btn outline-btn--sm" type="button" data-add="staff">+ Добавить сотрудника</button>
+            <div class="staff" data-repeat="staff">
+              <label class="field"><span class="field__label">Должность</span><input class="field__input" type="text"
+                  name="staff_position[]" placeholder="Введите название должности"></label>
+              <label class="field"><span class="field__label">Количество</span><input class="field__input" type="text"
+                  name="staff_count[]" placeholder="Введите количество сотрудников" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Средняя зарплата</span><input class="field__input"
+                  type="text" name="staff_salary[]" placeholder="Введите среднюю зарплату" inputmode="numeric"></label>
+            </div>
+            <div class="staff" data-repeat="staff">
+              <label class="field"><span class="field__label">Должность</span><input class="field__input" type="text"
+                  name="staff_position[]" placeholder="Введите название должности"></label>
+              <label class="field"><span class="field__label">Количество</span><input class="field__input" type="text"
+                  name="staff_count[]" placeholder="Введите количество сотрудников" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Средняя зарплата</span><input class="field__input"
+                  type="text" name="staff_salary[]" placeholder="Введите среднюю зарплату" inputmode="numeric"></label>
+            </div>
+            <div class="staff" data-repeat="staff">
+              <label class="field"><span class="field__label">Должность</span><input class="field__input" type="text"
+                  name="staff_position[]" placeholder="Введите название должности"></label>
+              <label class="field"><span class="field__label">Количество</span><input class="field__input" type="text"
+                  name="staff_count[]" placeholder="Введите количество сотрудников" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Средняя зарплата</span><input class="field__input"
+                  type="text" name="staff_salary[]" placeholder="Введите среднюю зарплату" inputmode="numeric"></label>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-6">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-6" aria-label="Шаг 6 из 9">
+          <div class="step__bar"><a class="back" href="#step-5"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Причина продажи</h2>
+            <div class="form-grid">
+              <label class="field field--full"><span class="field__label">Причина продажи</span><textarea
+                  class="field__textarea" name="sale_reason" rows="5"
+                  placeholder="Укажите причину/причины продажи объекта..."></textarea></label>
+              <label class="field"><span class="field__label">Срок консультационной поддержки (в месяцах)</span><input
+                  class="field__input" type="text" name="support_months"
+                  placeholder="Укажите срок консультационной поддержки в месяцах" inputmode="numeric"></label>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-7">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-7" aria-label="Шаг 7 из 9">
+          <div class="step__bar"><a class="back" href="#step-6"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Медиафайлы</h2>
+            <label class="upload-row"><span class="field__label">Главная фотография бизнеса</span><span
+                class="upload"><input class="upload__input visually-hidden" type="file" name="photo_main"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">Дополнительные фотографии (минимум 5 фото)</span><span
+                class="upload"><input class="upload__input visually-hidden" type="file" name="photos_extra" multiple
+                  accept="image/*"><span class="upload__text">Загрузить файл</span><span class="icon icon--16"
+                  aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
+                    aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">Ссылка на видеообзор</span><span class="upload"><input
+                  class="upload__link" type="url" name="video_url" placeholder="Вставьте ссылку"><span
+                  class="icon icon--16" aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
+                    aria-hidden="true"></span></span></label>
+            <label class="upload-row"><span class="field__label">План помещения</span><span class="upload"><input
+                  class="upload__input visually-hidden" type="file" name="floor_plan"><span
+                  class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                    src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-8">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-8" aria-label="Шаг 8 из 9">
+          <div class="step__bar"><a class="back" href="#step-7"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Финансовые показатели</h2>
+            <div class="form-card__row">
+              <span class="field__label">Финансовые показатели по месяцам</span>
+              <button class="outline-btn outline-btn--sm" type="button" data-add="month">+ Добавить месяц</button>
+            </div>
+            <div class="table-scroll">
+              <div class="month" data-repeat="month">
+                <div class="month__cell"><span class="field__label">Месяц</span>
+                  <details class="dropdown dropdown--field dropdown--month dropdown--auto" name="form-dropdown">
+                    <summary class="dropdown__toggle"><span class="dropdown__value"></span><span class="icon icon--12"
+                        aria-hidden="true"></span></summary>
+                    <div class="dropdown__panel">
+                      <div class="dropdown__list">
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="1"
+                            data-short="Янв"><span class="option__mark"></span><span>Январь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="2"
+                            data-short="Фев"><span class="option__mark"></span><span>Февраль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="3"
+                            data-short="Мар"><span class="option__mark"></span><span>Март</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="4"
+                            data-short="Апр"><span class="option__mark"></span><span>Апрель</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="5"
+                            data-short="Май"><span class="option__mark"></span><span>Май</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="6"
+                            data-short="Июн"><span class="option__mark"></span><span>Июнь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="7"
+                            data-short="Июл"><span class="option__mark"></span><span>Июль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="8"
+                            data-short="Авг"><span class="option__mark"></span><span>Август</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="9"
+                            data-short="Сен"><span class="option__mark"></span><span>Сентябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="10"
+                            data-short="Окт"><span class="option__mark"></span><span>Октябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="11"
+                            data-short="Ноя"><span class="option__mark"></span><span>Ноябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_1" value="12"
+                            data-short="Дек"><span class="option__mark"></span><span>Декабрь</span></label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div class="month__cell"><span class="field__label">Выручка</span><span class="money"><input
+                      class="field__input" type="text" name="revenue[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Общие затраты</span><span class="money"><input
+                      class="field__input" type="text" name="costs_total[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Затраты на ЖКХ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_utilities[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Затраты на аренду</span><span class="money"><input
+                      class="field__input" type="text" name="costs_rent[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">ФОТ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_payroll[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Закупки</span><span class="money"><input
+                      class="field__input" type="text" name="costs_purchases[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Налоги</span><span class="money"><input
+                      class="field__input" type="text" name="costs_taxes[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Маркетинг</span><span class="money"><input
+                      class="field__input" type="text" name="costs_marketing[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Прочие расходы</span><span class="money"><input
+                      class="field__input" type="text" name="costs_other[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Чистая прибыль/ убыток</span><span
+                    class="money"><input class="field__input" type="text" name="net_profit[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+              </div>
+              <div class="month" data-repeat="month">
+                <div class="month__cell"><span class="field__label">Месяц</span>
+                  <details class="dropdown dropdown--field dropdown--month dropdown--auto" name="form-dropdown">
+                    <summary class="dropdown__toggle"><span class="dropdown__value"></span><span class="icon icon--12"
+                        aria-hidden="true"></span></summary>
+                    <div class="dropdown__panel">
+                      <div class="dropdown__list">
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="1"
+                            data-short="Янв"><span class="option__mark"></span><span>Январь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="2"
+                            data-short="Фев"><span class="option__mark"></span><span>Февраль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="3"
+                            data-short="Мар"><span class="option__mark"></span><span>Март</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="4"
+                            data-short="Апр"><span class="option__mark"></span><span>Апрель</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="5"
+                            data-short="Май"><span class="option__mark"></span><span>Май</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="6"
+                            data-short="Июн"><span class="option__mark"></span><span>Июнь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="7"
+                            data-short="Июл"><span class="option__mark"></span><span>Июль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="8"
+                            data-short="Авг"><span class="option__mark"></span><span>Август</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="9"
+                            data-short="Сен"><span class="option__mark"></span><span>Сентябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="10"
+                            data-short="Окт"><span class="option__mark"></span><span>Октябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="11"
+                            data-short="Ноя"><span class="option__mark"></span><span>Ноябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_2" value="12"
+                            data-short="Дек"><span class="option__mark"></span><span>Декабрь</span></label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div class="month__cell"><span class="field__label">Выручка</span><span class="money"><input
+                      class="field__input" type="text" name="revenue[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Общие затраты</span><span class="money"><input
+                      class="field__input" type="text" name="costs_total[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Затраты на ЖКХ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_utilities[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Затраты на аренду</span><span class="money"><input
+                      class="field__input" type="text" name="costs_rent[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">ФОТ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_payroll[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Закупки</span><span class="money"><input
+                      class="field__input" type="text" name="costs_purchases[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Налоги</span><span class="money"><input
+                      class="field__input" type="text" name="costs_taxes[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Маркетинг</span><span class="money"><input
+                      class="field__input" type="text" name="costs_marketing[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Прочие расходы</span><span class="money"><input
+                      class="field__input" type="text" name="costs_other[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Чистая прибыль/ убыток</span><span
+                    class="money"><input class="field__input" type="text" name="net_profit[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+              </div>
+              <div class="month" data-repeat="month">
+                <div class="month__cell"><span class="field__label">Месяц</span>
+                  <details class="dropdown dropdown--field dropdown--month dropdown--auto" name="form-dropdown">
+                    <summary class="dropdown__toggle"><span class="dropdown__value"></span><span class="icon icon--12"
+                        aria-hidden="true"></span></summary>
+                    <div class="dropdown__panel">
+                      <div class="dropdown__list">
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="1"
+                            data-short="Янв"><span class="option__mark"></span><span>Январь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="2"
+                            data-short="Фев"><span class="option__mark"></span><span>Февраль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="3"
+                            data-short="Мар"><span class="option__mark"></span><span>Март</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="4"
+                            data-short="Апр"><span class="option__mark"></span><span>Апрель</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="5"
+                            data-short="Май"><span class="option__mark"></span><span>Май</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="6"
+                            data-short="Июн"><span class="option__mark"></span><span>Июнь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="7"
+                            data-short="Июл"><span class="option__mark"></span><span>Июль</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="8"
+                            data-short="Авг"><span class="option__mark"></span><span>Август</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="9"
+                            data-short="Сен"><span class="option__mark"></span><span>Сентябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="10"
+                            data-short="Окт"><span class="option__mark"></span><span>Октябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="11"
+                            data-short="Ноя"><span class="option__mark"></span><span>Ноябрь</span></label>
+                        <label class="option"><input class="option__input" type="radio" name="month_3" value="12"
+                            data-short="Дек"><span class="option__mark"></span><span>Декабрь</span></label>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div class="month__cell"><span class="field__label">Выручка</span><span class="money"><input
+                      class="field__input" type="text" name="revenue[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Общие затраты</span><span class="money"><input
+                      class="field__input" type="text" name="costs_total[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Затраты на ЖКХ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_utilities[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Затраты на аренду</span><span class="money"><input
+                      class="field__input" type="text" name="costs_rent[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">ФОТ</span><span class="money"><input
+                      class="field__input" type="text" name="costs_payroll[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Закупки</span><span class="money"><input
+                      class="field__input" type="text" name="costs_purchases[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Налоги</span><span class="money"><input
+                      class="field__input" type="text" name="costs_taxes[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Маркетинг</span><span class="money"><input
+                      class="field__input" type="text" name="costs_marketing[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+                <div class="month__cell"><span class="field__label">Прочие расходы</span><span class="money"><input
+                      class="field__input" type="text" name="costs_other[]" placeholder="0" inputmode="numeric"></span>
+                </div>
+                <div class="month__cell"><span class="field__label">Чистая прибыль/ убыток</span><span
+                    class="money"><input class="field__input" type="text" name="net_profit[]" placeholder="0"
+                      inputmode="numeric"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-card">
+            <div class="cols3">
+              <label class="field"><span class="field__label">Средний чек</span><input class="field__input" type="text"
+                  name="avg_check" placeholder="Укажите сумму среднего чека" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Количество заказов/клиентов в месяц</span><input
+                  class="field__input" type="text" name="orders_per_month"
+                  placeholder="Укажите количество заказов/клиентов" inputmode="numeric"></label>
+              <label class="field"><span class="field__label">Количество уникальных клиентов в месяц</span><input
+                  class="field__input" type="text" name="unique_clients"
+                  placeholder="Укажите количество уникальных клиентов" inputmode="numeric"></label>
+            </div>
+            <div class="cols2">
+              <div class="stack">
+                <label class="field"><span class="field__label">Основные статьи затрат</span><textarea
+                    class="field__textarea" name="cost_items" rows="4"
+                    placeholder="Укажите основные статьи затрат..."></textarea></label>
+                <label class="field"><span class="field__label">Месяцы с повышенной загрузкой (1-12)</span><input
+                    class="field__input" type="text" name="peak_months"
+                    placeholder="Укажите номера месяцев с высокой нагрузкой"></label>
+                <label class="field"><span class="field__label">Часы с пиковой нагрузкой</span><input
+                    class="field__input" type="text" name="peak_hours"
+                    placeholder="Укажите например: с 14:00 до 16:00"></label>
+                <fieldset class="field yn">
+                  <legend class="field__label">Наличие выгодных контрактов с поставщиками</legend>
+                  <div class="yn__row"><label class="yn__item"><span>ДА</span><input class="yn__input" type="radio"
+                        name="good_contracts" value="yes" checked><span class="yn__box"></span></label><label
+                      class="yn__item"><span>НЕТ</span><input class="yn__input" type="radio" name="good_contracts"
+                        value="no"><span class="yn__box"></span></label></div>
+                </fieldset>
+                <fieldset class="field yn">
+                  <legend class="field__label">Наличие оборудования в лизинге/аренде</legend>
+                  <div class="yn__row"><label class="yn__item"><span>ДА</span><input class="yn__input" type="radio"
+                        name="leased_equipment" value="yes" checked><span class="yn__box"></span></label><label
+                      class="yn__item"><span>НЕТ</span><input class="yn__input" type="radio" name="leased_equipment"
+                        value="no"><span class="yn__box"></span></label></div>
+                </fieldset>
+                <label class="field"><span class="field__label">Ежемесячные платежи по кредитам/лизингу</span><input
+                    class="field__input" type="text" name="monthly_payments"
+                    placeholder="Укажите сумму платежей, если они есть" inputmode="numeric"></label>
+                <label class="field"><span class="field__label">Размер клиентской базы</span><input class="field__input"
+                    type="text" name="client_base" placeholder="Введите примерное количество клиентов"
+                    inputmode="numeric"></label>
+                <label class="field"><span class="field__label">Доля постоянных клиентов</span><input
+                    class="field__input" type="text" name="regular_share" placeholder="Укажите в процентах"
+                    inputmode="numeric"></label>
+              </div>
+              <div class="stack">
+                <label class="field"><span class="field__label">Описание условий с поставщиками текстом</span><textarea
+                    class="field__textarea" name="supplier_terms" rows="4"
+                    placeholder="Опишите условия..."></textarea></label>
+                <label class="field"><span class="field__label">Дебиторская задолженность</span><input
+                    class="field__input" type="text" name="receivables" placeholder="Укажите сумму задолженности"
+                    inputmode="numeric"></label>
+                <label class="field"><span class="field__label">Кредиторская задолженность</span><input
+                    class="field__input" type="text" name="payables" placeholder="Укажите сумму задолженности"
+                    inputmode="numeric"></label>
+                <fieldset class="field yn">
+                  <legend class="field__label">Наличие судебных претензий</legend>
+                  <div class="yn__row"><label class="yn__item"><span>ДА</span><input class="yn__input" type="radio"
+                        name="lawsuits" value="yes" checked><span class="yn__box"></span></label><label
+                      class="yn__item"><span>НЕТ</span><input class="yn__input" type="radio" name="lawsuits"
+                        value="no"><span class="yn__box"></span></label></div>
+                </fieldset>
+                <label class="field"><span class="field__label">Описание судебных претензий</span><textarea
+                    class="field__textarea" name="lawsuits_description" rows="4"
+                    placeholder="Опишите судебные претензии, если они имеются..."></textarea></label>
+              </div>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#step-9">Далее <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+        <section class="step" id="step-9" aria-label="Шаг 9 из 9">
+          <div class="step__bar"><a class="back" href="#step-8"><span class="icon icon--12" aria-hidden="true"><svg
+                  width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M4.55799 0.807993C4.61565 0.748299 4.68461 0.700685 4.76086 0.667929C4.83712 0.635174 4.91913 0.617932 5.00212 0.617211C5.0851 0.61649 5.1674 0.632304 5.24421 0.663729C5.32102 0.695155 5.39081 0.741563 5.44949 0.800246C5.50817 0.858929 5.55458 0.928711 5.586 1.00552C5.61743 1.08233 5.63324 1.16463 5.63252 1.24762C5.6318 1.33061 5.61456 1.41262 5.58181 1.48887C5.54905 1.56512 5.50144 1.63409 5.44174 1.69174L2.75862 4.37487H8.74987C8.91563 4.37487 9.0746 4.44072 9.19181 4.55793C9.30902 4.67514 9.37487 4.83411 9.37487 4.99987C9.37487 5.16563 9.30902 5.3246 9.19181 5.44181C9.0746 5.55902 8.91563 5.62487 8.74987 5.62487H2.75862L5.44174 8.30799C5.55559 8.42587 5.61859 8.58375 5.61716 8.74762C5.61574 8.91149 5.55001 9.06825 5.43413 9.18413C5.31825 9.30001 5.16149 9.36574 4.99762 9.36716C4.83374 9.36859 4.67587 9.30559 4.55799 9.19174L0.807992 5.44174C0.690822 5.32454 0.625 5.1656 0.625 4.99987C0.625 4.83414 0.690822 4.6752 0.807992 4.55799L4.55799 0.807993Z"
+                    fill="#680A18" />
+                </svg>
+              </span>Назад</a></div>
+          <div class="form-card">
+            <h2 class="form-card__title">Контактная информация и верификация</h2>
+            <fieldset class="field yn">
+              <legend class="field__label">Статус продавца</legend>
+              <div class="yn__row">
+                <label class="yn__item"><span>ИП</span><input class="yn__input" type="radio" name="seller_status" value="ip"><span class="yn__box"></span></label>
+                <label class="yn__item"><span>Самозанятый</span><input class="yn__input" type="radio" name="seller_status" value="self_employed"><span class="yn__box"></span></label>
+              </div>
+            </fieldset>
+            <div class="form-grid">
+              <label class="field"><span class="field__label">ФИО продавца</span><input class="field__input" type="text"
+                  name="seller_name" placeholder="Укажите свое ФИО"></label>
+              <label class="field"><span class="field__label">Email</span><input class="field__input" type="text"
+                  name="seller_email" placeholder="Укажите электронную почту"></label>
+              <label class="field"><span class="field__label">Телефон</span><input class="field__input" type="text"
+                  name="seller_phone" placeholder="Укажите номер телефона для связи"></label>
+              <label class="field"><span class="field__label">ИНН (ИП или самозанятого)</span><input
+                  class="field__input" type="text" name="seller_inn" placeholder="Укажите ИНН (ИП или самозанятого)"
+                  inputmode="numeric"></label>
+              <label class="field"><span class="field__label">ОГРНИП (для ИП)</span><input class="field__input"
+                  type="text" name="seller_ogrnip" placeholder="Укажите ОГРНИП (для ИП)" inputmode="numeric"></label>
+            </div>
+            <div class="uploads">
+              <label class="upload-row"><span class="field__label">Справка о постановке на учёт НПД или выписка
+                  ЕГРИП</span><span class="upload"><input class="upload__input visually-hidden" type="file"
+                    name="doc_npd"><span class="upload__text">Загрузить файл</span><span class="icon icon--16"
+                    aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
+                      aria-hidden="true"></span></span></label>
+              <label class="upload-row"><span class="field__label">Справка о состоянии расчётов по налогу</span><span
+                  class="upload"><input class="upload__input visually-hidden" type="file" name="doc_tax"><span
+                    class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                      src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+              <label class="upload-row"><span class="field__label">Копия договора аренды (если арендатор)</span><span
+                  class="upload"><input class="upload__input visually-hidden" type="file" name="doc_lease"><span
+                    class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
+                      src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
+              <label class="upload-row"><span class="field__label">Документ о собственности (если
+                  собственник)</span><span class="upload"><input class="upload__input visually-hidden" type="file"
+                    name="doc_property"><span class="upload__text">Загрузить файл</span><span class="icon icon--16"
+                    aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
+                      aria-hidden="true"></span></span></label>
+              <label class="upload-row"><span class="field__label">Копия паспорта (страница с фото и
+                  пропиской)</span><span class="upload"><input class="upload__input visually-hidden" type="file"
+                    name="doc_passport"><span class="upload__text">Загрузить файл</span><span class="icon icon--16"
+                    aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
+                      aria-hidden="true"></span></span></label>
+            </div>
+          </div>
+          <div class="step__footer"><a class="next" href="#success">Закончить <span class="icon icon--16"
+                aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8.70721 1.29308C8.61497 1.19757 8.50462 1.12139 8.38262 1.06898C8.26061 1.01657 8.12939 0.988985 7.99661 0.987831C7.86384 0.986677 7.73216 1.01198 7.60926 1.06226C7.48636 1.11254 7.37471 1.18679 7.28082 1.28069C7.18693 1.37458 7.11267 1.48623 7.06239 1.60913C7.01211 1.73202 6.98681 1.8637 6.98796 1.99648C6.98912 2.12926 7.0167 2.26048 7.06911 2.38249C7.12152 2.50449 7.1977 2.61483 7.29321 2.70708L11.5862 7.00008H2.00021C1.735 7.00008 1.48064 7.10544 1.29311 7.29297C1.10557 7.48051 1.00021 7.73486 1.00021 8.00008C1.00021 8.2653 1.10557 8.51965 1.29311 8.70719C1.48064 8.89472 1.735 9.00008 2.00021 9.00008H11.5862L7.29321 13.2931C7.11106 13.4817 7.01026 13.7343 7.01254 13.9965C7.01482 14.2587 7.11999 14.5095 7.3054 14.6949C7.4908 14.8803 7.74162 14.9855 8.00381 14.9878C8.26601 14.99 8.51861 14.8892 8.70721 14.7071L14.7072 8.70708C14.8947 8.51955 15 8.26525 15 8.00008C15 7.73492 14.8947 7.48061 14.7072 7.29308L8.70721 1.29308Z"
+                    fill="#F8F0E3" />
+                </svg>
+              </span></a></div>
+        </section>
+
+      </form>
+
+      <!-- Экран «Отправлено на модерацию» (показывается по #success) -->
+      <section class="done" id="success" aria-live="polite">
+        <div class="done__card">
+          <span class="done__check" aria-hidden="true"></span>
+          <h2 class="done__title">Ваше объявление отправлено на модерацию!</h2>
+          <p class="done__text">В скором времени оно станет доступно в каталоге</p>
+          <a class="done__btn" href="my-listings.html"><span class="icon icon--15" aria-hidden="true"><svg width="16"
+                height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                  d="M7.29279 1.29308C7.38503 1.19757 7.49538 1.12139 7.61738 1.06898C7.73939 1.01657 7.87061 0.988985 8.00339 0.987831C8.13616 0.986677 8.26784 1.01198 8.39074 1.06226C8.51364 1.11254 8.62529 1.18679 8.71918 1.28069C8.81307 1.37458 8.88733 1.48623 8.93761 1.60913C8.98789 1.73202 9.01319 1.8637 9.01204 1.99648C9.01088 2.12926 8.9833 2.26048 8.93089 2.38249C8.87848 2.50449 8.8023 2.61483 8.70679 2.70708L4.41379 7.00008H13.9998C14.265 7.00008 14.5194 7.10544 14.7069 7.29297C14.8944 7.48051 14.9998 7.73486 14.9998 8.00008C14.9998 8.2653 14.8944 8.51965 14.7069 8.70719C14.5194 8.89472 14.265 9.00008 13.9998 9.00008H4.41379L8.70679 13.2931C8.88894 13.4817 8.98974 13.7343 8.98746 13.9965C8.98518 14.2587 8.88001 14.5095 8.6946 14.6949C8.5092 14.8803 8.25838 14.9855 7.99619 14.9878C7.73399 14.99 7.48139 14.8892 7.29279 14.7071L1.29279 8.70708C1.10532 8.51955 1 8.26525 1 8.00008C1 7.73492 1.10532 7.48061 1.29279 7.29308L7.29279 1.29308Z"
+                  fill="white" />
+              </svg>
+            </span>К списку
+            объявлений</a>
+        </div>
+      </section>
+    </main>
+
+  </div>
+  <script src="/js/main.js"></script>
+  <script type="module" src="/js/app.js"></script>
+</body>
+
+</html>

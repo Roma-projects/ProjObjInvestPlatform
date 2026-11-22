@@ -14,7 +14,7 @@ from app.config import get_settings
 from app.database import AsyncSessionLocal
 from app.models.business_listing import BusinessListing
 from app.models.outbox import OutboxEvent
-from app.services.business_listing_service import SENSITIVE_MODERATION_DOCUMENTS, _public_data
+from app.services.business_listing_service import SENSITIVE_MODERATION_DOCUMENTS
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -71,22 +71,49 @@ class AnalysisResultsConsumer:
             ai_report = reports.get("ai_report")
             if ai_report and reports.get("scripts_report") and not reports.get("final_decision_applied"):
                 has_sensitive_docs = bool(SENSITIVE_MODERATION_DOCUMENTS.intersection(row.documents or {}))
-                if has_sensitive_docs:
-                    row.status, row.verification_status = "on_moderation", "deep"
-                elif ai_report.get("moderation_status") == "auto_ok":
-                    row.status, row.verification_status = "published", "all"
-                    if not reports.get("completion_event_queued"):
-                        session.add(OutboxEvent(routing_key="listing.creation.completed", payload={
-                            "event": "listing.creation.completed", "listing_id": str(row.id),
-                            "user_id": str(row.user_id), "public_data": _public_data(row),
-                        }))
-                        reports["completion_event_queued"] = True
-                else:
-                    row.status, row.verification_status = "on_moderation", "basic"
-                    session.add(OutboxEvent(routing_key="listing.on_moderation", payload={
-                        "event": "listing.on_moderation", "listing_id": str(row.id),
-                        "user_id": str(row.user_id), "verification_status": "basic",
+                row.status = "on_moderation"
+                row.verification_status = (
+                    "deep"
+                    if has_sensitive_docs or ai_report.get("verification_level") == "deep"
+                    else "basic"
+                )
+                if not reports.get("moderation_request_queued"):
+                    snapshot_fields = (
+                        "business_type", "property_type", "transfer_method", "deal_composition", "business_name",
+                        "short_description", "full_description", "sale_price", "stock_included", "stock_value",
+                        "country", "city", "street", "house", "area_sqm", "floor_number", "has_separate_entrance",
+                        "parking_spaces", "ceiling_height", "property_condition", "equipment_list", "staff_count",
+                        "staff_details", "working_hours", "business_age_months", "has_licenses", "has_contracts",
+                        "sale_reason", "stay_as_consultant_months", "monthly_financials", "average_check",
+                        "monthly_orders", "monthly_clients_unique", "cost_structure", "seasonality_months", "peak_hours",
+                        "supplier_contracts", "supplier_details", "debts_receivable", "debts_payable", "legal_claims",
+                        "legal_claims_details", "equipment_lease", "monthly_loan_payments", "customer_base_size",
+                        "repeat_customer_rate", "seller_status", "seller_name", "seller_inn", "seller_ogrnip",
+                    )
+                    snapshot = {name: getattr(row, name) for name in snapshot_fields}
+                    snapshot.update({
+                        "id": str(row.id),
+                        "created_at": row.created_at.isoformat() if row.created_at else None,
+                        "files": {
+                            key: value for key, value in (row.files or {}).items()
+                            if key in {"main_photo", "photos", "floor_plan_image", "video"}
+                        },
+                        "video_url": row.video_url,
+                    })
+                    snapshot = json.loads(json.dumps(snapshot, default=str))
+                    session.add(OutboxEvent(routing_key="listing.moderation.requested", payload={
+                        "event": "listing.moderation.requested",
+                        "listing_id": str(row.id),
+                        "user_id": str(row.user_id),
+                        "verification_level": row.verification_status,
+                        "listing_snapshot": snapshot,
+                        "analytics_reports": {
+                            "scripts_report": reports.get("scripts_report"),
+                            "ai_report": reports.get("ai_report"),
+                        },
+                        "document_refs": dict(row.documents or {}),
                     }))
+                    reports["moderation_request_queued"] = True
                 reports["final_decision_applied"] = True
                 row.analytics_results = reports
             await session.commit()

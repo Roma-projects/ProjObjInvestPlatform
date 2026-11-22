@@ -1,0 +1,479 @@
+/* =========================================================
+   MIERO VENTURE — EMAIL CONFIRMATION
+   Desktop reference: ~1200 × 858
+   ========================================================= */
+
+.email-confirmation-page {
+  min-height: 100vh;
+  background: var(--color-dark);
+  color: var(--color-dark);
+  overflow-x: hidden;
+}
+
+.email-confirmation {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--color-background);
+}
+
+.email-confirmation__form-panel {
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  background: var(--color-background);
+}
+
+.email-confirmation__form-wrap {
+  position: relative;
+  width: min(100%, 585px);
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 38px 48px 48px;
+}
+
+.email-confirmation__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+}
+
+.email-confirmation__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-dark);
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+
+.email-confirmation__brand-mark {
+  width: 60px;
+  height: 40px;
+  display: block;
+  flex: 0 0 auto;
+}
+
+.email-confirmation__descriptor {
+  margin: 2px 28px 0 0;
+  color: #80695e;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 1.25;
+  letter-spacing: .01em;
+  text-transform: uppercase;
+}
+
+.email-confirmation__intro {
+  margin-top: 78px;
+}
+
+.email-confirmation__intro h1 {
+  margin: 0;
+  color: var(--color-dark);
+  font-family: var(--font-display);
+  font-size: clamp(42px, 4vw, 58px);
+  font-weight: 400;
+  line-height: .98;
+  letter-spacing: -0.035em;
+}
+
+.email-confirmation__intro p {
+  max-width: 470px;
+  margin: 22px 0 0;
+  color: #67493E;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.email-confirmation__form {
+  margin-top: 18px;
+}
+
+.email-confirmation__field {
+  display: block;
+}
+
+.email-confirmation__input-wrap {
+  position: relative;
+}
+
+.email-confirmation__field input {
+  width: 100%;
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 14px 0 45px;
+  border: 1px solid #b9a99d;
+  border-radius: 6px;
+  outline: none;
+  background: transparent;
+  color: var(--color-dark);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.email-confirmation__field input::placeholder {
+  color: #b6aaa1;
+  opacity: 1;
+}
+
+.email-confirmation__field input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px rgba(104, 10, 24, .08);
+}
+
+.email-confirmation__input-icon {
+  position: absolute;
+  z-index: 1;
+  left: 13px;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  color: #b6aaa1;
+  pointer-events: none;
+}
+
+.email-confirmation__input-icon svg {
+  display: block;
+}
+
+.email-confirmation__submit {
+  width: 100%;
+  height: 42px;
+  margin-top: 14px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+.email-confirmation__submit:hover {
+  opacity: .92;
+  transform: translateY(-1px);
+}
+
+.email-confirmation__resend {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+.email-confirmation__resend-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.email-confirmation__resend-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.email-confirmation__resend-button.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.email-confirmation__resend-button:disabled {
+  cursor: not-allowed;
+}
+
+.email-confirmation__timer {
+  color: #80695e;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.email-confirmation__wrong-data {
+  margin: 45px 0 0;
+  color: #80695e;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.email-confirmation__wrong-data a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.email-confirmation__wrong-data a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.email-confirmation__back {
+  position: absolute;
+  left: 48px;
+  bottom: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 16px;
+  text-decoration: none;
+}
+
+.email-confirmation__back span {
+  font-size: 14px;
+  line-height: 0;
+}
+
+.email-confirmation__back:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* =========================================================
+   VISUAL PANEL
+   ========================================================= */
+
+.email-confirmation__visual {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  background-image: url("../assets/images/registration_banner.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.email-confirmation__visual-content {
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  top: 25%;
+  max-width: 520px;
+}
+
+.email-confirmation__visual-mark {
+  display: block;
+  width: 150px;
+  height: 100px;
+  margin-bottom: 25px;
+}
+
+.email-confirmation__visual-content h2 {
+  margin: 0;
+  color: var(--color-background);
+  font-family: var(--font-display);
+  font-size: clamp(34px, 3.2vw, 48px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+
+.email-confirmation__visual-content p {
+  margin: 22px 0 0;
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .email-confirmation {
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+  }
+
+  .email-confirmation__form-wrap {
+    padding: 32px 34px 42px;
+  }
+
+  .email-confirmation__intro {
+    margin-top: 65px;
+  }
+
+  .email-confirmation__intro h1 {
+    font-size: clamp(40px, 5vw, 52px);
+  }
+
+  .email-confirmation__descriptor {
+    margin-right: 0;
+  }
+
+  .email-confirmation__visual-content {
+    left: 9%;
+    right: 7%;
+    top: 25%;
+  }
+
+  .email-confirmation__visual-mark {
+    width: 120px;
+    height: auto;
+  }
+
+  .email-confirmation__back {
+    left: 34px;
+  }
+}
+
+@media (max-width: 760px) {
+  .email-confirmation {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .email-confirmation__form-panel {
+    min-height: auto;
+  }
+
+  .email-confirmation__form-wrap {
+    width: min(100%, 620px);
+    min-height: auto;
+    padding: 28px 24px 40px;
+  }
+
+  .email-confirmation__header {
+    gap: 18px;
+  }
+
+  .email-confirmation__brand {
+    font-size: 24px;
+  }
+
+  .email-confirmation__brand-mark {
+    width: 52px;
+    height: auto;
+  }
+
+  .email-confirmation__descriptor {
+    font-size: 7px;
+    margin-top: 1px;
+  }
+
+  .email-confirmation__intro {
+    margin-top: 52px;
+  }
+
+  .email-confirmation__intro h1 {
+    font-size: clamp(40px, 10vw, 54px);
+  }
+
+  .email-confirmation__intro p {
+    max-width: 480px;
+    font-size: 11px;
+  }
+
+  .email-confirmation__visual {
+    min-height: 520px;
+  }
+
+  .email-confirmation__visual-content {
+    left: 24px;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .email-confirmation__visual-mark {
+    width: 110px;
+    height: auto;
+    margin-bottom: 24px;
+  }
+
+  .email-confirmation__visual-content h2 {
+    font-size: clamp(32px, 9vw, 46px);
+  }
+
+  .email-confirmation__back {
+    position: static;
+    margin-top: 70px;
+  }
+}
+
+@media (max-width: 480px) {
+  .email-confirmation__form-wrap {
+    padding: 24px 18px 34px;
+  }
+
+  .email-confirmation__header {
+    align-items: flex-start;
+  }
+
+  .email-confirmation__brand {
+    font-size: 21px;
+    gap: 6px;
+  }
+
+  .email-confirmation__brand-mark {
+    width: 46px;
+  }
+
+  .email-confirmation__descriptor {
+    max-width: 100px;
+    font-size: 6px;
+  }
+
+  .email-confirmation__intro {
+    margin-top: 42px;
+  }
+
+  .email-confirmation__intro h1 {
+    font-size: 39px;
+  }
+
+  .email-confirmation__intro p {
+    margin-top: 17px;
+    font-size: 10px;
+  }
+
+  .email-confirmation__field input {
+    height: 44px;
+    font-size: 10px;
+  }
+
+  .email-confirmation__submit {
+    height: 46px;
+  }
+
+  .email-confirmation__wrong-data {
+    margin-top: 38px;
+  }
+
+  .email-confirmation__visual {
+    min-height: 430px;
+  }
+
+  .email-confirmation__visual-content {
+    left: 20px;
+    right: 20px;
+  }
+
+  .email-confirmation__visual-mark {
+    width: 92px;
+    height: auto;
+    margin-bottom: 20px;
+  }
+
+  .email-confirmation__visual-content h2 {
+    font-size: 33px;
+  }
+
+  .email-confirmation__visual-content p {
+    font-size: 9px;
+  }
+}

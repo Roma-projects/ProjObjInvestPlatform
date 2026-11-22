@@ -168,6 +168,7 @@ class AIConsumer:
                 }
                 if not verified:
                     report["moderation_status"] = "requires_moderation"
+                    report["verification_level"] = "deep"
                     reasons = report.setdefault("moderation_reasons", [])
                     reasons.append("registry_identity_unverified")
                     moderator = report.setdefault("moderator_report", {})

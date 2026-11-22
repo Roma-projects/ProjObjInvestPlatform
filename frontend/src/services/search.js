@@ -1,16 +1,20 @@
-/* Для чего нужен этот файл:
- * Содержит правила работы этой части приложения. Сервисный слой связывает API, проверку данных и хранилище.
- */
+/** JSON catalog queries are routed by the API Gateway to Search + Catalog. */
+import { API_BASE, apiRequest } from './api.js';
 
-/** Поиск по публичному каталогу и получение подсказок. */
-import { API_BASE, apiRequest } from './api';
-
-export async function search(params = {}) {
-  const qs = new URLSearchParams(params).toString();
-  return apiRequest(API_BASE.search, `/api/catalog?${qs}`);
+export function search(filters = {}) {
+  return apiRequest(API_BASE.search, '/api/catalog/query', {
+    method: 'POST',
+    body: JSON.stringify(filters),
+  });
 }
 
-export async function suggest(q, limit = 10) {
-  const qs = new URLSearchParams({ q, limit }).toString();
-  return apiRequest(API_BASE.search, `/api/search/suggest?${qs}`);
+export function getPublishedListing(id) {
+  return apiRequest(API_BASE.search, `/api/catalog/${encodeURIComponent(id)}`);
+}
+
+export function suggest(q, limit = 10) {
+  return apiRequest(API_BASE.search, '/api/search/suggest', {
+    method: 'POST',
+    body: JSON.stringify({ q, limit }),
+  });
 }

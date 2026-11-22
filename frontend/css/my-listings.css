@@ -1,0 +1,86 @@
+/* ==========================================================================
+   my-listings.css — страница «Мои объявления»
+   Подключать после catalog.css и profile.css: оттуда берутся сайдбар,
+   .profile, .profile__container, .chips/.chip, .listing*, .status
+   ========================================================================== */
+
+.my-listings { padding-top: 24px; }
+
+/* ---------- Заголовок ---------- */
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.page-head__bell { color: var(--color-dark); margin-right: 8px; }
+
+.my-listings__lead {
+  margin-top: 10px;
+  color: var(--color-primary);
+  font-size: 13px;
+}
+
+/* ---------- Панель: вкладки + кнопка ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0 18px;
+}
+.toolbar .chips { margin: 0; }
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  height: 40px;
+  padding: 0 22px;
+  border: 1px solid var(--color-primary);
+  border-radius: 25px;
+  background: var(--color-primary);
+  color: var(--color-background);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+.add-btn:hover { background: var(--color-dark); border-color: var(--color-dark); }
+
+/* ---------- Фильтрация по статусу без JS ---------- */
+.my-listings:has(#l-moderation:checked) .listing:not(.listing--moderation),
+.my-listings:has(#l-active:checked)     .listing:not(.listing--active),
+.my-listings:has(#l-archive:checked)    .listing:not(.listing--archive) {
+  display: none;
+}
+
+/* цена в этом списке бордовая, как в макете */
+.my-listings .listing__price { color: var(--color-primary); }
+
+/* «На модерации» и «Архив» — тот же бордовый контур, что и в профиле */
+.status--moderation,
+.status--archive { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* ==========================================================================
+   Адаптив (карточки перестраиваются правилами из profile.css)
+   ========================================================================== */
+@media (max-width: 720px) {
+  .my-listings { padding-top: 18px; }
+  .page-title { font-size: 32px; }
+
+  .toolbar { flex-direction: column-reverse; align-items: stretch; }
+  .add-btn { width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .page-title { font-size: 28px; }
+  .my-listings__lead { font-size: 12px; }
+}

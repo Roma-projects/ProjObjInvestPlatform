@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     public_upload_dir: str = "/public_uploads"
     private_upload_dir: str = "/private_uploads"
     gateway_shared_secret: str = "local-gateway-secret-change-me"
+    moderation_service_shared_secret: str = "local-moderation-secret-change-me"
     log_level: str = "INFO"
     service_name: str = "listing-service"
     service_port: int = 8002

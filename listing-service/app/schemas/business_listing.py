@@ -171,7 +171,7 @@ class BusinessListingDetail(BusinessListingDraft):
     status: str
     verification_status: str | None
     files: dict[str, object]
-    documents: dict[str, object]
+    document_fields: list[str]
     created_at: datetime
     updated_at: datetime
 

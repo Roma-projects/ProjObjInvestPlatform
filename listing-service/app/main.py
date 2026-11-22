@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.database import init_db
 from app.rabbitmq.publisher import publisher
 from app.rabbitmq.results_consumer import results_consumer
+from app.rabbitmq.moderation_consumer import moderation_consumer
 from app.routers import listings as listings_router
 from app.routers import business_listings as business_listings_router
 from app.services.business_listing_service import run_outbox_dispatcher
@@ -38,12 +39,14 @@ async def lifespan(_app: FastAPI):
         logger.warning("DB init failed: %s", exc)
     await publisher.connect()
     await results_consumer.start()
+    await moderation_consumer.start()
     stop_dispatcher = asyncio.Event()
     dispatcher_task = asyncio.create_task(run_outbox_dispatcher(stop_dispatcher))
     yield
     stop_dispatcher.set()
     await dispatcher_task
     await results_consumer.stop()
+    await moderation_consumer.stop()
     await publisher.close()
     logger.info("Stopped %s", settings.service_name)
 
@@ -70,3 +73,4 @@ async def health() -> dict:
 
 app.include_router(listings_router.router)
 app.include_router(business_listings_router.router)
+app.include_router(business_listings_router.internal_router)

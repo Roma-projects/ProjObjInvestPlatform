@@ -33,12 +33,19 @@ class NotificationConsumer:
         await channel.declare_queue("notification.events.dlq", durable=True)
         for exchange, key in (
             (listings, "listing.*"), (auth, "auth.security_event"), (messaging, "message.new"),
+            (listings, "moderation.user.blacklisted"), (listings, "moderation.user.unblocked"),
         ):
             await queue.bind(exchange, routing_key=key)
 
         async def handle(message: aio_pika.IncomingMessage) -> None:
             async with message.process(requeue=False):
                 body = json.loads(message.body.decode("utf-8"))
+                if body.get("event") == "moderation.user.blacklisted":
+                    await notification_service.block_user(str(body["user_id"]))
+                    return
+                if body.get("event") == "moderation.user.unblocked":
+                    await notification_service.unblock_user(str(body["user_id"]))
+                    return
                 await notification_service.send(body)
 
         await queue.consume(handle)

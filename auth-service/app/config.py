@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     refresh_cookie_secure: bool = False
     verification_code_ttl_seconds: int = 600
     gateway_shared_secret: str = "local-gateway-secret-change-me"
+    moderation_service_shared_secret: str = "local-moderation-secret-change-me"
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"

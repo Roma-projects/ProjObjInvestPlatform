@@ -1,223 +1,31 @@
-# Frontend — Web-агрегатор недвижимости
+# Frontend MieroVenture
 
-## Описание проекта
+Клиент — многостраничная статическая верстка HTML/CSS/JavaScript, подготовленная дизайнером и размещённая в корне `frontend/`. Nginx раздаёт её и проксирует `/api/*` в API Gateway. Бизнес-логика остаётся в FastAPI-сервисах; Next.js API Routes в этом проекте не используются.
 
-Клиентская часть **Web-агрегатора недвижимости**: размещение лотов с фото и картой, поиск и фильтры, заявки владельцам, встроенный мессенджер, оценка аренды и инвестиционный скоринг, личные кабинеты.
+## Структура
 
-Backend реализован как набор микросервисов (FastAPI). Сейчас фронтенд остаётся простым каркасом: Nginx отдаёт статическую страницу, а папка `src/services` содержит API-клиенты для дальнейшей разработки.
+- `*.html` — главная, каталог, карточка бизнеса, вход/регистрация, кабинет продавца и модератора, сообщения.
+- `css/` — стили страниц дизайна и общие состояния интерфейса.
+- `js/main.js` — визуальные интеракции верстки.
+- `js/app.js` — привязка страниц к API и обработчики форм.
+- `src/services/` — отдельные клиенты Auth, Listing, Search, Messaging, Analytics и Moderation.
+- `assets/` — изображения, шрифты, иконки и статические материалы.
+- `API_DOCS.md` — внешние маршруты Gateway и JSON-контракты.
 
-## Цели фронтенда
+## Запуск
 
-1. Каталог и карта объектов
-2. Карточка лота + аналитика (аренда / инвестиции / история цен)
-3. Auth (регистрация, логин, refresh JWT)
-4. Личный кабинет владельца (CRUD лотов, фото)
-5. Чат (REST история + WebSocket realtime)
+Запускайте сервисы из корня репозитория через Docker Compose по инструкциям в [общем README](../README.md). Браузер открывает сайт через Nginx (`http://localhost:8080`); внутренние адреса микросервисов на клиенте не используются.
 
-## Рекомендуемый стек
+## Авторизация и обмен данными
 
-| Слой | Рекомендации |
-|------|----------------|
-| Framework | **React 18+** или Vue 3 / Angular 17+ |
-| Язык | **TypeScript** |
-| Сборка | Vite |
-| Стили | TailwindCSS или SCSS (+ CSS variables в `src/styles`) |
-| Состояние | Zustand / Redux Toolkit / Pinia |
-| HTTP | axios или fetch-обёртка (`src/services/api.js`) |
-| Карты | Leaflet / Mapbox / Yandex Maps |
-| Роутинг | React Router / Vue Router |
+Вход и защищённые запросы работают через JWT access token. Access token хранится в `sessionStorage`; refresh token устанавливается Auth в HttpOnly cookie. Клиент автоматически обновляет access token и повторяет один защищённый запрос после ответа 401.
 
-## Структура папок
+Фильтры каталога и подсказки отправляются в Search JSON-телом через POST. Черновики объявлений, профиль и сообщения также используют JSON. Файлы загружаются multipart-запросом в Listing. В браузерных HTTP-запросах фильтры не помещаются в query string; идентификаторы ресурса идут в пути. WebSocket уведомлений использует `?token=` в handshake, потому что нативный WebSocket браузера не позволяет задать Authorization header.
 
-```
-frontend/
-├── public/                 # статика (favicon и т.п.)
-├── src/
-│   ├── assets/             # изображения, шрифты, иконки
-│   ├── components/
-│   │   ├── common/         # кнопки, инпуты, модалки
-│   │   ├── listings/       # карточки лотов, формы
-│   │   ├── map/            # карта и маркеры
-│   │   ├── chat/           # UI чата
-│   │   └── auth/           # формы входа/регистрации
-│   ├── pages/
-│   │   ├── Home/           # главная: карта + список
-│   │   ├── Listing/        # страница лота
-│   │   ├── Auth/           # вход/регистрация
-│   │   ├── Dashboard/      # личный кабинет
-│   │   └── Chat/           # мессенджер
-│   ├── services/           # API-клиенты (stubs)
-│   ├── store/              # глобальное состояние
-│   ├── hooks/              # кастомные хуки
-│   ├── utils/              # хелперы
-│   ├── styles/             # variables / reset / global
-│   ├── router/             # маршруты
-│   └── App.js              # корневой компонент (stub)
-├── index.html
-├── package.json
-├── vite.config.js
-├── API_DOCS.md             # примеры запросов
-└── README.md               # этот файл
-```
+Изображения объявлений доступны через `/public/uploads/`; приватные документы не отдаются публично. Клиент не обращается к ним напрямую.
 
-## API документация (Swagger)
+## Реализованные страницы
 
-Основной запуск выполняется из корня проекта через Docker Compose. Внутренние порты сервисов не публикуются напрямую; запросы идут через Nginx и API Gateway. Для полного порядка запуска используйте корневой [README](../README.md).
+Каталог и публичная карточка бизнеса используют Search/Catalog. Регистрация, вход, восстановление пароля и профиль используют Auth. Создание черновика, редактирование, загрузка файлов и отправка используют Listing. Очередь модерации, просмотр закрытых документов и чёрный список используют Moderation через Gateway; фронтенд не вызывает закрытый внутренний API Listing. Избранное хранится в браузере, пока для него нет API. Сообщения используют API Gateway и Messaging.
 
-| Сервис | Docs |
-|--------|------|
-| Gateway | http://localhost:8080/api/health |
-| Auth | http://localhost:8080/api/auth/... |
-| Listings | http://localhost:8080/api/v1/listings |
-| Search | http://localhost:8080/api/catalog |
-| Messaging | http://localhost:8080/api/messages |
-
-Подробные примеры curl/fetch: [API_DOCS.md](./API_DOCS.md). Swagger сервисов доступен только внутри контейнерной сети.
-
-## JWT авторизация (базовый пример)
-
-```javascript
-// 1. Логин
-const loginRes = await fetch('http://localhost:8001/api/v1/auth/login', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email: 'user@example.com', password: 'secret123' }),
-});
-const { access_token, refresh_token } = await loginRes.json();
-
-// 2. Защищённый запрос
-const me = await fetch('http://localhost:8001/api/v1/auth/me', {
-  headers: { Authorization: `Bearer ${access_token}` },
-});
-
-// 3. Refresh (access живёт 15 минут)
-const refreshed = await fetch('http://localhost:8001/api/v1/auth/refresh', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ refresh_token }),
-});
-```
-
-Храните `access_token` в memory / sessionStorage, `refresh_token` — в httpOnly cookie (предпочтительно) или secure storage.
-
-## WebSocket протокол чата
-
-**URL:** `ws://localhost:8004/ws/chat/{user_id}?token={access_token}`
-
-Клиент → сервер:
-
-```json
-{ "type": "ping" }
-```
-
-```json
-{ "type": "send", "receiver_id": 2, "content": "Здравствуйте! Интересует квартира." }
-```
-
-Сервер → клиент:
-
-```json
-{ "type": "pong" }
-```
-
-```json
-{
-  "type": "message",
-  "data": {
-    "id": 10,
-    "sender_id": 1,
-    "receiver_id": 2,
-    "content": "Здравствуйте!",
-    "status": "sent",
-    "created_at": "2026-09-26T12:00:00Z",
-    "read_at": null
-  }
-}
-```
-
-```json
-{ "type": "message_ack", "data": { "...": "то же сообщение" } }
-```
-
-```json
-{ "type": "error", "detail": "..." }
-```
-
-При невалидном токене соединение закрывается с кодом `4401`.
-
-## Примеры JSON ответов
-
-**User (GET /auth/me):**
-
-```json
-{
-  "id": 1,
-  "email": "owner@example.com",
-  "first_name": "Иван",
-  "last_name": "Петров",
-  "phone": "+79001234567",
-  "is_active": true,
-  "created_at": "2026-09-26T10:00:00Z",
-  "updated_at": "2026-09-26T10:00:00Z"
-}
-```
-
-**Listing:**
-
-```json
-{
-  "id": 5,
-  "owner_id": 1,
-  "title": "2-к квартира у метро",
-  "description": "Светлая квартира",
-  "price": 12500000,
-  "area": 54.5,
-  "rooms": 2,
-  "floor": 7,
-  "address": "Москва, ул. Примерная, 1",
-  "lat": 55.75,
-  "lng": 37.62,
-  "type": "apartment",
-  "status": "active",
-  "created_at": "2026-09-26T11:00:00Z",
-  "updated_at": "2026-09-26T11:00:00Z",
-  "photos": [{ "id": 1, "listing_id": 5, "url": "/uploads/5/abc.jpg", "is_main": true }]
-}
-```
-
-**Rent estimate:**
-
-```json
-{
-  "rent_estimate": "65000.00",
-  "currency": "RUB",
-  "model_version": "1.0.0",
-  "method": "heuristic_area"
-}
-```
-
-## CORS
-
-Backend разрешает origin `http://localhost:3000` (см. `CORS_ORIGINS`). Запускайте dev-сервер на порту **3000** или обновите `.env` сервисов.
-
-## Запуск и разработка
-
-Веб-страницу и backend можно поднять одной командой из корня репозитория:
-
-```powershell
-docker compose up --build -d
-```
-
-Откройте `http://localhost:8080`. Node.js для контейнерного статического каркаса не нужен. Для разработки полноценного фронтенда сначала выберите и добавьте framework и зависимости в `package.json`; сейчас npm-скрипты являются заглушками и не собирают приложение.
-
-Если запускаете только dev-сервер после настройки npm-проекта:
-
-```powershell
-cd frontend
-npm install
-npm run dev
-```
-
-## Контакты / согласование API
-
-При изменении контрактов обновляйте `API_DOCS.md` и OpenAPI (`/docs`) соответствующего сервиса.
+Отдельного HTTP API для аналитики сейчас нет. Результаты скриптов и AI доступны в карточке модерации; решения и блокировки обслуживает Moderation.

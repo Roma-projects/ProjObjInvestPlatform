@@ -64,10 +64,12 @@ class AuthService:
         user = await self.repo.get_by_email(data.email)
         if not user or not verify_password(data.password, user.password_hash):
             raise AuthenticationError("Invalid email or password")
+        if user.is_banned:
+            raise AuthenticationError("Account is blocked")
         if not user.is_active:
             raise AuthenticationError("User is inactive")
         return TokenResponse(
-            access_token=create_access_token(user.id, {"email": user.email}),
+            access_token=create_access_token(user.id, {"user_id": str(user.user_id), "email": user.email, "role": user.role}),
             refresh_token=create_refresh_token(user.id),
         )
 
@@ -87,11 +89,11 @@ class AuthService:
 
         user_id = int(payload["sub"])
         user = await self.repo.get_by_id(user_id)
-        if not user or not user.is_active:
+        if not user or not user.is_active or user.is_banned:
             raise AuthenticationError("User not found or inactive")
 
         return TokenResponse(
-            access_token=create_access_token(user.id, {"email": user.email}),
+            access_token=create_access_token(user.id, {"user_id": str(user.user_id), "email": user.email, "role": user.role}),
             refresh_token=create_refresh_token(user.id),
         )
 
@@ -118,4 +120,6 @@ class AuthService:
         user = await self.repo.get_by_id(user_id)
         if not user:
             raise NotFoundError("User not found")
+        if user.is_banned:
+            raise AuthenticationError("Account is blocked")
         return user

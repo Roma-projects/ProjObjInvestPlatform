@@ -6,6 +6,8 @@ import hashlib
 import json
 import logging
 import base64
+import re
+import asyncio
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -24,10 +26,20 @@ class SearchService:
         self._redis: aioredis.Redis | None = None
         self._mongo_client: AsyncIOMotorClient | None = None
         self._catalog = None
+        self._blocked_sellers = None
+        self._blocked_legacy_sellers = None
+        self._blocked_legacy_owner_ids: set[int] = set()
+        self._catalog_lock = asyncio.Lock()
 
     async def connect_redis(self) -> None:
         self._mongo_client = AsyncIOMotorClient(settings.mongodb_url)
         self._catalog = self._mongo_client.get_default_database().get_collection("listings")
+        self._blocked_sellers = self._mongo_client.get_default_database().get_collection("blocked_sellers")
+        self._blocked_legacy_sellers = self._mongo_client.get_default_database().get_collection("blocked_legacy_sellers")
+        self._blocked_legacy_owner_ids = {
+            int(row["_id"]) async for row in self._blocked_legacy_sellers.find({}, {"_id": 1})
+        }
+        await self._catalog.create_index("seller_id")
         await self._catalog.create_index([("business_name", "text"), ("short_description", "text")])
         await self._catalog.create_index([("sale_price", 1), ("business_type", 1), ("verification_status", 1)])
         try:
@@ -46,6 +58,9 @@ class SearchService:
             self._mongo_client.close()
 
     def upsert(self, listing: dict[str, Any]) -> None:
+        if int(listing.get("owner_id", -1)) in self._blocked_legacy_owner_ids:
+            logger.info("Ignoring legacy catalog upsert for blocked owner=%s", listing.get("owner_id"))
+            return
         listing_id = int(listing["listing_id"])
         self._index[listing_id] = listing
         logger.debug("Index upsert listing_id=%s", listing_id)
@@ -56,37 +71,118 @@ class SearchService:
 
     async def upsert_business(self, body: dict[str, Any]) -> None:
         """Store only allow-listed public fields from a completed listing event."""
-        if self._catalog is None:
+        if self._catalog is None or self._blocked_sellers is None:
             raise RuntimeError("MongoDB catalog is not connected")
         public = dict(body.get("public_data") or {})
+        seller_id = str(public.get("seller_id") or body.get("user_id") or "")
+        if not seller_id:
+            logger.warning("Ignoring catalog upsert without seller id listing_id=%s", body.get("listing_id"))
+            return
         allowed = {
-            "business_name", "short_description", "business_type", "sale_price",
+            "seller_id", "seller_name", "business_name", "short_description", "business_type", "sale_price",
+            "full_description", "stock_included", "stock_value", "area_sqm", "floor_number",
+            "has_separate_entrance", "parking_spaces", "ceiling_height", "equipment_list",
+            "staff_count", "staff_details", "working_hours", "business_age_months", "has_licenses",
+            "has_contracts", "sale_reason", "stay_as_consultant_months", "monthly_financials",
+            "average_check", "monthly_orders", "monthly_clients_unique", "cost_structure",
+            "seasonality_months", "peak_hours", "supplier_contracts", "supplier_details",
+            "debts_receivable", "debts_payable", "legal_claims", "legal_claims_details",
+            "equipment_lease", "monthly_loan_payments", "customer_base_size", "repeat_customer_rate",
             "avg_monthly_revenue", "location", "photos", "main_photo", "video",
+            "floor_plan_image",
             "deal_composition", "property_type", "property_condition",
             "transfer_method", "revenue_trend", "verification_status", "user_analytics",
         }
         public = {key: value for key, value in public.items() if key in allowed}
-        await self._catalog.update_one(
-            {"_id": str(body["listing_id"])},
-            {"$set": {**public, "status": "published"}},
-            upsert=True,
-        )
+        async with self._catalog_lock:
+            if await self._blocked_sellers.find_one({"_id": seller_id}):
+                logger.info("Ignoring catalog upsert for blocked seller=%s", seller_id)
+                return
+            await self._catalog.update_one(
+                {"_id": str(body["listing_id"])},
+                {"$set": {**public, "seller_id": seller_id, "status": "published"}},
+                upsert=True,
+            )
         if self._redis:
             async for key in self._redis.scan_iter("search:*"):
                 await self._redis.delete(key)
 
-    async def search_businesses(self, *, q: str | None, business_type: str | None,
+    async def block_seller(self, seller_id: str, reason: str = "") -> None:
+        if self._catalog is None or self._blocked_sellers is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        async with self._catalog_lock:
+            await self._blocked_sellers.update_one(
+                {"_id": seller_id}, {"$set": {"reason": reason[:500]}}, upsert=True
+            )
+            await self._catalog.delete_many({"seller_id": seller_id})
+        if self._redis:
+            async for key in self._redis.scan_iter("search:*"):
+                await self._redis.delete(key)
+
+    async def unblock_seller(self, seller_id: str) -> None:
+        if self._blocked_sellers is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        async with self._catalog_lock:
+            await self._blocked_sellers.delete_one({"_id": seller_id})
+
+    async def block_legacy_seller(self, owner_id: int) -> None:
+        if self._blocked_legacy_sellers is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        self._blocked_legacy_owner_ids.add(owner_id)
+        await self._blocked_legacy_sellers.update_one({"_id": owner_id}, {"$set": {"blocked": True}}, upsert=True)
+        for listing_id, listing in list(self._index.items()):
+            if int(listing.get("owner_id", -1)) == owner_id:
+                self._index.pop(listing_id, None)
+        if self._redis:
+            async for key in self._redis.scan_iter("search:*"):
+                await self._redis.delete(key)
+
+    async def unblock_legacy_seller(self, owner_id: int) -> None:
+        if self._blocked_legacy_sellers is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        self._blocked_legacy_owner_ids.discard(owner_id)
+        await self._blocked_legacy_sellers.delete_one({"_id": owner_id})
+
+    async def delete_business(self, listing_id: str) -> None:
+        if self._catalog is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        await self._catalog.delete_one({"_id": str(listing_id)})
+        if self._redis:
+            async for key in self._redis.scan_iter("search:*"):
+                await self._redis.delete(key)
+
+    async def search_businesses(self, *, q: str | None, business_type: str | list[str] | None,
                                 min_price: float | None, max_price: float | None,
                                 verification_status: str | None, sort: str,
-                                cursor: str | None, limit: int) -> dict[str, Any]:
+                                cursor: str | None, limit: int,
+                                deal_composition: str | list[str] | None = None,
+                                property_type: str | list[str] | None = None,
+                                property_condition: str | list[str] | None = None,
+                                transfer_method: str | list[str] | None = None,
+                                revenue_trend: str | list[str] | None = None,
+                                city: str | None = None) -> dict[str, Any]:
         """Filter public cards and return a stable cursor for the next page."""
         if self._catalog is None:
             raise RuntimeError("MongoDB catalog is not connected")
         criteria: dict[str, Any] = {"status": "published"}
         if q:
             criteria["$text"] = {"$search": q}
-        if business_type:
-            criteria["business_type"] = business_type
+        for field, value in (
+            ("business_type", business_type),
+            ("deal_composition", deal_composition),
+            ("property_type", property_type),
+            ("property_condition", property_condition),
+            ("transfer_method", transfer_method),
+            ("revenue_trend", revenue_trend),
+        ):
+            if isinstance(value, list):
+                values = [item for item in value if item]
+                if values:
+                    criteria[field] = values[0] if len(values) == 1 else {"$in": values}
+            elif value:
+                criteria[field] = value
+        if city:
+            criteria["location.city"] = {"$regex": re.escape(city.strip()), "$options": "i"}
         if verification_status:
             criteria["verification_status"] = verification_status
         if min_price is not None or max_price is not None:
@@ -127,6 +223,16 @@ class SearchService:
                 value["price"] = last.get("sale_price", 0)
             next_cursor = base64.urlsafe_b64encode(json.dumps(value).encode()).decode().rstrip("=")
         return {"items": items, "next_cursor": next_cursor}
+
+    async def get_business(self, listing_id: str) -> dict[str, Any] | None:
+        """Return one published catalog record (the index contains public fields only)."""
+        if self._catalog is None:
+            raise RuntimeError("MongoDB catalog is not connected")
+        row = await self._catalog.find_one({"_id": listing_id, "status": "published"})
+        if row is None:
+            return None
+        row.pop("_id", None)
+        return {"listing_id": listing_id, **row}
 
     def _score(self, item: dict[str, Any], q: str | None) -> float:
         if not q:

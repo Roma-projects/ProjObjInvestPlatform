@@ -32,6 +32,7 @@ services:
       SEARCH_URL: ${SEARCH_SERVICE_URL:-http://search-service:8000}
       NOTIFICATION_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8000}
       MESSAGING_URL: ${MESSAGING_SERVICE_URL:-http://messaging-service:8000}
+      MODERATION_URL: ${MODERATION_SERVICE_URL:-http://moderation-service:8000}
     depends_on:
       redis:
         condition: service_healthy
@@ -44,6 +45,8 @@ services:
       search-service:
         condition: service_healthy
       messaging-service:
+        condition: service_healthy
+      moderation-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
@@ -76,6 +79,7 @@ services:
       SMTP_START_TLS: ${SMTP_START_TLS:-true}
       REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
       GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,6 +109,7 @@ services:
       PUBLIC_UPLOAD_DIR: /public_uploads
       PRIVATE_UPLOAD_DIR: /private_uploads
       GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
     volumes:
       - public_uploads:/public_uploads
       - private_uploads:/private_uploads
@@ -112,6 +117,36 @@ services:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  moderation-service:
+    build:
+      context: .
+      dockerfile: moderation-service/Dockerfile
+    environment:
+      DATABASE_URL: ${MODERATION_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/moderation_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      LISTING_URL: ${LISTING_SERVICE_URL:-http://listing-service:8000}
+      AUTH_URL: ${AUTH_SERVICE_URL:-http://auth-service:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      listing-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]

@@ -37,16 +37,41 @@ class SearchConsumer:
 
             # New business listings enter the catalog only after moderation approves them.
             business_exchange = await channel.declare_exchange("listings", ExchangeType.TOPIC, durable=True)
-            catalog_queue = await channel.declare_queue("search_catalog.index", durable=True)
+            await channel.declare_queue("search_catalog.index.dlq", durable=True)
+            catalog_queue = await channel.declare_queue(
+                "search_catalog.index",
+                durable=True,
+                arguments={
+                    "x-dead-letter-exchange": "",
+                    "x-dead-letter-routing-key": "search_catalog.index.dlq",
+                },
+            )
             await catalog_queue.bind(business_exchange, routing_key="listing.creation.completed")
+            await catalog_queue.bind(business_exchange, routing_key="listing.removed")
+            await catalog_queue.bind(business_exchange, routing_key="listing.deleted")
+            await catalog_queue.bind(business_exchange, routing_key="moderation.user.blacklisted")
+            await catalog_queue.bind(business_exchange, routing_key="moderation.user.unblocked")
 
             async def _on_message(message: aio_pika.IncomingMessage) -> None:
                 async with message.process():
                     try:
                         body = json.loads(message.body.decode("utf-8"))
-                        event_type = body.get("event_type", "")
+                        event_type = body.get("event_type") or body.get("event", "")
                         if event_type == "listing.creation.completed":
                             await search_service.upsert_business(body)
+                            return
+                        if event_type == "moderation.user.blacklisted":
+                            await search_service.block_seller(str(body["user_id"]), str(body.get("reason", "")))
+                            if body.get("legacy_user_id") is not None:
+                                await search_service.block_legacy_seller(int(body["legacy_user_id"]))
+                            return
+                        if event_type == "moderation.user.unblocked":
+                            await search_service.unblock_seller(str(body["user_id"]))
+                            if body.get("legacy_user_id") is not None:
+                                await search_service.unblock_legacy_seller(int(body["legacy_user_id"]))
+                            return
+                        if event_type == "listing.removed":
+                            await search_service.delete_business(str(body["listing_id"]))
                             return
                         if event_type in ("listing.created", "listing.updated"):
                             search_service.upsert(body)
@@ -54,6 +79,10 @@ class SearchConsumer:
                             search_service.delete(int(body["listing_id"]))
                     except Exception as exc:
                         logger.exception("Failed to process search event: %s", exc)
+                        # Let RabbitMQ route failed business events to the
+                        # durable catalog DLQ instead of acknowledging and
+                        # silently losing a block/removal event.
+                        raise
 
             await queue.consume(_on_message)
             await catalog_queue.consume(_on_message)

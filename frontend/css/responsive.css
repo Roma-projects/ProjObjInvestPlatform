@@ -1,0 +1,191 @@
+@media (max-width: 900px) {
+  .header__inner {
+    min-height: 78px;
+    padding-inline: 24px;
+  }
+
+  .header__toggle {
+    display: block;
+  }
+
+  .header__nav {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    display: none;
+    padding: 20px 24px 25px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    background: var(--color-primary);
+  }
+
+  .header__nav.is-open {
+    display: flex;
+  }
+
+  .header__login {
+    margin: 4px 0 0;
+    width: 100%;
+  }
+
+  .hero {
+    padding-top: 0;
+  }
+
+  .hero__visual {
+    min-height: calc(100vh - 92px);
+  }
+
+  .hero__content {
+    padding-inline: 28px;
+  }
+
+  .hero__features {
+    max-width: none;
+  }
+
+  .business-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analytics__grid,
+  .contact__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics__copy,
+  .contact__copy {
+    max-width: none;
+  }
+
+  .analytics__steps {
+    margin-top: 25px;
+  }
+
+  .map__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .footer__main {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .container {
+    width: min(calc(100% - 30px), var(--container));
+  }
+
+  .header__brand {
+    font-size: 24px;
+  }
+
+  .hero__logo {
+    width: 90px;
+    right: 18px;
+  }
+
+  .hero__visual {
+    min-height: 720px;
+  }
+
+  .hero__title {
+    font-size: clamp(52px, 16vw, 76px);
+  }
+
+  .hero__subtitle {
+    font-size: 22px;
+  }
+
+  .hero__features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature {
+    min-height: auto;
+  }
+
+  .section__title {
+    font-size: 42px;
+  }
+
+  .offers__head {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .business-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-banner__inner {
+    grid-template-columns: 70px 1fr;
+    padding: 20px;
+  }
+
+  .sell-banner__button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .sell-banner__title {
+    font-size: 29px;
+  }
+
+  .sell-banner__logo {
+    width: 62px;
+  }
+
+  .analytics__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .analytics-step {
+    padding: 0 0 20px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(104, 10, 24, .24);
+  }
+
+  .analytics-step:last-child {
+    border-bottom: 0;
+  }
+
+  .chart {
+    padding: 16px;
+  }
+
+  .chart__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .map__visual {
+    min-height: 260px;
+  }
+
+  .map-item {
+    grid-template-columns: 78px 1fr auto;
+  }
+
+  .map-item__data {
+    gap: 10px;
+    flex-direction: column;
+  }
+
+  .chat__body {
+    min-height: 330px;
+  }
+
+  .message {
+    max-width: 86%;
+  }
+
+  .footer__main {
+    grid-template-columns: 1fr;
+  }
+
+  .footer__bottom {
+    flex-direction: column;
+  }
+}

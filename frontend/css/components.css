@@ -1,0 +1,134 @@
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s ease, transform .7s cubic-bezier(.22, 1, .36, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger>* {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .55s ease, transform .55s cubic-bezier(.22, 1, .36, 1);
+}
+
+.stagger.is-visible>* {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stagger.is-visible>*:nth-child(2) {
+  transition-delay: .08s;
+}
+
+.stagger.is-visible>*:nth-child(3) {
+  transition-delay: .16s;
+}
+
+.heart {
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.heart:hover {
+  transform: scale(1.15);
+}
+
+.heart.is-active {
+  animation: heart-pop .35s ease;
+}
+
+@keyframes heart-pop {
+  50% {
+    transform: scale(1.35);
+  }
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 44px;
+  padding: 13px 24px;
+
+  border: 1px solid var(--color-primary);
+  border-radius: 20px;
+
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.button--light {
+  background: var(--color-background);
+  color: var(--color-primary);
+}
+
+.button--light:hover {
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+.button--primary {
+  background: var(--color-primary);
+  color: var(--color-background);
+}
+
+.button--primary:hover {
+  background: var(--color-dark);
+  color: var(--color-background);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.back-to-top {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 90;
+
+  width: 80px;
+  height: 80px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--color-primary);
+  color: var(--color-background);
+
+  border: 1px solid var(--color-background);
+  border-radius: 50%;
+
+  font-family: var(--font-mono);
+  font-size: 24px;
+  line-height: 1;
+  text-decoration: none;
+
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.back-to-top:hover {
+  transform: translateY(-4px);
+  background: var(--color-dark);
+}

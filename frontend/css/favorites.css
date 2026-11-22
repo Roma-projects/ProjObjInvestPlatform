@@ -1,0 +1,36 @@
+/* ==========================================================================
+   favorites.css — страница «Избранное»
+   Подключать после catalog.css и profile.css:
+   - catalog.css даёт сайдбар, .content, .page-head, .search, .sorting, .dropdown
+   - profile.css даёт .listings и карточку .listing
+   ========================================================================== */
+
+/* цена бордовая, как в макете */
+.favorites .listing__price { color: var(--color-primary); }
+
+/* ---------- Сердечко в карточке ---------- */
+.listing__fav {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+  transition: transform var(--transition-fast);
+}
+.listing__fav:hover { transform: scale(1.15); }
+.listing__fav:active img { animation: fav-pop .35s ease; }
+.listing__fav .icon { --size: 24px; }
+
+@keyframes fav-pop {
+  50% { transform: scale(1.35); }
+}
+
+/* ---------- Отступы между блоками ---------- */
+.favorites .sorting { margin-bottom: 18px; }
+
+/* Адаптив: сайдбар, поиск, сортировка — из catalog.css,
+   перестройка карточек — из profile.css (1100 / 720 / 420px) */
+@media (max-width: 720px) {
+  .favorites { padding-bottom: 96px; }   /* место под нижнюю панель */
+}
+

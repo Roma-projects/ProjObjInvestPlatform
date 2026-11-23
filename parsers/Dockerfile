@@ -5,7 +5,7 @@ COPY parsers/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gosu \
+    && apt-get install -y --no-install-recommends gosu libatomic1 \
     && rm -rf /var/lib/apt/lists/* \
     && python -m playwright install --with-deps chromium \
     && rm -rf /var/lib/apt/lists/*

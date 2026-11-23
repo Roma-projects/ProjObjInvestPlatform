@@ -30,7 +30,6 @@ class NotificationService:
     async def connect(self) -> None:
         await self.collection.create_index([("user_id", 1), ("created_at", -1)])
         await self.collection.create_index("event_id", unique=True, sparse=True)
-        await self.blocked_users_collection.create_index("_id", unique=True)
 
     async def close(self) -> None:
         self.client.close()

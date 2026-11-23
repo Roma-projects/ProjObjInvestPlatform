@@ -23,6 +23,12 @@ export function updateListing(id, payload) {
   });
 }
 
+export function deleteListing(id) {
+  return apiRequest(API_BASE.listings, `/api/listings/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
 export function submitListing(id) {
   return apiRequest(API_BASE.listings, `/api/listings/${encodeURIComponent(id)}/submit`, {
     method: 'POST',
@@ -37,5 +43,16 @@ export function uploadListingFile(listingId, field, file) {
     API_BASE.listings,
     `/api/listings/${encodeURIComponent(listingId)}/files/${encodeURIComponent(field)}`,
     { method: 'POST', body: form },
+  );
+}
+
+/** Replaces an uploaded public photo while keeping the original gallery position. */
+export function replaceListingPhoto(listingId, index, file) {
+  const form = new FormData();
+  form.append('file', file);
+  return apiRequest(
+    API_BASE.listings,
+    `/api/listings/${encodeURIComponent(listingId)}/files/photos/${index}`,
+    { method: 'PUT', body: form },
   );
 }

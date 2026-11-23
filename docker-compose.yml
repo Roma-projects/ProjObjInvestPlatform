@@ -44,8 +44,6 @@ services:
         condition: service_healthy
       search-service:
         condition: service_healthy
-      messaging-service:
-        condition: service_healthy
       moderation-service:
         condition: service_healthy
     healthcheck:
@@ -260,6 +258,7 @@ services:
     restart: unless-stopped
 
   messaging-service:
+    profiles: [messaging]
     build:
       context: .
       dockerfile: messaging-service/Dockerfile

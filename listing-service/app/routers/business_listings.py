@@ -104,6 +104,15 @@ async def update_listing(
     return await BusinessListingService(session).update_draft(user_id, listing_id, body)
 
 
+@router.delete("/{listing_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_listing_draft(
+    listing_id: UUID,
+    user_id: UUID = Depends(get_current_user_uuid),
+    session: AsyncSession = Depends(get_db),
+) -> None:
+    await BusinessListingService(session).delete_draft(user_id, listing_id)
+
+
 @router.post("/{listing_id}/files/{field}", status_code=status.HTTP_201_CREATED)
 async def upload_listing_file(
     listing_id: UUID,
@@ -113,6 +122,17 @@ async def upload_listing_file(
     session: AsyncSession = Depends(get_db),
 ) -> dict:
     return await BusinessListingService(session).upload_file(user_id, listing_id, field, file)
+
+
+@router.put("/{listing_id}/files/photos/{index}", status_code=status.HTTP_200_OK)
+async def replace_listing_photo(
+    listing_id: UUID,
+    index: int,
+    file: UploadFile = File(...),
+    user_id: UUID = Depends(get_current_user_uuid),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    return await BusinessListingService(session).replace_photo(user_id, listing_id, index, file)
 
 
 @router.post("/{listing_id}/submit", response_model=BusinessListingResponse, status_code=status.HTTP_202_ACCEPTED)

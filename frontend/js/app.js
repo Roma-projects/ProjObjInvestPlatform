@@ -12,11 +12,13 @@ import {
 import { restoreSession, getAccessToken, setAccessToken } from '../src/services/api.js';
 import {
   createListing,
+  deleteListing,
   getListing,
   getListings,
   submitListing,
   updateListing,
   uploadListingFile,
+  replaceListingPhoto,
 } from '../src/services/listings.js';
 import {
   addToBlacklist,
@@ -38,9 +40,10 @@ import {
   connectNotifications,
 } from '../src/services/chat.js';
 
-const $ = (selector, root = document) => root.querySelector(selector);
+const $ = (selector, root = document) => root?.querySelector(selector) || null;
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const currency = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const ACTIVE_DRAFT_KEY = 'mieroventure.active-listing-draft';
 let loadedUser = null;
 let currentCatalogFilters = {};
 let catalogCursor = null;
@@ -114,7 +117,18 @@ function localizedStatus(status) {
 }
 
 function listingIdFromHash() {
-  try { return decodeURIComponent(location.hash.slice(1)); } catch { return ''; }
+  try {
+    const value = decodeURIComponent(location.hash.slice(1));
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : '';
+  } catch { return ''; }
+}
+
+function isNewListingRoute() {
+  return location.hash === '#new' || new URLSearchParams(location.search).get('new') === '1';
+}
+
+function newListingUrl() {
+  return 'create-listing.html#new';
 }
 
 function placeImage(element, url) {
@@ -482,7 +496,7 @@ async function loadOwnListings() {
     const items = asItems(result);
     container.replaceChildren();
     if (!items.length) {
-      container.append(emptyState('У вас пока нет объявлений.', 'Разместить объявление', 'create-listing.html'));
+      container.append(emptyState('У вас пока нет объявлений.', 'Разместить объявление', newListingUrl()));
       return [];
     }
     items.forEach((item) => {
@@ -492,6 +506,33 @@ async function loadOwnListings() {
       card.classList.add(status === 'published' ? 'listing--active' : status === 'on_moderation' || status === 'processing' ? 'listing--moderation' : 'listing--archive');
       card.dataset.status = status;
       if (status === 'draft') card.dataset.href = `create-listing.html#${encodeURIComponent(item.id)}`;
+      if (status === 'draft') {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'listing__delete-draft';
+        deleteButton.textContent = 'Удалить черновик';
+        deleteButton.addEventListener('click', async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!confirm('Удалить этот черновик и прикреплённые к нему файлы?')) return;
+          deleteButton.disabled = true;
+          try {
+            await deleteListing(item.id);
+            try {
+              if (localStorage.getItem(ACTIVE_DRAFT_KEY) === item.id) localStorage.removeItem(ACTIVE_DRAFT_KEY);
+            } catch { /* storage may be disabled */ }
+            card.remove();
+            notify('Черновик удалён.');
+            if (!$('[data-listing-id]', container)) {
+              container.append(emptyState('У вас пока нет объявлений.', 'Разместить объявление', newListingUrl()));
+            }
+          } catch (error) {
+            notify(error.message, 'error');
+            deleteButton.disabled = false;
+          }
+        });
+        $('.listing__aside', card)?.append(deleteButton);
+      }
       if (template && $('.listing__aside .listing__top', card)) {
         let badge = $('.status', card);
         if (!badge) {
@@ -760,7 +801,7 @@ function draftFromForm(form) {
     seller_inn: formValue(form, 'seller_inn') || undefined,
     seller_ogrnip: formValue(form, 'seller_ogrnip') || undefined,
   });
-  return details;
+  return Object.fromEntries(Object.entries(details).map(([key, value]) => [key, value === undefined ? null : value]));
 }
 
 const uploadFields = {
@@ -780,10 +821,401 @@ const uploadFields = {
 
 async function uploadSelectedFiles(form, listingId) {
   for (const [inputName, apiField] of Object.entries(uploadFields)) {
-    const input = formControls(form).find((element) => element.name === inputName);
-    if (!input?.files?.length) continue;
-    for (const file of input.files) await uploadListingFile(listingId, apiField, file);
+    const inputs = formControls(form).filter((element) => element.name === inputName);
+    for (const input of inputs) {
+      if (!input.files?.length) continue;
+      const uploadedFiles = new Set(JSON.parse(input.dataset.uploadedFiles || '[]'));
+      for (const file of [...input.files]) {
+        const fingerprint = `${file.name}\u0000${file.size}\u0000${file.lastModified}\u0000${file.type}`;
+        if (uploadedFiles.has(fingerprint)) continue;
+        await uploadListingFile(listingId, apiField, file);
+        uploadedFiles.add(fingerprint);
+        input.dataset.uploadedFiles = JSON.stringify([...uploadedFiles]);
+        const allUploaded = JSON.parse(form.dataset.uploadedFiles || '{}');
+        const uploadedNames = new Set(allUploaded[apiField] || []);
+        uploadedNames.add(file.name);
+        allUploaded[apiField] = [...uploadedNames];
+        form.dataset.uploadedFiles = JSON.stringify(allUploaded);
+        if (apiField === 'photos') {
+          form.dataset.uploadedPhotos = String(Number(form.dataset.uploadedPhotos || 0) + 1);
+          const row = input.closest('.photos-upload__slot');
+          if (row) {
+            const label = $('.upload__text', row);
+            if (label) label.textContent = `Загружено: ${file.name}`;
+            row.classList.remove('photos-upload__slot');
+            row.classList.add('photos-upload__existing');
+            row.dataset.photoIndex = String(Number(form.dataset.uploadedPhotos) - 1);
+            addPhotoReplaceControl(row, Number(row.dataset.photoIndex), form);
+            input.remove();
+            if (label) {
+              label.dataset.photoFilename = '';
+              row.dataset.photoFilename = file.name;
+            }
+          }
+          syncPhotoUploadSlots(form);
+        } else if (apiField === 'main_photo') {
+          input.dataset.fileAlreadyUploaded = 'true';
+          form.dataset.hasMainPhoto = 'true';
+        }
+        input.dataset.uploaded = 'true';
+        const label = input.isConnected ? $('.upload__text', input.closest('.upload')) : null;
+        if (label) label.textContent = `Загружено: ${file.name}`;
+      }
+    }
   }
+}
+
+function addPhotoReplaceControl(row, index, form) {
+  let replace = $('[data-replace-photo]', row);
+  if (replace) return replace;
+  replace = document.createElement('button');
+  replace.type = 'button';
+  replace.className = 'photos-upload__replace';
+  replace.dataset.replacePhoto = '';
+  replace.dataset.photoIndex = String(index);
+  replace.textContent = 'Заменить';
+  replace.setAttribute('aria-label', `Заменить фотографию ${index + 1}`);
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.className = 'visually-hidden';
+  input.dataset.replacePhotoInput = '';
+  input.dataset.photoIndex = String(index);
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    replace.disabled = true;
+    try {
+      const listingId = await ensureActiveListingDraft(form);
+      await replaceListingPhoto(listingId, index, file);
+      const oldLabel = $('[data-photo-filename]', row);
+      if (oldLabel) oldLabel.textContent = `Загружено: ${file.name}`;
+      row.dataset.photoFilename = file.name;
+      notify('Фотография заменена.');
+    } catch (error) {
+      notify(`Не удалось заменить фотографию: ${error.message}. Старая фотография сохранена.`, 'error');
+    } finally {
+      replace.disabled = false;
+      input.value = '';
+    }
+  });
+  replace.addEventListener('click', () => input.click());
+  row.append(replace, input);
+  return replace;
+}
+
+function restoreUploadedPhotos(form) {
+  $$('.photos-upload__existing', form).forEach((row) => {
+    const index = Number(row.dataset.photoIndex || 0);
+    const label = $('[data-photo-filename]', row);
+    if (label && row.dataset.photoFilename) label.textContent = `Загружено: ${row.dataset.photoFilename}`;
+    addPhotoReplaceControl(row, index, form);
+  });
+}
+
+async function ensureActiveListingDraft(form) {
+  const active = listingIdFromHash();
+  if (active) return active;
+  try {
+    const saved = localStorage.getItem(ACTIVE_DRAFT_KEY);
+    if (saved) return saved;
+  } catch { /* Continue with a local form snapshot. */ }
+  const draft = await createListing(draftFromForm(form));
+  if (!draft.id) throw new Error('Черновик не получил идентификатор от сервера.');
+  try { localStorage.setItem(ACTIVE_DRAFT_KEY, draft.id); } catch { /* optional local persistence */ }
+  return draft.id;
+}
+
+async function persistListingDraft(form, listingId) {
+  const payload = draftFromForm(form);
+  const listing = listingId ? await updateListing(listingId, payload) : await createListing(payload);
+  const id = listing.id || listingId;
+  if (!id) throw new Error('Черновик не получил идентификатор от сервера.');
+  try { localStorage.setItem(ACTIVE_DRAFT_KEY, id); } catch { /* local snapshot still supports recovery */ }
+  saveLocalDraftSnapshot(form, id);
+  if (!listingId) {
+    try { localStorage.removeItem(listingDraftStorageKey()); } catch { /* optional browser storage */ }
+  }
+  return id;
+}
+
+function listingDraftStorageKey(id = '') {
+  return `mieroventure.listing-draft.${id || 'pending'}`;
+}
+
+function saveLocalDraftSnapshot(form, id = '') {
+  const values = [];
+  const repeatMap = new Map();
+  for (const field of formControls(form)) {
+    if (!field.name || field.type === 'file' || field.disabled) continue;
+    const repeatRoot = field.closest('[data-repeat]');
+    if (repeatRoot) {
+      const group = repeatRoot.dataset.repeat;
+      if (!repeatMap.has(repeatRoot)) repeatMap.set(repeatRoot, { group, values: [] });
+      repeatMap.get(repeatRoot).values.push({
+        name: field.name,
+        type: field.type,
+        value: field.value,
+        checked: field.type === 'radio' || field.type === 'checkbox' ? field.checked : undefined,
+      });
+      continue;
+    }
+    values.push({
+      name: field.name,
+      type: field.type,
+      value: field.value,
+      checked: field.type === 'radio' || field.type === 'checkbox' ? field.checked : undefined,
+    });
+  }
+  try {
+    localStorage.setItem(listingDraftStorageKey(id), JSON.stringify({ values, repeats: [...repeatMap.values()], savedAt: Date.now() }));
+  } catch { /* The server draft remains the durable copy if browser storage is unavailable. */ }
+}
+
+function restoreLocalDraftSnapshot(form, id = '') {
+  let snapshot;
+  try {
+    snapshot = JSON.parse(localStorage.getItem(listingDraftStorageKey(id)) || 'null');
+    if (!snapshot && id) snapshot = JSON.parse(localStorage.getItem(listingDraftStorageKey()) || 'null');
+  } catch { return; }
+  if (!Array.isArray(snapshot?.values)) return;
+  const savedValues = snapshot.values;
+  const repeatGroups = [
+    { group: 'equipment', name: 'equipment_name[]' },
+    { group: 'staff', name: 'staff_position[]' },
+    { group: 'month', name: null },
+  ];
+  repeatGroups.forEach(({ group, name }) => {
+    const repeatSnapshots = snapshot.repeats?.filter((entry) => entry.group === group) || [];
+    const wanted = repeatSnapshots.length || (name
+      ? savedValues.filter((entry) => entry.name === name && String(entry.value || '').trim()).length
+      : new Set(savedValues.filter((entry) => /^month_\d+$/.test(entry.name) && entry.checked).map((entry) => entry.name)).size);
+    while ($$(`[data-repeat="${group}"]`, form).length < wanted) $(`[data-add="${group}"]`, form)?.click();
+  });
+  const occurrence = new Map();
+  for (const saved of savedValues) {
+    const matches = formControls(form).filter((field) => field.name === saved.name && field.type === saved.type);
+    const isChoice = saved.type === 'radio' || saved.type === 'checkbox';
+    const field = isChoice
+      ? matches.find((candidate) => candidate.value === saved.value)
+      : matches[occurrence.get(saved.name) || 0];
+    if (!isChoice) occurrence.set(saved.name, (occurrence.get(saved.name) || 0) + 1);
+    if (!field) continue;
+    if (field.type === 'radio' || field.type === 'checkbox') field.checked = Boolean(saved.checked);
+    else field.value = saved.value ?? '';
+  }
+  const repeatIndexes = new Map();
+  for (const repeat of snapshot.repeats || []) {
+    const roots = $$(`[data-repeat="${repeat.group}"]`, form);
+    const index = repeatIndexes.get(repeat.group) || 0;
+    const root = roots[index];
+    repeatIndexes.set(repeat.group, index + 1);
+    if (!root) continue;
+    const occurrence = new Map();
+    for (const saved of repeat.values || []) {
+      const matches = formControls(root).filter((field) => field.name === saved.name && field.type === saved.type);
+      const isChoice = saved.type === 'radio' || saved.type === 'checkbox';
+      const field = isChoice ? matches.find((candidate) => candidate.value === saved.value) : matches[occurrence.get(saved.name) || 0];
+      if (!isChoice) occurrence.set(saved.name, (occurrence.get(saved.name) || 0) + 1);
+      if (!field) continue;
+      if (isChoice) field.checked = Boolean(saved.checked);
+      else field.value = saved.value ?? '';
+    }
+  }
+  updateListingDropdownLabels(form);
+  form.dispatchEvent(new Event('draft:restored'));
+}
+
+function updateListingDropdownLabels(form) {
+  $$('.dropdown--field', form).forEach((dropdown) => {
+    const value = $('.dropdown__value', dropdown);
+    if (!value) return;
+    value.dataset.placeholder ||= value.textContent.trim();
+    const checked = $('.option__input:checked:not([value="all"])', dropdown);
+    value.textContent = checked?.closest('.option')?.lastElementChild?.textContent.trim() || value.dataset.placeholder;
+  });
+}
+
+function restoreUploadedFileLabels(form) {
+  const files = form.dataset.uploadedFiles ? JSON.parse(form.dataset.uploadedFiles) : {};
+  Object.entries(files).forEach(([field, fileNames]) => {
+    if (field === 'photos') return;
+    const input = formControls(form).find((control) => uploadFields[control.name] === field);
+    const label = input && $('.upload__text', input.closest('.upload'));
+    if (label && fileNames.length) label.textContent = `Загружено: ${fileNames.join(', ')}`;
+  });
+}
+
+function showListingFieldError(form, name, message) {
+  const fields = formControls(form).filter((field) => field.name === name);
+  fields.forEach((field) => field.setAttribute('aria-invalid', 'true'));
+  const host = name === 'photos_extra'
+    ? $('[data-photo-slots]', form)
+    : fields[0]?.closest('.field, .upload-row, .yn') || fields[0]?.parentElement;
+  if (!host) return;
+  let error = $('.field-error', host);
+  if (!error) {
+    error = document.createElement('span');
+    error.className = 'field-error';
+    error.setAttribute('role', 'alert');
+    host.append(error);
+  }
+  error.textContent = message;
+}
+
+function clearListingFieldError(form, name) {
+  formControls(form).filter((field) => field.name === name).forEach((field) => field.removeAttribute('aria-invalid'));
+  const fields = formControls(form).filter((field) => field.name === name);
+  const host = name === 'photos_extra'
+    ? $('[data-photo-slots]', form)
+    : fields[0]?.closest('.field, .upload-row, .yn') || fields[0]?.parentElement;
+  $('.field-error', host)?.remove();
+}
+
+function validateListingStep(form, step, { all = false } = {}) {
+  const steps = all ? $$('.step', form) : [step];
+  steps.forEach((current) => $$('.field-error', current).forEach((error) => error.remove()));
+  steps.forEach((current) => {
+    formControls(current).forEach((field) => field.removeAttribute('aria-invalid'));
+    $$('.dropdown--field', current).forEach((dropdown) => {
+      dropdown.querySelector('.field-error')?.remove();
+      dropdown.querySelectorAll('.option__input').forEach((input) => input.removeAttribute('aria-invalid'));
+    });
+  });
+  const errors = [];
+  const requireValue = (name, message) => {
+    if (!formValue(form, name) || formValue(form, name) === 'all') errors.push({ name, message });
+  };
+  const currentId = step?.id;
+  if (all || currentId === 'step-1') {
+    requireValue('business_type', 'Выберите тип бизнеса.');
+    requireValue('property_type', 'Выберите тип коммерческой недвижимости.');
+    requireValue('transfer_method', 'Выберите способ передачи бизнеса.');
+    requireValue('deal_composition', 'Выберите состав сделки.');
+    requireValue('title', 'Укажите название бизнеса.');
+    requireValue('short_description', 'Добавьте краткое описание бизнеса.');
+    const price = formNumber(form, 'price');
+    if (price === undefined || price <= 0) errors.push({ name: 'price', message: 'Укажите цену больше нуля.' });
+  }
+  if (all || currentId === 'step-2') {
+    requireValue('country', 'Укажите страну.');
+    requireValue('city', 'Укажите город.');
+  }
+  if (all || currentId === 'step-7') {
+    const selected = $$('input[name="photos_extra"]', form)
+      .reduce((count, input) => {
+        const uploadedFiles = new Set(JSON.parse(input.dataset.uploadedFiles || '[]'));
+        return count + [...(input.files || [])].filter((file) => !uploadedFiles.has(`${file.name}\u0000${file.size}\u0000${file.lastModified}\u0000${file.type}`)).length;
+      }, 0);
+    const uploaded = Number(form.dataset.uploadedPhotos || 0);
+    const hasMainPhoto = form.dataset.hasMainPhoto === 'true'
+      || Boolean($('input[name="photo_main"]', form)?.files?.length);
+    if (!hasMainPhoto) errors.push({ name: 'photo_main', message: 'Загрузите главную фотографию бизнеса.' });
+    if (uploaded + selected < 5) errors.push({ name: 'photos_extra', message: `Загрузите ещё ${5 - uploaded - selected} дополнительных фото (минимум 5).` });
+    if (uploaded + selected > 10) errors.push({ name: 'photos_extra', message: 'Можно загрузить не больше 10 дополнительных фото.' });
+  }
+  if (all || currentId === 'step-9') requireValue('seller_status', 'Выберите статус продавца.');
+  const numericRules = {
+    price: { min: 0.01, message: 'Цена должна быть больше нуля.' },
+    stock_price: { min: 0, message: 'Стоимость остатка не может быть отрицательной.' },
+    area: { min: Number.MIN_VALUE, message: 'Площадь должна быть больше нуля.' },
+    floor: { integer: true, message: 'Номер этажа должен быть целым числом.' },
+    ceiling_height: { min: Number.MIN_VALUE, message: 'Высота потолков должна быть больше нуля.' },
+    parking: { min: 0, integer: true, message: 'Количество парковочных мест должно быть целым неотрицательным числом.' },
+    staff_total: { min: 0, integer: true, message: 'Количество сотрудников должно быть целым неотрицательным числом.' },
+    business_age: { min: 0, integer: true, message: 'Возраст бизнеса должен быть целым неотрицательным числом.' },
+    support_months: { min: 0, integer: true, message: 'Срок сопровождения должен быть целым неотрицательным числом.' },
+    avg_check: { min: 0, message: 'Средний чек не может быть отрицательным.' },
+    orders_per_month: { min: 0, integer: true, message: 'Число заказов должно быть целым неотрицательным числом.' },
+    unique_clients: { min: 0, integer: true, message: 'Число клиентов должно быть целым неотрицательным числом.' },
+    monthly_payments: { min: 0, message: 'Платёж не может быть отрицательным.' },
+    client_base: { min: 0, integer: true, message: 'Размер базы должен быть целым неотрицательным числом.' },
+    regular_share: { min: 0, max: 100, message: 'Доля постоянных клиентов должна быть от 0 до 100%.' },
+    receivables: { min: 0, message: 'Дебиторская задолженность не может быть отрицательной.' },
+    payables: { min: 0, message: 'Кредиторская задолженность не может быть отрицательной.' },
+    'equipment_year[]': { min: 1900, max: 2100, integer: true, message: 'Год покупки должен быть от 1900 до 2100.' },
+    'equipment_price[]': { min: 0, message: 'Стоимость оборудования не может быть отрицательной.' },
+    'staff_count[]': { min: 0, integer: true, message: 'Количество сотрудников должно быть целым неотрицательным числом.' },
+    'staff_salary[]': { min: 0, message: 'Зарплата не может быть отрицательной.' },
+    'revenue[]': { min: 0, message: 'Выручка не может быть отрицательной.' },
+    'costs_total[]': { min: 0, message: 'Расходы не могут быть отрицательными.' },
+    'costs_utilities[]': { min: 0, message: 'Расходы на ЖКХ не могут быть отрицательными.' },
+    'costs_rent[]': { min: 0, message: 'Аренда не может быть отрицательной.' },
+    'costs_payroll[]': { min: 0, message: 'ФОТ не может быть отрицательным.' },
+    'costs_purchases[]': { min: 0, message: 'Закупки не могут быть отрицательными.' },
+    'costs_taxes[]': { min: 0, message: 'Налоги не могут быть отрицательными.' },
+    'costs_marketing[]': { min: 0, message: 'Маркетинг не может быть отрицательным.' },
+    'costs_other[]': { min: 0, message: 'Расходы не могут быть отрицательными.' },
+  };
+  for (const current of steps) {
+    for (const field of formControls(current)) {
+      const rule = numericRules[field.name];
+      const value = String(field.value || '').trim();
+      if (!rule || !value) continue;
+      const number = Number(value.replace(/\s/g, '').replace(',', '.'));
+      if (!Number.isFinite(number) || (rule.min !== undefined && number < rule.min)
+        || (rule.max !== undefined && number > rule.max) || (rule.integer && !Number.isInteger(number))) {
+        errors.push({ name: field.name, message: rule.message });
+      }
+    }
+  }
+  const email = formValue(form, 'seller_email');
+  if ((all || currentId === 'step-9') && email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.push({ name: 'seller_email', message: 'Проверьте формат электронной почты.' });
+  }
+  const inn = formValue(form, 'seller_inn');
+  if ((all || currentId === 'step-9') && inn && !/^(?:\d{10}|\d{12})$/.test(inn)) {
+    errors.push({ name: 'seller_inn', message: 'ИНН должен содержать 10 или 12 цифр.' });
+  }
+  const ogrnip = formValue(form, 'seller_ogrnip');
+  if ((all || currentId === 'step-9') && ogrnip && !/^\d{15}$/.test(ogrnip)) {
+    errors.push({ name: 'seller_ogrnip', message: 'ОГРНИП должен содержать 15 цифр.' });
+  }
+  errors.forEach(({ name, message }) => showListingFieldError(form, name, message));
+  return errors;
+}
+
+function addPhotoUploadSlot(form) {
+  const slots = $('[data-photo-slots]', form);
+  const currentSlots = $$('.photos-upload__slot', slots);
+  const uploaded = Number(form.dataset.uploadedPhotos || 0);
+  if (!slots || uploaded + currentSlots.length >= 10) return;
+  const index = currentSlots.length + 1;
+  const row = document.createElement('label');
+  row.className = 'upload-row photos-upload__slot';
+  const fieldLabel = document.createElement('span');
+  fieldLabel.className = 'field__label';
+  fieldLabel.textContent = `Фотография ${uploaded + index}`;
+  const upload = document.createElement('span');
+  upload.className = 'upload';
+  const input = document.createElement('input');
+  input.className = 'upload__input visually-hidden';
+  input.type = 'file';
+  input.name = 'photos_extra';
+  input.accept = 'image/*';
+  const text = document.createElement('span');
+  text.className = 'upload__text';
+  text.textContent = 'Загрузить файл';
+  const icon = document.createElement('span');
+  icon.className = 'icon icon--16';
+  icon.setAttribute('aria-hidden', 'true');
+  const image = document.createElement('img');
+  image.src = '/assets/icons/download.svg';
+  image.alt = '';
+  image.setAttribute('aria-hidden', 'true');
+  icon.append(image);
+  upload.append(input, text, icon);
+  row.append(fieldLabel, upload);
+  slots.append(row);
+  const addButton = $('[data-add-photo]', form);
+  if (addButton) addButton.disabled = uploaded + $$('.photos-upload__slot', slots).length >= 10;
+}
+
+function syncPhotoUploadSlots(form) {
+  const existing = Number(form.dataset.uploadedPhotos || 0);
+  const slots = $$('.photos-upload__slot', form).length;
+  const addButton = $('[data-add-photo]', form);
+  if (addButton) addButton.disabled = existing >= 10 || slots >= 10;
 }
 
 function bindRepeaters(form) {
@@ -902,33 +1334,307 @@ function bindCreateListing() {
   if (!form) return;
   bindRepeaters(form);
   let saving = false;
-  const existingId = listingIdFromHash();
+  let saveTimer = 0;
+  let serverSaveTimer = 0;
+  let draftCreationPromise = null;
+  let draftSaveQueue = Promise.resolve();
+  let fileUploadQueue = Promise.resolve();
+  let fileUploadError = null;
+  let lastAutosaveWarning = 0;
+  const ensureDraftId = async () => {
+    if (existingId) return existingId;
+    if (!draftCreationPromise) {
+      draftCreationPromise = createListing(draftFromForm(form))
+        .then((listing) => {
+          const id = listing.id;
+          if (!id) throw new Error('Черновик не получил идентификатор от сервера.');
+          existingId = id;
+          try { localStorage.setItem(ACTIVE_DRAFT_KEY, id); } catch { /* browser snapshot remains available */ }
+          saveLocalDraftSnapshot(form, id);
+          return id;
+        })
+        .finally(() => { draftCreationPromise = null; });
+    }
+    return draftCreationPromise;
+  };
+  const queueServerDraftSave = (silent = true) => {
+    clearTimeout(serverSaveTimer);
+    serverSaveTimer = window.setTimeout(() => {
+      if (form.dataset.draftLoading || saving) return;
+      draftSaveQueue = draftSaveQueue
+        .then(async () => {
+          await fileUploadQueue;
+          const id = await ensureDraftId();
+          await updateListing(id, draftFromForm(form));
+          saveLocalDraftSnapshot(form, id);
+        })
+        .catch((error) => {
+          saveLocalDraftSnapshot(form, existingId);
+        const now = Date.now();
+        if (!silent || now - lastAutosaveWarning > 15000) {
+          lastAutosaveWarning = now;
+          notify(`Черновик не удалось сохранить на сервере; сохранена копия в браузере. ${error.message}`, 'error');
+        }
+        });
+    }, 900);
+  };
+  const flushServerDraftSave = async () => {
+    clearTimeout(serverSaveTimer);
+    await draftSaveQueue;
+    await fileUploadQueue;
+    if (fileUploadError) throw fileUploadError;
+    if (form.dataset.draftLoading) return existingId;
+    const id = await ensureDraftId();
+    await updateListing(id, draftFromForm(form));
+    saveLocalDraftSnapshot(form, id);
+    return id;
+  };
+  const debounceSnapshot = () => {
+    clearTimeout(saveTimer);
+    saveLocalDraftSnapshot(form, existingId);
+    saveTimer = window.setTimeout(() => saveLocalDraftSnapshot(form, existingId), 180);
+    queueServerDraftSave(true);
+  };
+  const steps = $$('.step', form);
+  const refreshFileLabel = (input) => {
+    const upload = input.closest('.upload');
+    const label = upload && $('.upload__text', upload);
+    if (!label) return;
+    const names = [...(input.files || [])].map((file) => file.name);
+    const uploaded = new Set(JSON.parse(input.dataset.uploadedFiles || '[]'));
+    const remaining = [...(input.files || [])].filter((file) => !uploaded.has(`${file.name}\u0000${file.size}\u0000${file.lastModified}\u0000${file.type}`));
+    label.textContent = remaining.length
+      ? (remaining.length === 1 ? remaining[0].name : `Файлов к загрузке: ${remaining.length}`)
+      : names.length ? `Загружено: ${names.join(', ')}` : 'Загрузить файл';
+  };
+  const restorePersistedUploadLabels = () => {
+    const saved = JSON.parse(form.dataset.uploadedFiles || '{}');
+    Object.entries(saved).forEach(([apiField, names]) => {
+      const inputName = Object.keys(uploadFields).find((key) => uploadFields[key] === apiField);
+      const input = inputName && formControls(form).find((field) => field.name === inputName);
+      const label = input && $('.upload__text', input.closest('.upload'));
+      if (label && apiField !== 'photos' && names.length) label.textContent = `Загружено: ${names.join(', ')}`;
+    });
+  };
+  let existingId = listingIdFromHash();
+  const explicitlyNew = isNewListingRoute();
+  if (explicitlyNew) {
+    existingId = '';
+    try { localStorage.removeItem(ACTIVE_DRAFT_KEY); } catch { /* storage may be disabled */ }
+  }
+  if (!existingId && !explicitlyNew) {
+    try { existingId = localStorage.getItem(ACTIVE_DRAFT_KEY) || ''; } catch { /* storage may be disabled */ }
+  }
+  if (existingId) form.dataset.draftLoading = 'true';
+  else if (!explicitlyNew) restoreLocalDraftSnapshot(form);
+  for (let index = 0; index < 5; index += 1) addPhotoUploadSlot(form);
+  syncPhotoUploadSlots(form);
+  $('[data-add-photo]', form)?.addEventListener('click', () => {
+    if (Number(form.dataset.uploadedPhotos || 0) + $$('.photos-upload__slot', form).length >= 10) return;
+    addPhotoUploadSlot(form);
+    syncPhotoUploadSlots(form);
+  });
   if (existingId) {
     getListing(existingId).then((item) => {
+      form.dataset.hasMainPhoto = String(Boolean(item.files?.main_photo));
+      form.dataset.uploadedPhotos = String(item.files?.photos?.length || 0);
+      const uploadedFileNames = {
+        photos: (item.files?.photos || []).map((url) => decodeURIComponent(String(url).split('/').pop() || 'фото')),
+      };
+      const documentNames = {
+        evacuation_plan_doc: 'fire_plan', fire_declaration_doc: 'fire_declaration',
+        fire_service_contract_doc: 'fire_contract', san_epid_conclusion: 'sanitary_conclusion',
+        floor_plan_image: 'floor_plan', income_statement_doc: 'doc_npd', tax_certificate_doc: 'doc_tax',
+        lease_agreement_doc: 'doc_lease', ownership_doc: 'doc_property', passport_copy_doc: 'doc_passport',
+      };
+      Object.entries(documentNames).forEach(([apiField, inputName]) => {
+        if (item.document_fields?.includes(apiField)) uploadedFileNames[apiField] = [inputName];
+      });
+      if (item.files?.main_photo) uploadedFileNames.main_photo = ['Главная фотография'];
+      form.dataset.uploadedFiles = JSON.stringify(uploadedFileNames);
+      restorePersistedUploadLabels();
+      if (item.files?.main_photo) {
+        const mainInput = $('input[name="photo_main"]', form);
+        mainInput.dataset.fileAlreadyUploaded = 'true';
+        mainInput.dataset.uploaded = 'true';
+        mainInput.disabled = false;
+      }
+      if (item.files?.main_photo) $('input[name="photo_main"]', form).dataset.fileAlreadyUploaded = 'true';
       hydrateListingDraft(form, item);
+      updateListingDropdownLabels(form);
+      const uploadedPhotos = item.files?.photos || [];
+      $('[data-photo-slots]', form)?.replaceChildren();
+      uploadedPhotos.forEach((url, index) => {
+        const row = document.createElement('div');
+        row.className = 'upload-row photos-upload__existing';
+        row.dataset.photoIndex = String(index);
+        row.dataset.photoFilename = decodeURIComponent(String(url).split('/').pop() || 'фото');
+        const fieldLabel = document.createElement('span');
+        fieldLabel.className = 'field__label';
+        fieldLabel.textContent = `Фото ${index + 1}`;
+        const upload = document.createElement('span');
+        upload.className = 'upload upload--existing';
+        const label = document.createElement('span');
+        label.className = 'upload__text';
+        label.dataset.photoFilename = '';
+        label.textContent = `Загружено: ${row.dataset.photoFilename}`;
+        upload.append(label);
+        row.append(fieldLabel, upload);
+        addPhotoReplaceControl(row, index, form);
+        $('[data-photo-slots]', form)?.append(row);
+      });
+      for (let index = 0; index < Math.min(5, 10 - uploadedPhotos.length); index += 1) addPhotoUploadSlot(form);
+      syncPhotoUploadSlots(form);
+      restoreLocalDraftSnapshot(form, existingId);
+      restoreUploadedFileLabels(form);
+      restoreUploadedPhotos(form);
+      delete form.dataset.draftLoading;
       notify('Черновик загружен. Измените данные и отправьте объявление.');
-    }).catch((error) => notify(error.message, 'error'));
+    }).catch((error) => {
+      restoreLocalDraftSnapshot(form, existingId);
+      updateListingDropdownLabels(form);
+      restorePersistedUploadLabels();
+      try {
+        if (error.status === 404 && localStorage.getItem(ACTIVE_DRAFT_KEY) === existingId) {
+          localStorage.removeItem(ACTIVE_DRAFT_KEY);
+        }
+      } catch { /* storage may be disabled */ }
+      if (error.status === 404) existingId = '';
+      delete form.dataset.draftLoading;
+      notify(error.message, 'error');
+    });
   }
+  form.addEventListener('click', async (event) => {
+    const next = event.target.closest('a.next[href^="#step-"]');
+    if (!next || form.dataset.draftLoading) return;
+    const step = next.closest('.step');
+    if (!step) return;
+    if (validateListingStep(form, step).length) {
+      event.preventDefault();
+      $('.field-error', step)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      $('.field-error', step)?.previousElementSibling?.focus?.({ preventScroll: true });
+      return;
+    }
+    event.preventDefault();
+    try {
+      await flushServerDraftSave();
+      location.hash = next.hash;
+    } catch (error) {
+      saveLocalDraftSnapshot(form, existingId);
+      notify(`Не удалось сохранить черновик перед переходом: ${error.message}`, 'error');
+    }
+  });
+  form.addEventListener('click', async (event) => {
+    const back = event.target.closest('a.back');
+    if (!back || form.dataset.draftLoading || saving) return;
+    const navigatesToStep = back.hash.startsWith('#step-');
+    if (!existingId && !navigatesToStep) {
+      debounceSnapshot();
+      return;
+    }
+    event.preventDefault();
+    try {
+      saving = true;
+      await flushServerDraftSave();
+      if (navigatesToStep) location.hash = back.hash;
+      else location.href = back.href;
+    } catch (error) {
+      saveLocalDraftSnapshot(form, existingId);
+      notify(`Изменения сохранены в браузере, но не на сервере: ${error.message}`, 'error');
+    } finally {
+      saving = false;
+    }
+  });
   form.addEventListener('click', async (event) => {
     const finish = event.target.closest('a.next[href="#success"]');
     if (!finish || saving) return;
     event.preventDefault();
-    if (!formValue(form, 'seller_status')) return notify('Выберите статус продавца.', 'error');
-    const payload = draftFromForm(form);
-    if (!payload.business_type || !payload.property_type || !payload.transfer_method || !payload.deal_composition) {
-      return notify('Заполните категорию, тип помещения, состав сделки и способ передачи.', 'error');
+    const errors = validateListingStep(form, steps.at(-1), { all: true });
+    if (errors.length) {
+      const firstFieldError = $('[aria-invalid="true"]', form);
+      const targetStep = firstFieldError?.closest('.step') || steps.find((step) => $('.field-error', step));
+      if (targetStep) {
+        location.hash = targetStep.id;
+        requestAnimationFrame(() => {
+          $('.field-error', targetStep)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          firstFieldError?.focus?.({ preventScroll: true });
+        });
+      }
+      saveLocalDraftSnapshot(form, existingId);
+      notify('Исправьте поля, отмеченные красным.');
+      return;
     }
     saving = true;
+    const payload = draftFromForm(form);
     finish.setAttribute('aria-disabled', 'true');
     try {
+      clearTimeout(serverSaveTimer);
+      await fileUploadQueue;
+      if (fileUploadError) throw fileUploadError;
+      await draftSaveQueue;
       const listing = existingId ? await updateListing(existingId, payload) : await createListing(payload);
-      const id = listing.id || existingId;
+      existingId = listing.id || existingId;
+      const id = existingId;
+      try { localStorage.setItem(ACTIVE_DRAFT_KEY, id); } catch { /* storage may be disabled */ }
+      saveLocalDraftSnapshot(form, id);
       await uploadSelectedFiles(form, id);
       await submitListing(id);
+      try {
+        if (localStorage.getItem(ACTIVE_DRAFT_KEY) === id) localStorage.removeItem(ACTIVE_DRAFT_KEY);
+        localStorage.removeItem(listingDraftStorageKey(id));
+      } catch { /* storage may be disabled */ }
       location.hash = 'success';
       notify('Объявление отправлено на проверку.');
     } catch (error) {
-      notify(error.message, 'error');
+      saveLocalDraftSnapshot(form, existingId);
+      if (error.status === 422 && error.detail?.missing_fields) {
+        const fieldLabels = {
+          business_type: ['business_type', 'Выберите тип бизнеса.'],
+          property_type: ['property_type', 'Выберите тип коммерческой недвижимости.'],
+          transfer_method: ['transfer_method', 'Выберите способ передачи бизнеса.'],
+          deal_composition: ['deal_composition', 'Выберите состав сделки.'],
+          business_name: ['title', 'Укажите название бизнеса.'],
+          short_description: ['short_description', 'Добавьте краткое описание.'],
+          sale_price: ['price', 'Укажите цену продажи.'],
+          country: ['country', 'Укажите страну.'],
+          city: ['city', 'Укажите город.'],
+          seller_status: ['seller_status', 'Выберите статус продавца.'],
+          main_photo: ['photo_main', 'Загрузите главную фотографию.'],
+        };
+        const missingApiFields = [];
+        error.detail.missing_fields.forEach((missing) => {
+          const key = Object.keys(fieldLabels).find((field) => missing === field || missing.startsWith(`${field} `));
+          if (key) {
+            showListingFieldError(form, ...fieldLabels[key]);
+            missingApiFields.push(key);
+          } else if (missing.includes('photos')) {
+            showListingFieldError(form, 'photos_extra', 'Загрузите минимум 5 дополнительных фотографий.');
+            missingApiFields.push('photos');
+          }
+        });
+        const fieldNamesByApi = {
+          business_type: 'business_type', property_type: 'property_type', transfer_method: 'transfer_method',
+          deal_composition: 'deal_composition', business_name: 'title', short_description: 'short_description',
+          sale_price: 'price', country: 'country', city: 'city', seller_status: 'seller_status', main_photo: 'photo_main',
+        };
+        const stepByField = {
+          business_type: 'step-1', property_type: 'step-1', transfer_method: 'step-1', deal_composition: 'step-1',
+          business_name: 'step-1', short_description: 'step-1', sale_price: 'step-1', country: 'step-2', city: 'step-2',
+          seller_status: 'step-9', main_photo: 'step-7', photos: 'step-7',
+        };
+        const errorStep = steps.find((step) => missingApiFields.some((missing) => stepByField[missing] === step.id));
+        const firstInvalid = errorStep && $(
+          missingApiFields.map((missing) => `[name="${fieldNamesByApi[missing] || 'photos_extra'}"]`).join(','), errorStep,
+        );
+        if (errorStep) {
+          location.hash = errorStep.id;
+          requestAnimationFrame(() => {
+            $('.field-error', errorStep)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            firstInvalid?.focus?.({ preventScroll: true });
+          });
+        }
+        notify('Сервер вернул ошибки заполнения. Проверьте отмеченные поля.', 'error');
+      } else notify(error.message, 'error');
     } finally {
       saving = false;
       finish.removeAttribute('aria-disabled');
@@ -936,13 +1642,47 @@ function bindCreateListing() {
   });
   form.addEventListener('input', (event) => {
     const field = event.target;
-    if (!field.matches('.js-time')) return;
-    let digits = field.value.replace(/\D/g, '').slice(0, 4);
-    if (digits.length === 1 && Number(digits) > 2) digits = `0${digits}`;
-    if (digits.length >= 2 && Number(digits.slice(0, 2)) > 23) digits = `23${digits.slice(2)}`;
-    if (digits.length >= 3 && Number(digits[2]) > 5) digits = `${digits.slice(0, 2)}5${digits.slice(3)}`;
-    field.value = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+    if (field.matches('.js-time')) {
+      let digits = field.value.replace(/\D/g, '').slice(0, 4);
+      if (digits.length === 1 && Number(digits) > 2) digits = `0${digits}`;
+      if (digits.length >= 2 && Number(digits.slice(0, 2)) > 23) digits = `23${digits.slice(2)}`;
+      if (digits.length >= 3 && Number(digits[2]) > 5) digits = `${digits.slice(0, 2)}5${digits.slice(3)}`;
+      field.value = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+    }
+    if (field.name) clearListingFieldError(form, field.name);
+    debounceSnapshot();
   });
+  form.addEventListener('change', (event) => {
+    const field = event.target;
+    if (field.matches('input[name="photos_extra"]')) {
+      syncPhotoUploadSlots(form);
+      clearListingFieldError(form, 'photos_extra');
+    }
+    if (field.matches('input[type="file"][data-replace-photo-input]')) return;
+    if (field.name) clearListingFieldError(form, field.name);
+    if (field.matches('.option__input')) updateListingDropdownLabels(form);
+    if (field.type === 'file' && field.files?.length) {
+      refreshFileLabel(field);
+      fileUploadError = null;
+      fileUploadQueue = fileUploadQueue.then(async () => {
+        try {
+          await ensureDraftId();
+          await uploadSelectedFiles(form, existingId);
+          if (field.isConnected && field.name !== 'photos_extra') refreshFileLabel(field);
+          saveLocalDraftSnapshot(form, existingId);
+          notify('Файл надёжно сохранён в черновике.');
+        } catch (error) {
+          fileUploadError = error;
+          const alreadyUploaded = field.dataset.uploaded === 'true';
+          notify(alreadyUploaded
+            ? `Не удалось заменить фотографию: ${error.message}. Старая фотография сохранена.`
+            : `Файл пока не сохранён: ${error.message}. Не закрывайте страницу и попробуйте ещё раз.`, 'error');
+        }
+      });
+    }
+    debounceSnapshot();
+  });
+  window.addEventListener('pagehide', () => saveLocalDraftSnapshot(form, existingId));
 }
 
 function setKvValue(root, label, value) {
@@ -1726,6 +2466,25 @@ function pageName() {
 }
 
 function bindGlobalUi() {
+  document.addEventListener('click', async (event) => {
+    const editProfile = event.target.closest('[data-edit-profile]');
+    if (!editProfile) return;
+    event.preventDefault();
+    editProfile.disabled = true;
+    try {
+      loadedUser = loadedUser || await resolveCurrentUser();
+      if (!loadedUser) {
+        sessionStorage.setItem('mieroventure.redirect', 'profile.html');
+        location.href = 'login.html';
+        return;
+      }
+      showProfileDialog(loadedUser);
+    } catch (error) {
+      notify(`Не удалось открыть редактирование профиля: ${error.message}`, 'error');
+    } finally {
+      editProfile.disabled = false;
+    }
+  });
   $('.header__toggle')?.addEventListener('click', (event) => {
     const button = event.currentTarget;
     const nav = $('.header__nav');

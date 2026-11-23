@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/css/reset.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/catalog.css">
-  <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/profile.css?v=2">
   <link rel="stylesheet" href="/css/app.css">
 </head>
 
@@ -186,7 +186,7 @@
           <h2 class="about__title" id="about-title">О себе</h2>
           <p class="about__text">Интересуюсь инвестициями и недвижимостью. Ищу интересные возможности для вложений и
             развития бизнеса.</p>
-          <a class="about__edit" href="#"><span class="icon icon--12" aria-hidden="true"><svg width="10" height="10"
+          <button class="about__edit" type="button" data-edit-profile><span class="icon icon--12" aria-hidden="true"><svg width="10" height="10"
                 viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path
                   d="M1.60189 3.30094C1.1327 2.83176 1.1327 2.07107 1.60189 1.60189C2.07107 1.1327 2.83176 1.1327 3.30094 1.60189L8.39813 6.69904C8.86729 7.16825 8.86729 7.92892 8.39813 8.39813C7.92892 8.86729 7.16825 8.86729 6.69904 8.39813L1.60189 3.30094Z"
@@ -202,7 +202,7 @@
                   d="M2.13916 6.378C2.20622 6.20733 2.44685 6.20733 2.51391 6.378L2.5793 6.54437C2.59977 6.5965 2.64086 6.63775 2.69278 6.65829L2.85855 6.72392C3.02859 6.79121 3.02859 7.03275 2.85855 7.10004L2.69278 7.16567C2.64086 7.18621 2.59977 7.22746 2.5793 7.27958L2.51391 7.44596C2.44685 7.61663 2.20622 7.61663 2.13916 7.44596L2.07378 7.27958C2.0533 7.22746 2.01221 7.18621 1.9603 7.16567L1.79452 7.10004C1.62448 7.03275 1.62448 6.79121 1.79452 6.72392L1.9603 6.65829C2.01221 6.63775 2.0533 6.5965 2.07378 6.54437L2.13916 6.378Z"
                   stroke-width="0.333333" stroke-linecap="round" stroke="#680A18" />
               </svg>
-            </span>Редактировать</a>
+            </span>Редактировать</button>
         </section>
 
         <!-- Ваши объявления -->
@@ -361,7 +361,7 @@
 
   </div>
   <script src="/js/main.js"></script>
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=2"></script>
 </body>
 
 </html>

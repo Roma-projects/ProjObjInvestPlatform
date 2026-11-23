@@ -193,7 +193,26 @@
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
 }
+
+.listing__delete-draft {
+  margin-top: .65rem;
+  padding: .45rem .7rem;
+  border: 1px solid #9b2636;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #7f1d2d;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.listing__delete-draft:hover { background: #fff3f3; }
+.listing__delete-draft:disabled { cursor: wait; opacity: .65; }
 
 /* ---------- Заголовки секций ---------- */
 .section-title {

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shutil
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -187,6 +188,7 @@ class BusinessListingService:
         for key, value in _field_values(body).items():
             setattr(row, key, value)
         await self.session.flush()
+        await self.session.refresh(row, attribute_names=["id", "status", "verification_status", "created_at", "updated_at"])
         return to_response(row)
 
     async def upload_file(self, user_id: UUID, listing_id: UUID, field: str, upload: UploadFile) -> dict[str, Any]:
@@ -201,6 +203,8 @@ class BusinessListingService:
         if suffix not in MIME_BY_SUFFIX or upload.content_type not in MIME_BY_SUFFIX[suffix]:
             raise HTTPException(status_code=415, detail="Unsupported file type")
         is_public = field in PUBLIC_FIELDS
+        if field == "photos" and len((row.files or {}).get("photos", [])) >= 10:
+            raise HTTPException(status_code=422, detail="Maximum 10 additional photos are allowed")
         root = Path(settings.public_upload_dir if is_public else settings.private_upload_dir)
         target_dir = root / "listings" / str(listing_id)
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -218,12 +222,16 @@ class BusinessListingService:
             target_path.unlink(missing_ok=True)
             raise
         relative = f"listings/{listing_id}/{stored_name}"
+        replaced_public_path = None
         if is_public:
             public_path = f"/public/uploads/{relative}"
             files = dict(row.files or {})
             if field == "photos":
-                files.setdefault("photos", []).append(public_path)
+                # JSONB columns are tracked as values, not mutable nested structures.
+                # Assign a fresh list so SQLAlchemy detects each appended upload.
+                files["photos"] = [*(files.get("photos") or []), public_path]
             else:
+                replaced_public_path = files.get(field)
                 files[field] = public_path
                 if field == "video":
                     row.video_url = public_path
@@ -235,12 +243,85 @@ class BusinessListingService:
             row.documents = documents
             result_path = relative
         await self.session.flush()
-        return {
+        await self.session.refresh(row, attribute_names=["files", "documents", "video_url"])
+        result = {
             "field": field,
             "path": result_path if is_public else None,
             "size_bytes": size,
             "visibility": "public" if is_public else "private",
         }
+        await self.session.commit()
+        if isinstance(replaced_public_path, str):
+            prefix = f"/public/uploads/listings/{listing_id}/"
+            if replaced_public_path.startswith(prefix):
+                previous_path = (Path(settings.public_upload_dir) / replaced_public_path.removeprefix("/public/uploads/")).resolve()
+                if previous_path.parent == (Path(settings.public_upload_dir) / "listings" / str(listing_id)).resolve():
+                    previous_path.unlink(missing_ok=True)
+        return result
+
+    async def replace_photo(self, user_id: UUID, listing_id: UUID, index: int, upload: UploadFile) -> dict[str, Any]:
+        if await self.session.get(BlockedUser, user_id):
+            raise HTTPException(status_code=403, detail="Account is blocked")
+        row = await self.get(user_id, listing_id)
+        if row.status != "draft":
+            raise HTTPException(status_code=409, detail="Photos can only be replaced on a draft")
+        files = dict(row.files or {})
+        photos = list(files.get("photos") or [])
+        if index < 0 or index >= len(photos):
+            raise HTTPException(status_code=404, detail="Photo not found")
+
+        suffix = Path(upload.filename or "").suffix.lower()
+        if suffix not in MIME_BY_SUFFIX or upload.content_type not in MIME_BY_SUFFIX[suffix] or not upload.content_type.startswith("image/"):
+            raise HTTPException(status_code=415, detail="Unsupported image type")
+
+        root = Path(settings.public_upload_dir)
+        target_dir = root / "listings" / str(listing_id)
+        target_dir.mkdir(parents=True, exist_ok=True)
+        stored_name = f"{uuid.uuid4().hex}{suffix}"
+        target_path = target_dir / stored_name
+        size = 0
+        try:
+            async with aiofiles.open(target_path, "wb") as destination:
+                while chunk := await upload.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > MAX_UPLOAD_BYTES:
+                        raise HTTPException(status_code=413, detail="Maximum file size is 100 MB")
+                    await destination.write(chunk)
+        except Exception:
+            target_path.unlink(missing_ok=True)
+            raise
+
+        old_path = photos[index]
+        photos[index] = f"/public/uploads/listings/{listing_id}/{stored_name}"
+        files["photos"] = photos
+        row.files = files
+        try:
+            await self.session.flush()
+            await self.session.commit()
+        except Exception:
+            target_path.unlink(missing_ok=True)
+            raise
+
+        prefix = f"/public/uploads/listings/{listing_id}/"
+        if isinstance(old_path, str) and old_path.startswith(prefix):
+            old_file = (root / old_path.removeprefix("/public/uploads/")).resolve()
+            if old_file.parent == target_dir.resolve():
+                old_file.unlink(missing_ok=True)
+        return {"field": "photos", "index": index, "path": photos[index], "size_bytes": size, "visibility": "public"}
+
+    async def delete_draft(self, user_id: UUID, listing_id: UUID) -> None:
+        row = await self.get(user_id, listing_id)
+        if row.status != "draft":
+            raise HTTPException(status_code=409, detail="Only draft listings can be deleted")
+
+        for upload_root in (settings.public_upload_dir, settings.private_upload_dir):
+            root = Path(upload_root).resolve()
+            listing_dir = (root / "listings" / str(listing_id)).resolve()
+            if listing_dir.parent == root / "listings" and listing_dir.is_dir():
+                shutil.rmtree(listing_dir)
+
+        await self.session.delete(row)
+        await self.session.flush()
 
     async def submit(self, user_id: UUID, listing_id: UUID) -> BusinessListingResponse:
         row = await self.get(user_id, listing_id)
@@ -271,6 +352,7 @@ class BusinessListingService:
 
         correlation_id = str(uuid.uuid4())
         row.status = "processing"
+        await self.session.flush()
         payload = {
             "event": "listing.creation.started",
             "correlation_id": correlation_id,

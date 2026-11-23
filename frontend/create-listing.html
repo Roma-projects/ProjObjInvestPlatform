@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/css/reset.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/catalog.css">
-  <link rel="stylesheet" href="/css/create-listing.css">
+  <link rel="stylesheet" href="/css/create-listing.css?v=listing-draft-7">
   <link rel="stylesheet" href="/css/app.css">
 </head>
 
@@ -573,11 +573,13 @@
                 class="upload"><input class="upload__input visually-hidden" type="file" name="photo_main"><span
                   class="upload__text">Загрузить файл</span><span class="icon icon--16" aria-hidden="true"><img
                     src="/assets/icons/download.svg" alt="" aria-hidden="true"></span></span></label>
-            <label class="upload-row"><span class="field__label">Дополнительные фотографии (минимум 5 фото)</span><span
-                class="upload"><input class="upload__input visually-hidden" type="file" name="photos_extra" multiple
-                  accept="image/*"><span class="upload__text">Загрузить файл</span><span class="icon icon--16"
-                  aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
-                    aria-hidden="true"></span></span></label>
+            <div class="photos-upload">
+              <div class="upload-row photos-upload__heading">
+                <span class="field__label">Дополнительные фотографии (от 5 до 10 фото)</span>
+                <button class="photos-upload__add" type="button" data-add-photo aria-label="Добавить поле для фотографии">+</button>
+              </div>
+              <div class="photos-upload__slots" data-photo-slots></div>
+            </div>
             <label class="upload-row"><span class="field__label">Ссылка на видеообзор</span><span class="upload"><input
                   class="upload__link" type="url" name="video_url" placeholder="Вставьте ссылку"><span
                   class="icon icon--16" aria-hidden="true"><img src="/assets/icons/download.svg" alt=""
@@ -979,7 +981,7 @@
 
   </div>
   <script src="/js/main.js"></script>
-  <script type="module" src="/js/app.js"></script>
+  <script type="module" src="/js/app.js?v=listing-draft-7"></script>
 </body>
 
 </html>

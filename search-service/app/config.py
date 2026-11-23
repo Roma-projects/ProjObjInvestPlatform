@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
 
     redis_url: str = "redis://localhost:6379/0"
-    gateway_shared_secret: str = "local-gateway-secret-change-me"
+    gateway_shared_secret: str
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     mongodb_url: str = "mongodb://localhost:27017/search_catalog"
     cors_origins: str = "http://localhost:3000"

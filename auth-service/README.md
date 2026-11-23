@@ -4,6 +4,8 @@
 
 Auth получает `moderation.user.blacklisted` и `moderation.user.unblocked` из RabbitMQ. Блокировка помечает аккаунт, отзывает refresh-сессии и запрещает новый вход/обновление токенов. В access JWT передаётся стабильный UUID пользователя, чтобы Gateway мог блокировать уже выданные токены.
 
+Фото профиля загружается владельцем через `POST /api/auth/me/avatar` (JPEG, PNG или WebP, до 5 МБ). Auth проверяет и перекодирует изображение в PNG, хранит его в отдельном volume `auth_avatars`; только Nginx имеет read-only доступ к файлам. Путь аватара нельзя установить через JSON PATCH профиля.
+
 ## Запуск через Docker Compose
 
 При запуске через Compose заполните SMTP-переменные в корневом `.env` по корневому `.env.example`. Для локального запуска Auth заполните SMTP-переменные в `auth-service/.env` по этому `.env.example`.

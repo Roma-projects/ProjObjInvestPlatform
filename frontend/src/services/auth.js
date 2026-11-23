@@ -56,6 +56,15 @@ export function updateProfile(payload) {
   });
 }
 
+export function uploadAvatar(file) {
+  const form = new FormData();
+  form.append('file', file);
+  return apiRequest(API_BASE.auth, '/api/auth/me/avatar', {
+    method: 'POST',
+    body: form,
+  });
+}
+
 export function verifyEmail(code) {
   return apiRequest(API_BASE.auth, '/api/auth/verify', {
     method: 'POST',

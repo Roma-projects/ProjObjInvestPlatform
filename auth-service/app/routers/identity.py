@@ -1,15 +1,19 @@
-"""Точные маршруты Auth из ТЗ; устаревший /api/v1/auth остаётся доступен отдельно."""
+"""Auth identity, profile, session and verification routes."""
 
 from collections.abc import AsyncGenerator
+import asyncio
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import JSONResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_user, require_gateway
 from app.models.user import User
+from app.services.avatar_service import delete_avatar, store_avatar
 from app.schemas.identity import (
     AccessTokenResponse,
     ChangePasswordBody,
@@ -30,6 +34,7 @@ settings = get_settings()
 router = APIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(require_gateway)])
 REFRESH_COOKIE = "refresh_token"
 VERIFICATION_COOKIE = "verification_challenge"
+MAX_AVATAR_UPLOAD_BYTES = 5 * 1024 * 1024
 
 
 async def get_identity_service(session: AsyncSession = Depends(get_db)) -> AsyncGenerator[IdentityService, None]:
@@ -152,3 +157,35 @@ async def me(user: User = Depends(get_current_user)) -> IdentityResponse:
 async def patch_me(body: ProfilePatch, user: User = Depends(get_current_user), service: IdentityService = Depends(get_identity_service)) -> IdentityResponse:
     updated = await service.patch_profile(user, body)
     return IdentityResponse.model_validate(updated)
+
+
+@router.post("/me/avatar", response_model=IdentityResponse)
+async def upload_my_avatar(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> IdentityResponse:
+    content = await file.read(MAX_AVATAR_UPLOAD_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Avatar file is empty")
+    if len(content) > MAX_AVATAR_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Avatar must be 5 MB or smaller")
+
+    stored_path: str | None = None
+    avatar_root = Path(settings.avatar_upload_dir)
+    try:
+        stored_path = await asyncio.to_thread(store_avatar, content, avatar_root)
+        current_user = await session.scalar(select(User).where(User.id == user.id))
+        if current_user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+        previous_path = current_user.avatar
+        current_user.avatar = stored_path
+        await session.commit()
+    except Exception:
+        if stored_path is not None:
+            await asyncio.to_thread(delete_avatar, stored_path, avatar_root)
+        raise
+
+    if previous_path and previous_path != stored_path:
+        await asyncio.to_thread(delete_avatar, previous_path, avatar_root)
+    return IdentityResponse.model_validate(current_user)

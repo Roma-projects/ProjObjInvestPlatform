@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     mongodb_url: str = "mongodb://localhost:27017/notification_db"
-    jwt_secret_key: str = "change-me-to-a-long-random-secret-key-in-production"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"

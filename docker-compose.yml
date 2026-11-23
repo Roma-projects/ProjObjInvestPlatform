@@ -9,6 +9,7 @@ services:
       - "${HTTP_PORT:-8080}:80"
     volumes:
       - public_uploads:/public_uploads:ro
+      - auth_avatars:/auth_avatars:ro
     depends_on:
       api-gateway:
         condition: service_healthy
@@ -24,9 +25,9 @@ services:
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       AUTH_URL: ${AUTH_SERVICE_URL:-http://auth-service:8000}
       LISTING_URL: ${LISTING_SERVICE_URL:-http://listing-service:8000}
       SEARCH_URL: ${SEARCH_SERVICE_URL:-http://search-service:8000}
@@ -61,23 +62,24 @@ services:
     env_file:
       - auth-service/.env
     environment:
-      DATABASE_URL: ${AUTH_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/auth_db}
+      DATABASE_URL: ${AUTH_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/auth_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
       SMTP_START_TLS: ${SMTP_START_TLS:-true}
-      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-false}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
+      REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-true}
+      AVATAR_UPLOAD_DIR: /auth_avatars
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,6 +94,8 @@ services:
       retries: 10
     networks: [backend]
     restart: unless-stopped
+    volumes:
+      - auth_avatars:/auth_avatars
 
   listing-service:
     build:
@@ -100,14 +104,14 @@ services:
     env_file:
       - listing-service/.env
     environment:
-      DATABASE_URL: ${LISTING_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/listing_db}
+      DATABASE_URL: ${LISTING_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/listing_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       PUBLIC_UPLOAD_DIR: /public_uploads
       PRIVATE_UPLOAD_DIR: /private_uploads
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
     volumes:
       - public_uploads:/public_uploads
       - private_uploads:/private_uploads
@@ -129,12 +133,12 @@ services:
       context: .
       dockerfile: moderation-service/Dockerfile
     environment:
-      DATABASE_URL: ${MODERATION_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/moderation_db}
+      DATABASE_URL: ${MODERATION_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/moderation_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:-local-moderation-secret-change-me}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
+      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       LISTING_URL: ${LISTING_SERVICE_URL:-http://listing-service:8000}
       AUTH_URL: ${AUTH_SERVICE_URL:-http://auth-service:8000}
     depends_on:
@@ -163,8 +167,8 @@ services:
     environment:
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
       MONGODB_URL: ${SEARCH_MONGODB_URL_DOCKER:-mongodb://mongo:27017/search_catalog}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
     volumes:
       - public_uploads:/public_uploads:ro
     depends_on:
@@ -188,7 +192,7 @@ services:
       - analytic-scripts/.env
     environment:
       MONGODB_URL: ${ANALYTIC_SCRIPTS_MONGODB_URL_DOCKER:-mongodb://mongo:27017/analytic_scripts_db}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
     depends_on:
       mongo:
         condition: service_healthy
@@ -234,9 +238,9 @@ services:
     env_file:
       - analytic-ai/.env
     environment:
-      DATABASE_URL: ${ANALYTIC_AI_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-change-this-password}@postgres:5432/analytic_ai_db}
+      DATABASE_URL: ${ANALYTIC_AI_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/analytic_ai_db}
       REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       PUBLIC_UPLOAD_DIR: /public_uploads
     volumes:
       - public_uploads:/public_uploads:ro
@@ -267,9 +271,9 @@ services:
     environment:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       MONGODB_URL: ${MESSAGING_MONGODB_URL_DOCKER:-mongodb://mongo:27017/messaging_db}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:-local-gateway-secret-change-me}
+      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
     depends_on:
       mongo:
         condition: service_healthy
@@ -290,7 +294,7 @@ services:
     env_file:
       - notification-service/.env
     environment:
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       MONGODB_URL: ${NOTIFICATION_MONGODB_URL_DOCKER:-mongodb://mongo:27017/notification_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
     depends_on:
@@ -353,8 +357,8 @@ services:
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-guest}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-guest}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?Set RABBITMQ_DEFAULT_USER in the root .env file}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS in the root .env file}
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
@@ -374,6 +378,7 @@ volumes:
   rabbitmq_data:
   public_uploads:
   private_uploads:
+  auth_avatars:
   parsers_storage:
 
 networks:

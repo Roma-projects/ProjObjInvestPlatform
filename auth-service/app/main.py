@@ -6,13 +6,11 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import init_db
 from app.exceptions import AppError
-from app.routers import auth as auth_router
 from app.routers import identity as identity_router
 from app.routers import internal as internal_router
 from app.rabbitmq.moderation_consumer import moderation_consumer
@@ -56,15 +54,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 @app.exception_handler(AppError)
 async def app_error_handler(_request: Request, exc: AppError) -> JSONResponse:
     return JSONResponse(
@@ -78,7 +67,5 @@ async def health() -> dict:
     return {"status": "ok", "service": settings.service_name}
 
 
-app.include_router(auth_router.router)
-# Keep the existing v1 routes while exposing the paths required by the new contract.
 app.include_router(identity_router.router)
 app.include_router(internal_router.router)

@@ -13,10 +13,10 @@ class Settings(BaseSettings):
     )
 
     mongodb_url: str = "mongodb://localhost:27017/messaging_db"
-    jwt_secret_key: str = "change-me-to-a-long-random-secret-key-in-production"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
-    gateway_shared_secret: str = "local-gateway-secret-change-me"
+    gateway_shared_secret: str
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
     service_name: str = "messaging-service"

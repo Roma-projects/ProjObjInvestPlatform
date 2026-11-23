@@ -11,6 +11,7 @@
 - `POST /api/auth/refresh` — обновить access token по refresh cookie.
 - `POST /api/auth/logout` — JSON: `{ "logout_all_devices": false }`.
 - `GET /api/auth/me` и `PATCH /api/auth/me` — текущий профиль; patch принимает поля профиля и `notification_preferences`.
+- `POST /api/auth/me/avatar` — multipart-поле `file`; JPEG/PNG/WebP, максимум 5 МБ. Изображение проверяется и повторно кодируется Auth-сервисом.
 - `POST /api/auth/verify` — JSON: `{ "type": "email", "code": "123456" }`.
 - `POST /api/auth/resend-code` — JSON: `{ "type": "email" }`; требуется cookie подтверждения.
 - `POST /api/auth/forgot-password` — JSON: `{ "email": "user@example.com" }`.
@@ -27,11 +28,13 @@
 - `GET /api/listings` — список собственных объявлений.
 - `GET /api/listings/{id}` — получить своё объявление. Listing проверяет владельца и не отдаёт другим пользователям исходную запись.
 - `PATCH /api/listings/{id}` — сохранить изменения черновика JSON-телом.
+- `DELETE /api/listings/{id}` — удалить свой черновик.
 - `POST /api/listings/{id}/files/{field}` — загрузить файл multipart-полем `file`; ответы и GET Listing возвращают только имена полей закрытых документов, без путей хранения.
+- `PUT /api/listings/{id}/files/photos/{index}` — заменить фотографию.
 - `POST /api/listings/{id}/submit` — отправить черновик на обработку.
 - Очередь и решения модерации находятся в Moderation API, Listing не отдаёт модераторам полную запись.
 
-Эти маршруты идут в бизнес-часть Listing. Совместимые старые `/api/v1/listings` тоже требуют access JWT и ограничивают GET объявлениями текущего владельца. Публичный GET разрешён только к одобренной карточке через Search (`/api/catalog/{id}`): это публичная проекция, а не исходная запись Listing и не закрытые файлы.
+Эти маршруты идут в бизнес-часть Listing. Для обновления и удаления ресурса используются соответствующие HTTP-методы; безопасность обеспечивается JWT на Gateway и проверкой владельца/состояния в Listing. Устаревший `/api/v1/listings` отключён на Gateway и не включён в приложение Listing. Публичный GET разрешён только к одобренной карточке через Search (`/api/catalog/{id}`): это публичная проекция, а не исходная запись Listing и не закрытые файлы.
 
 ## Moderation — очередь и чёрный список
 

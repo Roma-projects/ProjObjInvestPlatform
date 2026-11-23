@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://postgres:postgres@localhost:5432/auth_db"
     )
-    jwt_secret_key: str = "change-me-to-a-long-random-secret-key-in-production"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
@@ -29,12 +29,13 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_address: str = ""
     smtp_start_tls: bool = True
-    refresh_cookie_secure: bool = False
+    refresh_cookie_secure: bool = True
     verification_code_ttl_seconds: int = 600
-    gateway_shared_secret: str = "local-gateway-secret-change-me"
-    moderation_service_shared_secret: str = "local-moderation-secret-change-me"
+    gateway_shared_secret: str
+    moderation_service_shared_secret: str
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     cors_origins: str = "http://localhost:3000"
+    avatar_upload_dir: str = "/auth_avatars"
     log_level: str = "INFO"
     service_name: str = "auth-service"
     service_port: int = 8001

@@ -64,7 +64,7 @@ class AuthService:
         user = await self.repo.get_by_email(data.email)
         if not user or not verify_password(data.password, user.password_hash):
             raise AuthenticationError("Invalid email or password")
-        if user.is_banned:
+        if user.is_banned or not user.is_active:
             raise AuthenticationError("Account is blocked")
         if not user.is_active:
             raise AuthenticationError("User is inactive")

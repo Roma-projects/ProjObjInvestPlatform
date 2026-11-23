@@ -101,13 +101,12 @@ async def _verify_token(request: Request) -> dict:
 
 
 def _is_public_auth(method: str, path: str) -> bool:
-    endpoint = path.removeprefix("/api/v1")
     public = {
         ("POST", "/auth/register"), ("POST", "/auth/login"), ("POST", "/auth/refresh"),
         ("POST", "/auth/forgot-password"), ("POST", "/auth/reset-password"),
         ("POST", "/auth/verify"), ("POST", "/auth/resend-code"),
     }
-    return (method, endpoint) in public
+    return (method, path) in public
 
 
 def _is_public_catalog(method: str, path: str) -> bool:
@@ -135,14 +134,21 @@ async def health() -> dict[str, str]:
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 async def route_request(path: str, request: Request) -> Response:
     full_path = "/" + path
-    client_ip = request.client.host if request.client else "unknown"
+    if full_path.startswith("/api/v1/auth/"):
+        raise HTTPException(status_code=404, detail="Legacy Auth API route not found")
+    if full_path.startswith("/v1/listings"):
+        raise HTTPException(status_code=404, detail="Legacy API route not found")
+    # Nginx overwrites X-Real-IP with the socket peer address before proxying.
+    client_ip = request.headers.get("X-Real-IP") or (request.client.host if request.client else "unknown")
     bucket = hashlib.sha256(f"{client_ip}:{request.method}:{full_path}".encode()).hexdigest()
     count = await request.app.state.redis.eval(_RATE_LIMIT_SCRIPT, 1, f"gateway:rate:{bucket}")
-    if count > settings.rate_limit_per_minute:
+    auth_sensitive_path = full_path in {"/auth/login", "/auth/register", "/auth/forgot-password", "/auth/resend-code"}
+    limit = settings.auth_rate_limit_per_minute if auth_sensitive_path else settings.rate_limit_per_minute
+    if count > limit:
         raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": "60"})
 
     claims = None
-    public_auth = (full_path.startswith("/auth/") or full_path.startswith("/api/v1/auth/")) and _is_public_auth(request.method, full_path)
+    public_auth = full_path.startswith("/auth/") and _is_public_auth(request.method, full_path)
     if not public_auth and not _is_public_catalog(request.method, full_path):
         claims = await _verify_token(request)
 
@@ -186,18 +192,6 @@ async def route_request(path: str, request: Request) -> Response:
             media_type="application/json",
         )
 
-    if full_path.startswith("/auth/"):
-        base_url = settings.auth_url
-        upstream_path = full_path
-    elif full_path.startswith("/api/v1/auth/"):
-        base_url = settings.auth_url
-        upstream_path = full_path
-    elif full_path.startswith("/v1/listings"):
-        base_url = settings.listing_url
-        upstream_path = "/api" + full_path
-    elif full_path.startswith("/api/v1/listings"):
-        base_url = settings.listing_url
-        upstream_path = full_path
     elif full_path == "/listings" or full_path.startswith("/listings/"):
         base_url = settings.listing_url
         upstream_path = full_path
@@ -229,10 +223,16 @@ async def route_request(path: str, request: Request) -> Response:
         raise HTTPException(status_code=404, detail="API route not found")
 
     headers = {key: value for key, value in request.headers.items() if key.lower() not in {"host", "content-length", "connection"}}
+    for trusted_header in ("X-Gateway-Token", "X-Authenticated-User-ID", "X-Authenticated-User-Role"):
+        headers.pop(trusted_header, None)
     headers["X-Gateway-Token"] = settings.gateway_shared_secret
     if claims:
         headers["X-Authenticated-User-ID"] = str(claims.get("user_id") or claims.get("sub"))
         headers["X-Authenticated-User-Role"] = str(claims.get("role", "user"))
+    else:
+        # Do not trust identity/role headers sent by an unauthenticated client.
+        headers.pop("X-Authenticated-User-ID", None)
+        headers.pop("X-Authenticated-User-Role", None)
     upstream = f"{base_url}{upstream_path}"
     if request.url.query:
         upstream += "?" + request.url.query

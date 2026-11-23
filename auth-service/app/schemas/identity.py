@@ -80,11 +80,12 @@ class ResendCodeBody(BaseModel):
 
 
 class ProfilePatch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     first_name: str | None = Field(default=None, min_length=1, max_length=100)
     last_name: str | None = Field(default=None, min_length=1, max_length=100)
     patronymic: str | None = Field(default=None, max_length=100)
     phone: str | None = Field(default=None, min_length=5, max_length=32)
-    avatar: str | None = Field(default=None, max_length=1024)
     business_description: str | None = Field(default=None, max_length=200)
     notification_preferences: dict[str, bool] | None = None
 

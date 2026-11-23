@@ -11,7 +11,7 @@ docker compose up --build -d listing-service
 docker compose logs -f listing-service
 ```
 
-Для запуска полного набора сервисов используйте `docker compose up --build -d`. В Compose Listing получает отдельную БД `listing_db`, оба файловых volume и соединение с RabbitMQ. `MODERATION_SERVICE_SHARED_SECRET` должен совпадать с секретом Moderation.
+Для запуска полного набора сервисов используйте `docker compose up --build -d`. В Compose Listing получает отдельную БД `listing_db`, оба файловых volume и соединение с RabbitMQ. `MODERATION_SERVICE_SHARED_SECRET` должен совпадать с секретом Moderation. Внешний Listing API обслуживает только бизнес-маршруты `/listings`; дублирующий устаревший `/api/v1/listings` отключён, старые таблицы оставлены для сохранения существующих записей.
 
 ## Зависимости и локальный запуск
 

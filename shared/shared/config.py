@@ -16,7 +16,7 @@ class SharedSettings(BaseSettings):
         extra="ignore",
     )
 
-    jwt_secret_key: str = "change-me-to-a-long-random-secret-key-in-production"
+    jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7

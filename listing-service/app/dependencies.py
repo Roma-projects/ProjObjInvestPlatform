@@ -2,67 +2,17 @@
 Содержит повторно используемые зависимости FastAPI, например получение текущего пользователя или сессии базы данных.
 """
 
-from typing import Any
-
 import hmac
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.database import get_db
-from app.services.listing_service import ListingService
 
 bearer_scheme = HTTPBearer(auto_error=False)
 settings = get_settings()
-
-
-async def get_listing_service(
-    session: AsyncSession = Depends(get_db),
-) -> ListingService:
-    return ListingService(session)
-
-
-def _decode_access(token: str) -> dict[str, Any]:
-    try:
-        payload = jwt.decode(
-            token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
-        )
-    except JWTError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        ) from exc
-    if payload.get("type") != "access":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
-        )
-    return payload
-
-
-async def get_current_user_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> int:
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
-        )
-    payload = _decode_access(credentials.credentials)
-    return int(payload["sub"])
-
-
-async def get_optional_user_id(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> int | None:
-    if credentials is None:
-        return None
-    try:
-        payload = _decode_access(credentials.credentials)
-        return int(payload["sub"])
-    except HTTPException:
-        return None
 
 
 async def require_gateway(request: Request) -> None:
@@ -72,13 +22,12 @@ async def require_gateway(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API Gateway required")
 
 
-async def get_current_user_uuid(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> UUID:
-    if credentials is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    payload = _decode_access(credentials.credentials)
+async def get_current_user_uuid(request: Request) -> UUID:
+    """Read the authenticated UUID injected by Gateway after its JWT checks."""
+    user_id = request.headers.get("X-Authenticated-User-ID", "")
     try:
-        return UUID(payload["user_id"])
-    except (KeyError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has no user identity") from exc
+        return UUID(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Gateway user identity is invalid") from exc
+
+

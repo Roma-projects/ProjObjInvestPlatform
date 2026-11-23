@@ -6,6 +6,7 @@ import {
   resendVerificationCode,
   resetPassword,
   updateProfile,
+  uploadAvatar,
   verifyEmail,
   logout,
 } from '../src/services/auth.js';
@@ -2318,6 +2319,17 @@ function applyProfile(user) {
   const phone = contacts.find((element) => element.href.startsWith('tel:'));
   if (email) { email.textContent = user.email; email.href = `mailto:${user.email}`; email.hidden = false; }
   if (phone && user.phone) { phone.textContent = user.phone; phone.href = `tel:${user.phone}`; phone.hidden = false; }
+  const avatar = $('.avatar__img');
+  if (avatar) {
+    let avatarUrl = null;
+    try { if (user.avatar) avatarUrl = new URL(user.avatar, location.href); } catch { /* Keep the placeholder for invalid URLs. */ }
+    const useAvatar = avatarUrl && avatarUrl.origin === location.origin && ['http:', 'https:'].includes(avatarUrl.protocol)
+      && /^\/public\/avatars\/[a-f0-9]{32}\.png$/.test(avatarUrl.pathname);
+    avatar.classList.toggle('placeholder', !useAvatar);
+    avatar.style.backgroundImage = useAvatar ? `url("${avatarUrl.href}")` : '';
+    avatar.style.backgroundSize = 'cover';
+    avatar.style.backgroundPosition = 'center';
+  }
   const about = $('.about__text');
   if (about) about.textContent = user.business_description || 'Описание пока не добавлено.';
   $$('[role="switch"][name]').forEach((input) => {
@@ -2347,6 +2359,35 @@ async function loadProfile() {
       return;
     }
     applyProfile(loadedUser);
+    const avatarButton = $('.avatar__edit');
+    avatarButton?.addEventListener('click', () => {
+      const picker = document.createElement('input');
+      picker.type = 'file';
+      picker.accept = 'image/jpeg,image/png,image/webp';
+      picker.hidden = true;
+      document.body.append(picker);
+      picker.addEventListener('change', async () => {
+        const [file] = picker.files || [];
+        picker.remove();
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          notify('Размер фотографии не должен превышать 5 МБ.', 'error');
+          return;
+        }
+        avatarButton.disabled = true;
+        try {
+          loadedUser = await uploadAvatar(file);
+          applyProfile(loadedUser);
+          notify('Фото профиля обновлено.');
+        } catch (error) {
+          notify(`Не удалось обновить фото: ${error.message}`, 'error');
+        } finally {
+          avatarButton.disabled = false;
+        }
+      }, { once: true });
+      picker.addEventListener('cancel', () => picker.remove(), { once: true });
+      picker.click();
+    });
     const edit = $('.hero__edit, .profile-edit');
     edit?.addEventListener('click', () => showProfileDialog(loadedUser));
     $$('[role="switch"][name]').forEach((input) => input.addEventListener('change', async () => {
@@ -2729,7 +2770,8 @@ function applyHomeAccountState(user) {
       if (image) {
         let avatarUrl = null;
         try { if (user.avatar) avatarUrl = new URL(user.avatar, location.href); } catch { /* Use initials for an invalid avatar URL. */ }
-        const useAvatar = avatarUrl && avatarUrl.origin === location.origin && ['http:', 'https:'].includes(avatarUrl.protocol);
+        const useAvatar = avatarUrl && avatarUrl.origin === location.origin && ['http:', 'https:'].includes(avatarUrl.protocol)
+          && avatarUrl.pathname.startsWith('/public/avatars/');
         image.hidden = !useAvatar;
         if (initialsElement) initialsElement.hidden = Boolean(useAvatar);
         image.onerror = () => {

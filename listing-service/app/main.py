@@ -8,14 +8,12 @@ from pathlib import Path
 import asyncio
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
 from app.rabbitmq.publisher import publisher
 from app.rabbitmq.results_consumer import results_consumer
 from app.rabbitmq.moderation_consumer import moderation_consumer
-from app.routers import listings as listings_router
 from app.routers import business_listings as business_listings_router
 from app.services.business_listing_service import run_outbox_dispatcher
 
@@ -58,19 +56,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "service": settings.service_name}
 
 
-app.include_router(listings_router.router)
 app.include_router(business_listings_router.router)
 app.include_router(business_listings_router.internal_router)

@@ -4,6 +4,7 @@
 
 """RabbitMQ publisher for listing events. Gracefully degrades if broker is down."""
 
+import json
 import logging
 from typing import Any
 

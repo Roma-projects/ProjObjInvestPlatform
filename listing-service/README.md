@@ -24,7 +24,7 @@ cd listing-service
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Для ручного запуска настройте `DATABASE_URL`, `JWT_SECRET_KEY`, `RABBITMQ_URL`, `PUBLIC_UPLOAD_DIR`, `PRIVATE_UPLOAD_DIR` и `GATEWAY_SHARED_SECRET`. Миграции для контейнера запускает `migration_bootstrap.py`; не удаляйте PostgreSQL volume при обычном обновлении кода.
+Для ручного запуска настройте `DATABASE_URL`, `RABBITMQ_URL`, `PUBLIC_UPLOAD_DIR`, `PRIVATE_UPLOAD_DIR`, `GATEWAY_SHARED_SECRET` и отдельный `MODERATION_SERVICE_SHARED_SECRET`. Listing не получает JWT signing key. Миграции для контейнера запускает `migration_bootstrap.py`; не удаляйте PostgreSQL volume при обычном обновлении кода.
 
 После получения обоих аналитических отчётов Listing пишет в outbox `listing.moderation.requested` с ограниченным снимком объявления, отчётами и ссылками на закрытые документы. Публичную запись в Search Listing создаёт после решения о публикации от Moderation: чистый случай с низким рейтингом AI и базовой проверкой проходит автоматически, риск или углублённая проверка требуют ручного решения. Модератор может снять опубликованное объявление событием `moderation.listing.removed`. Очередь и решения находятся на маршрутах `/api/moderation/*` у `moderation-service`; Listing больше не выдаёт модератору свою полную запись через внешний API.
 

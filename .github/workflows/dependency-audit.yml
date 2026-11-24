@@ -1,0 +1,29 @@
+name: Dependency security audit
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip pip-audit
+      - name: Audit resolved dependency ranges
+        shell: bash
+        run: |
+          set -euo pipefail
+          pip-audit --strict -r requirements.txt
+          for file in */requirements.txt; do
+            pip-audit --strict -r "$file"
+          done

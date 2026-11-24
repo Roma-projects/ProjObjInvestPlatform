@@ -47,4 +47,4 @@ cd auth-service
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Нужны PostgreSQL, Redis и RabbitMQ. Контейнерная конфигурация читает `JWT_SECRET_KEY`, `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `GATEWAY_SHARED_SECRET` и SMTP-настройки `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `SMTP_START_TLS`. Не вставляйте пароли или токены в README.
+Нужны PostgreSQL, Redis и RabbitMQ. Контейнерная конфигурация читает отдельные `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `GATEWAY_SHARED_SECRET`, `MODERATION_SERVICE_SHARED_SECRET`, JWT-ключ и SMTP-настройки `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `SMTP_START_TLS`. Верификационный код — 8 цифр, действует до 10 минут и принимает не более пяти неверных попыток в рамках challenge. Не вставляйте пароли или токены в README.

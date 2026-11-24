@@ -4,6 +4,7 @@
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,18 +13,14 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    database_url: str = (
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/listing_db"
-    )
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    database_url: str
+    rabbitmq_url: str
     cors_origins: str = "http://localhost:3000"
     upload_dir: str = "./uploads"
     public_upload_dir: str = "/public_uploads"
     private_upload_dir: str = "/private_uploads"
-    gateway_shared_secret: str
-    moderation_service_shared_secret: str
+    gateway_shared_secret: str = Field(min_length=32)
+    moderation_service_shared_secret: str = Field(min_length=32)
     log_level: str = "INFO"
     service_name: str = "listing-service"
     service_port: int = 8002

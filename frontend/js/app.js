@@ -41,6 +41,10 @@ import {
   sendMessage,
   connectNotifications,
 } from '../src/services/chat.js';
+import {
+  getNotifications,
+  markNotificationsRead,
+} from '../src/services/notifications.js';
 
 const $ = (selector, root = document) => root?.querySelector(selector) || null;
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -55,6 +59,15 @@ let catalogLeafletMap = null;
 let catalogMarkerLayer = null;
 let selectedMapMarker = null;
 let selectedMapListingId = null;
+let notificationItems = [];
+let notificationCenter = null;
+let notificationList = null;
+let notificationStatus = 'loading';
+let notificationAuthenticated = false;
+let notificationSocket = null;
+let notificationConnectInProgress = false;
+let notificationReconnectTimer = null;
+let activeNotificationBell = null;
 
 function notify(message, kind = 'info') {
   let toast = $('.miero-toast');
@@ -69,6 +82,310 @@ function notify(message, kind = 'info') {
   toast.classList.toggle('miero-toast--error', kind === 'error');
   clearTimeout(notify.timeout);
   notify.timeout = setTimeout(() => toast.remove(), 5200);
+}
+
+const notificationTitles = {
+  'message.new': 'Новое сообщение',
+  'auth.security_event': 'Событие безопасности аккаунта',
+  'listing.creation.started': 'Объявление отправлено на проверку',
+  'listing.creation.completed': 'Объявление опубликовано',
+  'listing.moderation.requested': 'Объявление ожидает проверки',
+  'listing.rejected': 'Объявление отклонено',
+  'listing.removed': 'Объявление снято с публикации',
+  'moderation.listing.removed': 'Объявление снято с публикации',
+  'listing.created': 'Объявление создано',
+  'listing.updated': 'Объявление обновлено',
+  'listing.deleted': 'Объявление удалено',
+};
+
+function notificationTitle(item) {
+  const type = typeof item.type === 'string' ? item.type : '';
+  if (Object.hasOwn(notificationTitles, type)) return notificationTitles[type];
+  return type.startsWith('listing.') ? 'Обновление по объявлению' : 'Уведомление';
+}
+
+function notificationDescription(item) {
+  const reason = item.payload?.reason;
+  if (typeof reason === 'string' && reason.trim()) return reason.trim().slice(0, 500);
+  const statusLabels = {
+    published: 'Объявление опубликовано.',
+    rejected: 'Объявление отклонено.',
+    removed: 'Объявление снято с публикации.',
+    on_moderation: 'Объявление передано на модерацию.',
+  };
+  const status = item.payload?.status;
+  return typeof status === 'string' && Object.hasOwn(statusLabels, status) ? statusLabels[status] : '';
+}
+
+function notificationDestination(item) {
+  if (item.type === 'message.new') return 'messages.html';
+  if (item.payload?.listing_id) return `listing.html#${encodeURIComponent(item.payload.listing_id)}`;
+  return '';
+}
+
+function updateNotificationBadges() {
+  const unread = notificationItems.filter((item) => !item.is_read).length;
+  $$('.page-head__bell, .hero__bell, .detail__bell').forEach((button) => {
+    let badge = $('.notification-bell__badge', button);
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'notification-bell__badge';
+      badge.setAttribute('aria-hidden', 'true');
+      button.append(badge);
+    }
+    badge.hidden = unread === 0;
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+    button.setAttribute('aria-haspopup', 'dialog');
+    button.setAttribute('aria-controls', 'notification-center');
+    button.setAttribute('aria-expanded', String(!notificationCenter?.hidden && activeNotificationBell === button));
+    button.setAttribute('aria-label', unread ? `Уведомления, непрочитанных: ${unread}` : 'Уведомления');
+  });
+}
+
+function renderNotificationPanel() {
+  if (!notificationList) return;
+  notificationList.replaceChildren();
+  if (!notificationAuthenticated) {
+    const empty = document.createElement('p');
+    empty.className = 'notification-center__message';
+    empty.append('Войдите, чтобы посмотреть уведомления. ');
+    const login = document.createElement('a');
+    login.href = 'login.html';
+    login.textContent = 'Войти';
+    empty.append(login);
+    notificationList.append(empty);
+    return;
+  }
+  if (notificationStatus === 'loading' && !notificationItems.length) {
+    const loading = document.createElement('p');
+    loading.className = 'notification-center__message';
+    loading.textContent = 'Загружаем уведомления…';
+    notificationList.append(loading);
+    return;
+  }
+  if (notificationStatus === 'error' && !notificationItems.length) {
+    const error = document.createElement('p');
+    error.className = 'notification-center__message';
+    error.textContent = 'Не удалось загрузить уведомления. Попробуйте ещё раз.';
+    notificationList.append(error);
+    return;
+  }
+  if (!notificationItems.length) {
+    const empty = document.createElement('p');
+    empty.className = 'notification-center__message';
+    empty.textContent = 'Уведомлений пока нет.';
+    notificationList.append(empty);
+    return;
+  }
+  notificationItems.forEach((item) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = `notification-center__item${item.is_read ? '' : ' is-unread'}`;
+    row.dataset.eventId = item.event_id || '';
+    const title = document.createElement('span');
+    title.className = 'notification-center__title';
+    title.textContent = notificationTitle(item);
+    row.append(title);
+    const description = notificationDescription(item);
+    if (description) {
+      const text = document.createElement('span');
+      text.className = 'notification-center__description';
+      text.textContent = description;
+      row.append(text);
+    }
+    if (item.created_at) {
+      const time = document.createElement('time');
+      time.className = 'notification-center__time';
+      time.dateTime = item.created_at;
+      const date = new Date(item.created_at);
+      time.textContent = Number.isNaN(date.getTime()) ? '' : date.toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+      row.append(time);
+    }
+    row.addEventListener('click', async () => {
+      const destination = notificationDestination(item);
+      await markNotificationItemsRead([item]);
+      closeNotificationPanel();
+      if (destination) location.href = destination;
+    });
+    notificationList.append(row);
+  });
+}
+
+function ensureNotificationPanel() {
+  if (notificationCenter) return;
+  const panel = document.createElement('section');
+  panel.id = 'notification-center';
+  panel.className = 'notification-center';
+  panel.hidden = true;
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-label', 'Уведомления');
+  const header = document.createElement('header');
+  header.className = 'notification-center__header';
+  const heading = document.createElement('h2');
+  heading.textContent = 'Уведомления';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'notification-center__close';
+  close.setAttribute('aria-label', 'Закрыть уведомления');
+  close.textContent = '×';
+  close.addEventListener('click', closeNotificationPanel);
+  header.append(heading, close);
+  const list = document.createElement('div');
+  list.className = 'notification-center__list';
+  list.setAttribute('aria-live', 'polite');
+  panel.append(header, list);
+  document.body.append(panel);
+  notificationCenter = panel;
+  notificationList = list;
+  updateNotificationBadges();
+  renderNotificationPanel();
+}
+
+function positionNotificationPanel(button) {
+  if (!notificationCenter || !button) return;
+  const rect = button.getBoundingClientRect();
+  const width = Math.min(370, window.innerWidth - 24);
+  const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+  const estimatedHeight = Math.min(notificationCenter.scrollHeight || 420, Math.max(240, window.innerHeight - 24));
+  const top = rect.bottom + estimatedHeight + 12 > window.innerHeight
+    ? Math.max(12, rect.top - estimatedHeight - 8)
+    : rect.bottom + 8;
+  notificationCenter.style.left = `${left}px`;
+  notificationCenter.style.top = `${top}px`;
+}
+
+function closeNotificationPanel() {
+  if (!notificationCenter) return;
+  notificationCenter.hidden = true;
+  if (activeNotificationBell) activeNotificationBell.setAttribute('aria-expanded', 'false');
+  activeNotificationBell = null;
+}
+
+async function refreshNotificationHistory() {
+  notificationStatus = 'loading';
+  renderNotificationPanel();
+  try {
+    const response = await getNotifications();
+    notificationItems = asItems(response);
+    notificationStatus = 'ready';
+    updateNotificationBadges();
+    renderNotificationPanel();
+    return true;
+  } catch {
+    notificationStatus = 'error';
+    renderNotificationPanel();
+    return false;
+  }
+}
+
+async function markNotificationItemsRead(items) {
+  const unread = items.filter((item) => item.event_id && !item.is_read);
+  if (!unread.length) return;
+  try {
+    await markNotificationsRead(unread.map((item) => item.event_id));
+    const ids = new Set(unread.map((item) => item.event_id));
+    notificationItems = notificationItems.map((item) => ids.has(item.event_id) ? { ...item, is_read: true } : item);
+    updateNotificationBadges();
+    renderNotificationPanel();
+  } catch { /* Keep unread items visible if the server could not save the read state. */ }
+}
+
+function receiveNotification(item) {
+  if (!item || typeof item !== 'object') return;
+  const existing = notificationItems.find((row) => row.event_id && row.event_id === item.event_id);
+  const merged = existing ? { ...item, is_read: existing.is_read || item.is_read } : item;
+  notificationItems = [merged, ...notificationItems.filter((row) => row.event_id !== item.event_id)].slice(0, 100);
+  notificationStatus = 'ready';
+  updateNotificationBadges();
+  renderNotificationPanel();
+  document.dispatchEvent(new CustomEvent('miero:notification', { detail: merged }));
+  if (notificationCenter && !notificationCenter.hidden) void markNotificationItemsRead([merged]);
+}
+
+async function connectNotificationSocket() {
+  if (!notificationAuthenticated || notificationSocket || notificationConnectInProgress) return;
+  notificationConnectInProgress = true;
+  try {
+    notificationSocket = await connectNotifications({
+      onEvent: receiveNotification,
+      onClose: (event) => {
+        notificationSocket = null;
+        if (event.code === 4403 || event.code === 4429) return;
+        if (notificationAuthenticated && !notificationReconnectTimer) {
+          notificationReconnectTimer = setTimeout(() => {
+            notificationReconnectTimer = null;
+            void connectNotificationSocket();
+          }, 3000);
+        }
+      },
+    });
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      notificationAuthenticated = false;
+      updateNotificationBadges();
+      return;
+    }
+    if (notificationAuthenticated && !notificationReconnectTimer) {
+      notificationReconnectTimer = setTimeout(() => {
+        notificationReconnectTimer = null;
+        void connectNotificationSocket();
+      }, 5000);
+    }
+  } finally {
+    notificationConnectInProgress = false;
+  }
+}
+
+async function initializeNotificationCenter() {
+  const buttons = $$('.page-head__bell, .hero__bell, .detail__bell');
+  const hasNotificationPanel = buttons.length > 0;
+  if (!hasNotificationPanel && !$('#messages-app')) return;
+  if (hasNotificationPanel) {
+    ensureNotificationPanel();
+    buttons.forEach((button) => button.addEventListener('click', async () => {
+      if (!notificationCenter.hidden && activeNotificationBell === button) {
+        closeNotificationPanel();
+        return;
+      }
+      activeNotificationBell = button;
+      notificationCenter.hidden = false;
+      positionNotificationPanel(button);
+      updateNotificationBadges();
+      if (notificationAuthenticated) {
+        await refreshNotificationHistory();
+        positionNotificationPanel(button);
+        await markNotificationItemsRead(notificationItems);
+      } else {
+        renderNotificationPanel();
+        positionNotificationPanel(button);
+      }
+    }));
+    document.addEventListener('click', (event) => {
+      if (notificationCenter.hidden || notificationCenter.contains(event.target)) return;
+      if (event.target.closest('.page-head__bell, .hero__bell, .detail__bell')) return;
+      closeNotificationPanel();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && notificationCenter && !notificationCenter.hidden) closeNotificationPanel();
+    });
+    window.addEventListener('resize', () => {
+      if (notificationCenter && !notificationCenter.hidden) positionNotificationPanel(activeNotificationBell);
+    });
+  }
+
+  let user = loadedUser;
+  if (!user) {
+    try { user = await resolveCurrentUser(); } catch { user = null; }
+  }
+  notificationAuthenticated = Boolean(user);
+  if (!notificationAuthenticated) {
+    notificationStatus = 'ready';
+    updateNotificationBadges();
+    renderNotificationPanel();
+    return;
+  }
+  if (hasNotificationPanel) await refreshNotificationHistory();
+  void connectNotificationSocket();
 }
 
 function emptyState(text, linkLabel, linkHref) {
@@ -2875,6 +3192,14 @@ async function loadProfile() {
 async function loadMessages() {
   const app = $('#messages-app');
   if (!app) return;
+  document.addEventListener('miero:notification', async (event) => {
+    if (event.detail?.type !== 'message.new') return;
+    const latest = asItems(await getConversations()).find((item) => item.id === selectedConversation?.id);
+    if (latest) {
+      selectedConversation = latest;
+      await showConversation(latest, list, feed, form);
+    }
+  });
   const list = $('#conversation-list', app);
   const feed = $('#message-feed', app);
   const form = $('#message-form', app);
@@ -2903,19 +3228,6 @@ async function loadMessages() {
     selectedConversation = conversations.find((item) => String(item.id) === listingIdFromHash()) || conversations[0];
     if (!listingIdFromHash()) location.hash = selectedConversation.id;
     await showConversation(selectedConversation, list, feed, form);
-    try {
-      let socket;
-      socket = connectNotifications({
-        onEvent: async (event) => {
-          const latest = asItems(await getConversations()).find((item) => item.id === selectedConversation?.id);
-          if (latest) {
-            selectedConversation = latest;
-            await showConversation(latest, list, feed, form);
-          }
-          if (event.event_id) socket?.send(JSON.stringify({ type: 'ack', event_id: event.event_id }));
-        },
-      });
-    } catch { /* HTTP conversation history remains available if notifications are offline. */ }
   } catch (error) {
     list?.replaceChildren(emptyState(`Не удалось загрузить сообщения: ${error.message}`, 'Войти', 'login.html'));
   }
@@ -3309,6 +3621,7 @@ async function start() {
   }
 
   bindGlobalUi();
+  await initializeNotificationCenter();
   registerAuthForms();
   await applyModeratorCatalogNavigation();
   bindCatalog();

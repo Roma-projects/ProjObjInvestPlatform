@@ -22,6 +22,23 @@ from app.security import create_access_token, create_refresh_token, hash_passwor
 
 settings = get_settings()
 
+_CONSUME_VERIFICATION_SCRIPT = """
+local attempts = tonumber(redis.call('GET', KEYS[1]) or '0')
+if attempts >= tonumber(ARGV[3]) then return -1 end
+local owner = redis.call('GET', KEYS[2])
+local active_hash = redis.call('GET', KEYS[3])
+if owner == ARGV[1] and active_hash == ARGV[2] then
+  redis.call('DEL', KEYS[1], KEYS[2], KEYS[3])
+  return 1
+end
+if attempts == 0 then
+  redis.call('SET', KEYS[1], '1', 'EX', ARGV[4])
+else
+  redis.call('INCR', KEYS[1])
+end
+return 0
+"""
+
 
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
@@ -43,9 +60,15 @@ class IdentityService:
 
     async def _new_code(self, user: User) -> str:
         for _ in range(8):
-            code = f"{secrets.randbelow(1_000_000):06d}"
+            code = f"{secrets.randbelow(100_000_000):08d}"
             key = f"auth:verification:{_verify_key(code)}"
             if await self.redis.set(key, str(user.id), ex=settings.verification_code_ttl_seconds, nx=True):
+                active_key = f"auth:verification:active:{user.id}"
+                previous_hash = await self.redis.get(active_key)
+                if previous_hash:
+                    await self.redis.delete(f"auth:verification:{previous_hash}")
+                await self.redis.set(active_key, _verify_key(code), ex=settings.verification_code_ttl_seconds)
+                await self.redis.delete(f"auth:verification:attempts:{user.id}")
                 return code
         raise RuntimeError("Could not generate a unique verification code")
 
@@ -166,17 +189,28 @@ class IdentityService:
                 .values(is_revoked=True)
             )
 
-    async def verify_email(self, code: str) -> User:
-        key = f"auth:verification:{_verify_key(code)}"
-        user_id = await self.redis.get(key)
-        if not user_id:
+    async def verify_email(self, code: str, challenge_user_id: int) -> User:
+        digest = _verify_key(code)
+        attempt_key = f"auth:verification:attempts:{challenge_user_id}"
+        result = await self.redis.eval(
+            _CONSUME_VERIFICATION_SCRIPT,
+            3,
+            attempt_key,
+            f"auth:verification:{digest}",
+            f"auth:verification:active:{challenge_user_id}",
+            str(challenge_user_id),
+            digest,
+            5,
+            settings.verification_code_ttl_seconds,
+        )
+        if result == -1:
+            raise HTTPException(status_code=429, detail="Too many invalid verification attempts")
+        if result != 1:
             raise HTTPException(status_code=400, detail="Verification code is invalid or expired")
-        user = await self.session.get(User, int(user_id))
+        user = await self.session.get(User, challenge_user_id)
         if not user:
-            await self.redis.delete(key)
             raise HTTPException(status_code=400, detail="Verification code is invalid or expired")
         user.email_verified = True
-        await self.redis.delete(key)
         return user
 
     async def resend_code(self, user: User, channel: str) -> None:

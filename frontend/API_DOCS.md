@@ -12,7 +12,7 @@
 - `POST /api/auth/logout` — JSON: `{ "logout_all_devices": false }`.
 - `GET /api/auth/me` и `PATCH /api/auth/me` — текущий профиль; patch принимает поля профиля и `notification_preferences`.
 - `POST /api/auth/me/avatar` — multipart-поле `file`; JPEG/PNG/WebP, максимум 5 МБ. Изображение проверяется и повторно кодируется Auth-сервисом.
-- `POST /api/auth/verify` — JSON: `{ "type": "email", "code": "123456" }`.
+- `POST /api/auth/verify` — JSON: `{ "type": "email", "code": "12345678" }`; requires the short-lived verification challenge cookie and allows at most five invalid codes per challenge.
 - `POST /api/auth/resend-code` — JSON: `{ "type": "email" }`; требуется cookie подтверждения.
 - `POST /api/auth/forgot-password` — JSON: `{ "email": "user@example.com" }`.
 - `POST /api/auth/reset-password` — JSON: `token_from_email`, `new_password`, `new_password_confirm`.
@@ -89,7 +89,8 @@
 - `GET /api/messages/conversations` — список диалогов.
 - `GET /api/messages/conversations/{conversation_id}/messages` — история диалога.
 - `POST /api/messages/read` — JSON: `{ "message_ids": ["..."] }`.
-- `/ws/notifications?token=<access_token>` — WebSocket уведомлений. Query-параметр используется только для handshake WebSocket: браузерный WebSocket API не поддерживает Authorization header.
+- `GET /api/notifications` — последние уведомления текущего пользователя; `POST /api/notifications/read` помечает переданные `event_ids` прочитанными.
+- `POST /api/notifications/ticket` выдаёт одноразовый ticket на 30 секунд. Клиент отправляет его первым сообщением после подключения к `/ws/notifications`; в URL WebSocket нет учётных данных.
 
 ## Что пока не маршрутизируется
 

@@ -116,7 +116,7 @@ async def get_private_document(
     upstream_request = client.build_request(
         "GET",
         f"{settings.listing_url}/internal/listings/{case.listing_id}/documents/{field}",
-        headers={"X-Moderation-Token": settings.moderation_service_shared_secret},
+        headers={"X-Moderation-Token": settings.listing_moderation_secret},
     )
     try:
         upstream = await client.send(upstream_request, stream=True)
@@ -167,7 +167,7 @@ async def add_to_blacklist(
     try:
         response = await request.app.state.http.get(
             f"{settings.auth_url}/internal/auth/users/{body.user_id}",
-            headers={"X-Moderation-Token": settings.moderation_service_shared_secret},
+            headers={"X-Moderation-Token": settings.auth_moderation_secret},
         )
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=503, detail="Auth identity lookup is unavailable") from exc
@@ -189,7 +189,7 @@ async def remove_from_blacklist(
     try:
         response = await request.app.state.http.get(
             f"{settings.auth_url}/internal/auth/users/{user_id}",
-            headers={"X-Moderation-Token": settings.moderation_service_shared_secret},
+            headers={"X-Moderation-Token": settings.auth_moderation_secret},
         )
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=503, detail="Auth identity lookup is unavailable") from exc

@@ -7,9 +7,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
-    redis_url: str = "redis://localhost:6379/0"
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/analytic_ai_db"
+    rabbitmq_url: str
+    redis_url: str
+    database_url: str
     qwen_base_url: str = ""
     qwen_api_key: str = ""
     qwen_model: str = "Qwen2.5-VL-7B-Instruct"

@@ -1,5 +1,6 @@
 /** Messaging HTTP endpoints plus the notifications WebSocket. */
 import { API_BASE, apiRequest, getAccessToken } from './api.js';
+import { issueNotificationTicket } from './notifications.js';
 
 export function getConversations() {
   return apiRequest(API_BASE.messaging, '/api/messages/conversations');
@@ -37,14 +38,14 @@ export function sendMessage(participantId, text, clientMessageId = crypto.random
   });
 }
 
-/** Browser WebSocket APIs cannot set Authorization headers, so this handshake uses the documented token query. */
-export function connectNotifications(handlers = {}) {
-  const token = getAccessToken();
-  if (!token) throw new Error('Для подключения к уведомлениям войдите в аккаунт');
+/** The access token stays in the authenticated API request; the WS URL carries no credentials. */
+export async function connectNotifications(handlers = {}) {
+  if (!getAccessToken()) throw new Error('Для подключения к уведомлениям войдите в аккаунт');
+  const { ticket } = await issueNotificationTicket();
+  if (!ticket) throw new Error('Не удалось получить ключ подключения к уведомлениям');
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const url = `${protocol}//${location.host}/ws/notifications?token=${encodeURIComponent(token)}`;
-  const socket = new WebSocket(url);
-  socket.onopen = () => handlers.onOpen?.();
+  const socket = new WebSocket(`${protocol}//${location.host}/ws/notifications`);
+  socket.onopen = () => socket.send(JSON.stringify({ type: 'authenticate', ticket }));
   socket.onclose = (event) => handlers.onClose?.(event);
   socket.onerror = (event) => handlers.onError?.(event);
   socket.onmessage = (event) => {
@@ -53,6 +54,14 @@ export function connectNotifications(handlers = {}) {
       message = JSON.parse(event.data);
     } catch {
       handlers.onError?.(new Error('Сервер прислал некорректное событие'));
+      return;
+    }
+    if (message?.type === 'ready') {
+      handlers.onOpen?.();
+      return;
+    }
+    if (message?.type === 'error') {
+      handlers.onError?.(new Error('Не удалось подключить уведомления'));
       return;
     }
     handlers.onEvent?.(message);

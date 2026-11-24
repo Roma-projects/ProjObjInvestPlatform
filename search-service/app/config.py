@@ -4,6 +4,7 @@
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,10 +13,10 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    redis_url: str = "redis://localhost:6379/0"
-    gateway_shared_secret: str
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
-    mongodb_url: str = "mongodb://localhost:27017/search_catalog"
+    redis_url: str
+    gateway_shared_secret: str = Field(min_length=32)
+    rabbitmq_url: str
+    mongodb_url: str
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
     service_name: str = "search-service"

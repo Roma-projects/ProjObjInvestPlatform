@@ -1,12 +1,18 @@
 name: real-estate-business-platform
 
+x-app-hardening: &app-hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+  read_only: true
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+
 services:
   nginx:
     build:
       context: .
       dockerfile: nginx/Dockerfile
     ports:
-      - "${HTTP_PORT:-8080}:80"
+      - "${HTTP_PORT:-8080}:8080"
     volumes:
       - public_uploads:/public_uploads:ro
       - auth_avatars:/auth_avatars:ro
@@ -15,6 +21,9 @@ services:
         condition: service_healthy
       notification-service:
         condition: service_healthy
+      volume-permissions:
+        condition: service_completed_successfully
+    <<: *app-hardening
     networks: [edge, backend]
     restart: unless-stopped
 
@@ -22,11 +31,17 @@ services:
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
+    <<: *app-hardening
     environment:
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
-      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
+      JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64:?Set JWT_PUBLIC_KEY_B64 in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
+      AUTH_GATEWAY_SECRET: ${AUTH_GATEWAY_SECRET:?Set AUTH_GATEWAY_SECRET in the root .env file}
+      LISTING_GATEWAY_SECRET: ${LISTING_GATEWAY_SECRET:?Set LISTING_GATEWAY_SECRET in the root .env file}
+      SEARCH_GATEWAY_SECRET: ${SEARCH_GATEWAY_SECRET:?Set SEARCH_GATEWAY_SECRET in the root .env file}
+      MODERATION_GATEWAY_SECRET: ${MODERATION_GATEWAY_SECRET:?Set MODERATION_GATEWAY_SECRET in the root .env file}
+      MESSAGING_GATEWAY_SECRET: ${MESSAGING_GATEWAY_SECRET:?Set MESSAGING_GATEWAY_SECRET in the root .env file}
+      NOTIFICATION_GATEWAY_SECRET: ${NOTIFICATION_GATEWAY_SECRET:?Set NOTIFICATION_GATEWAY_SECRET in the root .env file}
+      REDIS_URL: redis://gateway:${GATEWAY_REDIS_PASSWORD:?Set GATEWAY_REDIS_PASSWORD in the root .env file}@redis:6379/0
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       AUTH_URL: ${AUTH_SERVICE_URL:-http://auth-service:8000}
       LISTING_URL: ${LISTING_SERVICE_URL:-http://listing-service:8000}
@@ -34,7 +49,8 @@ services:
       NOTIFICATION_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8000}
       MESSAGING_URL: ${MESSAGING_SERVICE_URL:-http://messaging-service:8000}
       MODERATION_URL: ${MODERATION_SERVICE_URL:-http://moderation-service:8000}
-      AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-30}
+      AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-15}
+      UPLOAD_RATE_LIMIT_PER_MINUTE: ${UPLOAD_RATE_LIMIT_PER_MINUTE:-10}
     depends_on:
       redis:
         condition: service_healthy
@@ -60,16 +76,18 @@ services:
     build:
       context: .
       dockerfile: auth-service/Dockerfile
+    <<: *app-hardening
     env_file:
       - auth-service/.env
     environment:
-      DATABASE_URL: ${AUTH_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/auth_db}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      DATABASE_URL: postgresql+asyncpg://auth_app:${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}@postgres:5432/auth_db
+      JWT_PRIVATE_KEY_B64: ${JWT_PRIVATE_KEY_B64:?Set JWT_PRIVATE_KEY_B64 in the root .env file}
+      JWT_PUBLIC_KEY_B64: ${JWT_PUBLIC_KEY_B64:?Set JWT_PUBLIC_KEY_B64 in the root .env file}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-RS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
-      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
+      REDIS_URL: redis://auth:${AUTH_REDIS_PASSWORD:?Set AUTH_REDIS_PASSWORD in the root .env file}@redis:6379/0
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -79,11 +97,15 @@ services:
       SMTP_START_TLS: ${SMTP_START_TLS:-true}
       REFRESH_COOKIE_SECURE: ${REFRESH_COOKIE_SECURE:-true}
       AVATAR_UPLOAD_DIR: /auth_avatars
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
+      GATEWAY_SHARED_SECRET: ${AUTH_GATEWAY_SECRET:?Set AUTH_GATEWAY_SECRET in the root .env file}
+      MODERATION_SERVICE_SHARED_SECRET: ${AUTH_MODERATION_SECRET:?Set AUTH_MODERATION_SECRET in the root .env file}
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
+      volume-permissions:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       rabbitmq:
@@ -102,23 +124,28 @@ services:
     build:
       context: .
       dockerfile: listing-service/Dockerfile
-    env_file:
-      - listing-service/.env
+    <<: *app-hardening
     environment:
-      DATABASE_URL: ${LISTING_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/listing_db}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      DATABASE_URL: postgresql+asyncpg://listing_app:${LISTING_DB_PASSWORD:?Set LISTING_DB_PASSWORD in the root .env file}@postgres:5432/listing_db
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       PUBLIC_UPLOAD_DIR: /public_uploads
       PRIVATE_UPLOAD_DIR: /private_uploads
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
+      UPLOAD_DIR: /tmp/uploads
+      CORS_ORIGINS: ${LISTING_CORS_ORIGINS:-http://localhost:3000}
+      NOMINATIM_URL: ${NOMINATIM_URL:-https://nominatim.openstreetmap.org}
+      NOMINATIM_USER_AGENT: ${NOMINATIM_USER_AGENT:-real-estate-aggregator/1.0}
+      GATEWAY_SHARED_SECRET: ${LISTING_GATEWAY_SECRET:?Set LISTING_GATEWAY_SECRET in the root .env file}
+      MODERATION_SERVICE_SHARED_SECRET: ${LISTING_MODERATION_SECRET:?Set LISTING_MODERATION_SECRET in the root .env file}
     volumes:
       - public_uploads:/public_uploads
       - private_uploads:/private_uploads
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
+      volume-permissions:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -133,18 +160,20 @@ services:
     build:
       context: .
       dockerfile: moderation-service/Dockerfile
+    <<: *app-hardening
     environment:
-      DATABASE_URL: ${MODERATION_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/moderation_db}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
-      MODERATION_SERVICE_SHARED_SECRET: ${MODERATION_SHARED_SECRET:?Set MODERATION_SHARED_SECRET in the root .env file}
+      DATABASE_URL: postgresql+asyncpg://moderation_app:${MODERATION_DB_PASSWORD:?Set MODERATION_DB_PASSWORD in the root .env file}@postgres:5432/moderation_db
+      GATEWAY_SHARED_SECRET: ${MODERATION_GATEWAY_SECRET:?Set MODERATION_GATEWAY_SECRET in the root .env file}
+      AUTH_MODERATION_SECRET: ${AUTH_MODERATION_SECRET:?Set AUTH_MODERATION_SECRET in the root .env file}
+      LISTING_MODERATION_SECRET: ${LISTING_MODERATION_SECRET:?Set LISTING_MODERATION_SECRET in the root .env file}
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       LISTING_URL: ${LISTING_SERVICE_URL:-http://listing-service:8000}
       AUTH_URL: ${AUTH_SERVICE_URL:-http://auth-service:8000}
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
       auth-service:
@@ -163,18 +192,21 @@ services:
     build:
       context: .
       dockerfile: search-service/Dockerfile
+    <<: *app-hardening
     env_file:
       - search-service/.env
     environment:
-      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
-      MONGODB_URL: ${SEARCH_MONGODB_URL_DOCKER:-mongodb://mongo:27017/search_catalog}
+      REDIS_URL: redis://search:${SEARCH_REDIS_PASSWORD:?Set SEARCH_REDIS_PASSWORD in the root .env file}@redis:6379/0
+      MONGODB_URL: mongodb://search_app:${SEARCH_MONGO_PASSWORD:?Set SEARCH_MONGO_PASSWORD in the root .env file}@mongo:27017/search_catalog?authSource=search_catalog
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
+      GATEWAY_SHARED_SECRET: ${SEARCH_GATEWAY_SECRET:?Set SEARCH_GATEWAY_SECRET in the root .env file}
     volumes:
       - public_uploads:/public_uploads:ro
     depends_on:
       redis:
         condition: service_healthy
+      mongo-bootstrap:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -189,14 +221,17 @@ services:
     build:
       context: .
       dockerfile: analytic-scripts/Dockerfile
+    <<: *app-hardening
     env_file:
       - analytic-scripts/.env
     environment:
-      MONGODB_URL: ${ANALYTIC_SCRIPTS_MONGODB_URL_DOCKER:-mongodb://mongo:27017/analytic_scripts_db}
+      MONGODB_URL: mongodb://analytic_scripts_app:${ANALYTIC_SCRIPTS_MONGO_PASSWORD:?Set ANALYTIC_SCRIPTS_MONGO_PASSWORD in the root .env file}@mongo:27017/analytic_scripts_db?authSource=analytic_scripts_db
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-bootstrap:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -211,17 +246,22 @@ services:
     build:
       context: .
       dockerfile: parsers/Dockerfile
+    <<: *app-hardening
     env_file:
       - parsers/.env
     environment:
-      MONGODB_URL: ${PARSERS_MONGODB_URL_DOCKER:-mongodb://mongo:27017/parsers_db}
-      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-amqp://${RABBITMQ_DEFAULT_USER:-app}:${RABBITMQ_DEFAULT_PASS:-change-this-password}@rabbitmq:5672/}
+      MONGODB_URL: mongodb://parsers_app:${PARSERS_MONGO_PASSWORD:?Set PARSERS_MONGO_PASSWORD in the root .env file}@mongo:27017/parsers_db?authSource=parsers_db
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       PARSERS_STORAGE_DIR: /parsers_storage
     volumes:
       - parsers_storage:/parsers_storage
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-bootstrap:
+        condition: service_completed_successfully
+      volume-permissions:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -236,11 +276,12 @@ services:
     build:
       context: .
       dockerfile: analytic-ai/Dockerfile
+    <<: *app-hardening
     env_file:
       - analytic-ai/.env
     environment:
-      DATABASE_URL: ${ANALYTIC_AI_DATABASE_URL_DOCKER:-postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}@postgres:5432/analytic_ai_db}
-      REDIS_URL: ${REDIS_URL_DOCKER:-redis://redis:6379/0}
+      DATABASE_URL: postgresql+asyncpg://analytic_ai_app:${ANALYTIC_AI_DB_PASSWORD:?Set ANALYTIC_AI_DB_PASSWORD in the root .env file}@postgres:5432/analytic_ai_db
+      REDIS_URL: redis://analytic_ai:${ANALYTIC_AI_REDIS_PASSWORD:?Set ANALYTIC_AI_REDIS_PASSWORD in the root .env file}@redis:6379/0
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
       PUBLIC_UPLOAD_DIR: /public_uploads
     volumes:
@@ -248,6 +289,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      postgres-bootstrap:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       rabbitmq:
@@ -267,17 +310,17 @@ services:
     build:
       context: .
       dockerfile: messaging-service/Dockerfile
-    env_file:
-      - messaging-service/.env
+    <<: *app-hardening
     environment:
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
-      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
-      MONGODB_URL: ${MESSAGING_MONGODB_URL_DOCKER:-mongodb://mongo:27017/messaging_db}
-      GATEWAY_SHARED_SECRET: ${GATEWAY_SHARED_SECRET:?Set GATEWAY_SHARED_SECRET in the root .env file}
+      MONGODB_URL: mongodb://messaging_app:${MESSAGING_MONGO_PASSWORD:?Set MESSAGING_MONGO_PASSWORD in the root .env file}@mongo:27017/messaging_db?authSource=messaging_db
+      GATEWAY_SHARED_SECRET: ${MESSAGING_GATEWAY_SECRET:?Set MESSAGING_GATEWAY_SECRET in the root .env file}
+      CORS_ORIGINS: ${MESSAGING_CORS_ORIGINS:-http://localhost:3000}
     depends_on:
       mongo:
         condition: service_healthy
+      mongo-bootstrap:
+        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
     healthcheck:
@@ -292,17 +335,20 @@ services:
     build:
       context: .
       dockerfile: notification-service/Dockerfile
+    <<: *app-hardening
     env_file:
       - notification-service/.env
     environment:
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:?Set RABBITMQ_URL_DOCKER in the root .env file}
-      MONGODB_URL: ${NOTIFICATION_MONGODB_URL_DOCKER:-mongodb://mongo:27017/notification_db}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the root .env file}
+      MONGODB_URL: mongodb://notification_app:${NOTIFICATION_MONGO_PASSWORD:?Set NOTIFICATION_MONGO_PASSWORD in the root .env file}@mongo:27017/notification_db?authSource=notification_db
+      GATEWAY_SHARED_SECRET: ${NOTIFICATION_GATEWAY_SECRET:?Set NOTIFICATION_GATEWAY_SECRET in the root .env file}
     depends_on:
       rabbitmq:
         condition: service_healthy
       mongo:
         condition: service_healthy
+      mongo-bootstrap:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
       interval: 10s
@@ -315,8 +361,12 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
       POSTGRES_DB: postgres
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
+      LISTING_DB_PASSWORD: ${LISTING_DB_PASSWORD:?Set LISTING_DB_PASSWORD in the root .env file}
+      MODERATION_DB_PASSWORD: ${MODERATION_DB_PASSWORD:?Set MODERATION_DB_PASSWORD in the root .env file}
+      ANALYTIC_AI_DB_PASSWORD: ${ANALYTIC_AI_DB_PASSWORD:?Set ANALYTIC_AI_DB_PASSWORD in the root .env file}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql:ro
@@ -328,27 +378,161 @@ services:
     networks: [backend]
     restart: unless-stopped
 
+  postgres-bootstrap:
+    image: postgres:15-alpine
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in the root .env file}
+      LISTING_DB_PASSWORD: ${LISTING_DB_PASSWORD:?Set LISTING_DB_PASSWORD in the root .env file}
+      MODERATION_DB_PASSWORD: ${MODERATION_DB_PASSWORD:?Set MODERATION_DB_PASSWORD in the root .env file}
+      ANALYTIC_AI_DB_PASSWORD: ${ANALYTIC_AI_DB_PASSWORD:?Set ANALYTIC_AI_DB_PASSWORD in the root .env file}
+    volumes:
+      - ./scripts/init-databases.sql:/init-databases.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["sh", "-c", "psql --set=ON_ERROR_STOP=1 --username=\"$${PGUSER}\" --dbname=postgres --file=/init-databases.sql"]
+    networks: [backend]
+    restart: "no"
+
+  volume-permissions:
+    image: alpine:3.20
+    user: "0:0"
+    command: ["sh", "-ec", "for directory in /auth_avatars /public_uploads /private_uploads /parsers_storage; do mkdir -p \"$directory\"; chown -R 10001:10001 \"$directory\"; done"]
+    volumes:
+      - auth_avatars:/auth_avatars
+      - public_uploads:/public_uploads
+      - private_uploads:/private_uploads
+      - parsers_storage:/parsers_storage
+    restart: "no"
+
   mongo:
     image: mongo:7
+    command: ["mongod", "--auth", "--bind_ip_all"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in the root .env file}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in the root .env file}
     ports:
       - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test: ["CMD-SHELL", "mongosh --quiet --username \"$${MONGO_INITDB_ROOT_USERNAME}\" --password \"$${MONGO_INITDB_ROOT_PASSWORD}\" --authenticationDatabase admin --eval \"db.adminCommand('ping').ok\""]
       interval: 10s
       timeout: 5s
       retries: 10
     networks: [backend]
     restart: unless-stopped
 
+  mongo-bootstrap:
+    image: mongo:7
+    environment:
+      MONGO_ADMIN_URI: mongodb://${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in the root .env file}:${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in the root .env file}@mongo:27017/admin?authSource=admin
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in the root .env file}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in the root .env file}
+      SEARCH_MONGO_PASSWORD: ${SEARCH_MONGO_PASSWORD:?Set SEARCH_MONGO_PASSWORD in the root .env file}
+      ANALYTIC_SCRIPTS_MONGO_PASSWORD: ${ANALYTIC_SCRIPTS_MONGO_PASSWORD:?Set ANALYTIC_SCRIPTS_MONGO_PASSWORD in the root .env file}
+      PARSERS_MONGO_PASSWORD: ${PARSERS_MONGO_PASSWORD:?Set PARSERS_MONGO_PASSWORD in the root .env file}
+      MESSAGING_MONGO_PASSWORD: ${MESSAGING_MONGO_PASSWORD:?Set MESSAGING_MONGO_PASSWORD in the root .env file}
+      NOTIFICATION_MONGO_PASSWORD: ${NOTIFICATION_MONGO_PASSWORD:?Set NOTIFICATION_MONGO_PASSWORD in the root .env file}
+    volumes:
+      - ./scripts/create-mongo-app-users.js:/scripts/create-mongo-app-users.js:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
+    entrypoint: ["bash", "-lc"]
+    command: ["mongosh \"$${MONGO_ADMIN_URI}\" --quiet --file /scripts/create-mongo-app-users.js"]
+    networks: [backend]
+    restart: "no"
+
+  mongo-legacy-auth-migration:
+    image: mongo:7
+    profiles: [legacy-mongo-auth-migration]
+    environment:
+      MONGO_ADMIN_URI: mongodb://mongo:27017/admin
+      MONGO_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?Set MONGO_ROOT_USERNAME in the root .env file}
+      MONGO_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Set MONGO_ROOT_PASSWORD in the root .env file}
+      SEARCH_MONGO_PASSWORD: ${SEARCH_MONGO_PASSWORD:?Set SEARCH_MONGO_PASSWORD in the root .env file}
+      ANALYTIC_SCRIPTS_MONGO_PASSWORD: ${ANALYTIC_SCRIPTS_MONGO_PASSWORD:?Set ANALYTIC_SCRIPTS_MONGO_PASSWORD in the root .env file}
+      PARSERS_MONGO_PASSWORD: ${PARSERS_MONGO_PASSWORD:?Set PARSERS_MONGO_PASSWORD in the root .env file}
+      MESSAGING_MONGO_PASSWORD: ${MESSAGING_MONGO_PASSWORD:?Set MESSAGING_MONGO_PASSWORD in the root .env file}
+      NOTIFICATION_MONGO_PASSWORD: ${NOTIFICATION_MONGO_PASSWORD:?Set NOTIFICATION_MONGO_PASSWORD in the root .env file}
+    volumes:
+      - ./scripts/create-mongo-app-users.js:/scripts/create-mongo-app-users.js:ro
+    entrypoint: ["bash", "-lc"]
+    command: ["mongosh \"$${MONGO_ADMIN_URI}\" --quiet --file /scripts/create-mongo-app-users.js"]
+    networks: [backend]
+    restart: "no"
+
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes"]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      GATEWAY_REDIS_PASSWORD: ${GATEWAY_REDIS_PASSWORD:?Set GATEWAY_REDIS_PASSWORD in the root .env file}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --user
+      - default
+      - off
+      - --user
+      - gateway
+      - on
+      - ">${GATEWAY_REDIS_PASSWORD:?Set GATEWAY_REDIS_PASSWORD in the root .env file}"
+      - "~gateway:*"
+      - +ping
+      - +get
+      - +set
+      - +del
+      - +incr
+      - +expire
+      - +eval
+      - --user
+      - auth
+      - on
+      - ">${AUTH_REDIS_PASSWORD:?Set AUTH_REDIS_PASSWORD in the root .env file}"
+      - "~auth:*"
+      - "~blacklist:*"
+      - +ping
+      - +get
+      - +set
+      - +setex
+      - +del
+      - +incr
+      - +expire
+      - +eval
+      - --user
+      - search
+      - on
+      - ">${SEARCH_REDIS_PASSWORD:?Set SEARCH_REDIS_PASSWORD in the root .env file}"
+      - "~search:*"
+      - "~geocoding:*"
+      - +ping
+      - +get
+      - +set
+      - +setex
+      - +del
+      - +scan
+      - +eval
+      - +time
+      - --user
+      - analytic_ai
+      - on
+      - ">${ANALYTIC_AI_REDIS_PASSWORD:?Set ANALYTIC_AI_REDIS_PASSWORD in the root .env file}"
+      - "~ai:*"
+      - +ping
+      - +get
+      - +set
+      - +setex
+      - +del
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli --user gateway --pass \"$${GATEWAY_REDIS_PASSWORD}\" ping"]
       interval: 5s
       timeout: 3s
       retries: 10

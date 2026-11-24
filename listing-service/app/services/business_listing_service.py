@@ -7,6 +7,7 @@ import json
 import logging
 import shutil
 import uuid
+import warnings
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from uuid import UUID
 import aiofiles
 from fastapi import HTTPException, UploadFile
 from fastapi.encoders import jsonable_encoder
+from PIL import Image, ImageOps, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,6 +43,55 @@ MIME_BY_SUFFIX = {
     ".mp4": {"video/mp4"}, ".mov": {"video/quicktime"},
 }
 MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+MAX_IMAGE_PIXELS = 25_000_000
+
+
+def _validate_and_sanitize_file(path: Path, suffix: str, content_type: str) -> None:
+    """Validate file signatures and re-encode public images to strip active metadata."""
+    if suffix in {".jpg", ".jpeg", ".png", ".webp"}:
+        expected_format = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}[suffix]
+        expected_mime = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp"}[expected_format]
+        sanitized = path.with_name(f"{path.name}.sanitized")
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", Image.DecompressionBombWarning)
+                with Image.open(path) as source:
+                    if source.format != expected_format or source.n_frames != 1:
+                        raise ValueError("Image type does not match the file extension")
+                    if source.width * source.height > MAX_IMAGE_PIXELS:
+                        raise ValueError("Image dimensions exceed the supported limit")
+                    source.verify()
+                with Image.open(path) as source:
+                    source.load()
+                    image = ImageOps.exif_transpose(source)
+                    if expected_format == "JPEG":
+                        image = image.convert("RGB")
+                    elif expected_format == "PNG" and image.mode not in {"RGB", "RGBA", "L"}:
+                        image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+                    elif expected_format == "WEBP" and image.mode not in {"RGB", "RGBA"}:
+                        image = image.convert("RGBA" if "A" in image.getbands() else "RGB")
+                    image.save(sanitized, format=expected_format)
+            if sanitized.stat().st_size > MAX_UPLOAD_BYTES:
+                raise ValueError("Sanitized image exceeds the supported file size")
+            sanitized.replace(path)
+        except (OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning,
+                UnidentifiedImageError) as exc:
+            sanitized.unlink(missing_ok=True)
+            raise HTTPException(status_code=415, detail="File is not a valid supported image") from exc
+        if content_type != expected_mime:
+            raise HTTPException(status_code=415, detail="Image content type does not match its contents")
+        return
+
+    with path.open("rb") as uploaded:
+        header = uploaded.read(16)
+        if suffix == ".pdf":
+            uploaded.seek(max(0, path.stat().st_size - 1024))
+            trailer = uploaded.read(1024)
+            valid = header.startswith(b"%PDF-") and b"%%EOF" in trailer
+        else:
+            valid = len(header) >= 12 and header[4:8] == b"ftyp"
+    if not valid:
+        raise HTTPException(status_code=415, detail="File signature does not match the declared type")
 
 
 def to_response(row: BusinessListing) -> BusinessListingResponse:
@@ -222,6 +273,11 @@ class BusinessListingService:
         except Exception:
             target_path.unlink(missing_ok=True)
             raise
+        try:
+            await asyncio.to_thread(_validate_and_sanitize_file, target_path, suffix, upload.content_type or "")
+        except Exception:
+            target_path.unlink(missing_ok=True)
+            raise
         relative = f"listings/{listing_id}/{stored_name}"
         replaced_public_path = None
         if is_public:
@@ -288,6 +344,11 @@ class BusinessListingService:
                     if size > MAX_UPLOAD_BYTES:
                         raise HTTPException(status_code=413, detail="Maximum file size is 100 MB")
                     await destination.write(chunk)
+        except Exception:
+            target_path.unlink(missing_ok=True)
+            raise
+        try:
+            await asyncio.to_thread(_validate_and_sanitize_file, target_path, suffix, upload.content_type or "")
         except Exception:
             target_path.unlink(missing_ok=True)
             raise

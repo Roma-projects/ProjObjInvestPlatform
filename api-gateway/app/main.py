@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import logging
@@ -26,6 +27,34 @@ local count = redis.call('INCR', KEYS[1])
 if count == 1 then redis.call('EXPIRE', KEYS[1], 60) end
 return count
 """
+
+
+class RequestBodyTooLarge(Exception):
+    pass
+
+
+async def _read_limited_body(request: Request, limit: int) -> bytes:
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        raise HTTPException(status_code=413, detail="Request body is too large")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > limit:
+            raise HTTPException(status_code=413, detail="Request body is too large")
+        body.extend(chunk)
+    return bytes(body)
+
+
+async def _stream_limited_body(request: Request, limit: int):
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > limit:
+        raise RequestBodyTooLarge
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > limit:
+            raise RequestBodyTooLarge
+        yield chunk
 
 
 @asynccontextmanager
@@ -86,8 +115,9 @@ async def _verify_token(request: Request) -> dict:
     if scheme.lower() != "bearer" or not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Bearer token required")
     try:
-        payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
+        public_key = base64.b64decode(settings.jwt_public_key_b64, validate=True)
+        payload = jwt.decode(token, public_key, algorithms=[settings.jwt_algorithm])
+    except (JWTError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token") from exc
     if payload.get("type") != "access":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token required")
@@ -140,10 +170,19 @@ async def route_request(path: str, request: Request) -> Response:
         raise HTTPException(status_code=404, detail="Legacy API route not found")
     # Nginx overwrites X-Real-IP with the socket peer address before proxying.
     client_ip = request.headers.get("X-Real-IP") or (request.client.host if request.client else "unknown")
-    bucket = hashlib.sha256(f"{client_ip}:{request.method}:{full_path}".encode()).hexdigest()
+    is_upload = full_path == "/auth/me/avatar" or (
+        full_path.startswith("/listings/") and "/files/" in full_path
+    )
+    rate_path = "uploads" if is_upload else full_path
+    bucket = hashlib.sha256(f"{client_ip}:{request.method}:{rate_path}".encode()).hexdigest()
     count = await request.app.state.redis.eval(_RATE_LIMIT_SCRIPT, 1, f"gateway:rate:{bucket}")
-    auth_sensitive_path = full_path in {"/auth/login", "/auth/register", "/auth/forgot-password", "/auth/resend-code"}
-    limit = settings.auth_rate_limit_per_minute if auth_sensitive_path else settings.rate_limit_per_minute
+    auth_sensitive_path = full_path in {
+        "/auth/login", "/auth/register", "/auth/forgot-password", "/auth/resend-code", "/auth/verify",
+    }
+    if is_upload:
+        limit = settings.upload_rate_limit_per_minute
+    else:
+        limit = settings.auth_rate_limit_per_minute if auth_sensitive_path else settings.rate_limit_per_minute
     if count > limit:
         raise HTTPException(status_code=429, detail="Rate limit exceeded", headers={"Retry-After": "60"})
 
@@ -157,7 +196,10 @@ async def route_request(path: str, request: Request) -> Response:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Moderator role required")
 
     if full_path == "/messages" and request.method == "POST":
-        body = await request.json()
+        try:
+            body = json.loads(await _read_limited_body(request, 16 * 1024))
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise HTTPException(status_code=400, detail="Invalid JSON request body") from exc
         if not isinstance(body, dict):
             raise HTTPException(status_code=422, detail="Expected a JSON object")
         body.pop("user_id", None)
@@ -195,59 +237,84 @@ async def route_request(path: str, request: Request) -> Response:
     elif full_path.startswith("/auth/"):
         base_url = settings.auth_url
         upstream_path = full_path
+        service_token = settings.auth_gateway_secret
     elif full_path == "/listings" or full_path.startswith("/listings/"):
         base_url = settings.listing_url
         upstream_path = full_path
+        service_token = settings.listing_gateway_secret
     elif full_path.startswith("/search"):
         base_url = settings.search_url
         upstream_path = _service_path(full_path, "/search", "/api/v1/search")
+        service_token = settings.search_gateway_secret
     elif full_path.startswith("/catalog"):
         base_url = settings.search_url
         upstream_path = _service_path(full_path, "/catalog", "/api/v1/search/catalog")
+        service_token = settings.search_gateway_secret
     elif full_path.startswith("/api/v1/search"):
         base_url = settings.search_url
         upstream_path = full_path
+        service_token = settings.search_gateway_secret
     elif full_path.startswith("/v1/moderation"):
         base_url = settings.moderation_url
         upstream_path = "/api" + full_path
+        service_token = settings.moderation_gateway_secret
     elif full_path.startswith("/api/v1/moderation"):
         base_url = settings.moderation_url
         upstream_path = full_path
+        service_token = settings.moderation_gateway_secret
     elif full_path == "/moderation" or full_path.startswith("/moderation/"):
         base_url = settings.moderation_url
         upstream_path = "/api/v1" + full_path
+        service_token = settings.moderation_gateway_secret
     elif full_path.startswith("/notifications"):
         base_url = settings.notification_url
         upstream_path = full_path
+        service_token = settings.notification_gateway_secret
     elif full_path.startswith("/messages/"):
         base_url = settings.messaging_url
         upstream_path = full_path
+        service_token = settings.messaging_gateway_secret
     else:
         raise HTTPException(status_code=404, detail="API route not found")
 
-    headers = {key: value for key, value in request.headers.items() if key.lower() not in {"host", "content-length", "connection"}}
-    for trusted_header in ("X-Gateway-Token", "X-Authenticated-User-ID", "X-Authenticated-User-Role"):
-        headers.pop(trusted_header, None)
-    headers["X-Gateway-Token"] = settings.gateway_shared_secret
+    hop_by_hop = {"host", "content-length", "connection", "keep-alive", "proxy-authenticate",
+                  "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade"}
+    connection_tokens = {
+        token.strip().lower() for token in request.headers.get("connection", "").split(",") if token.strip()
+    }
+    stripped = hop_by_hop | connection_tokens | {
+        "x-gateway-token", "x-authenticated-user-id", "x-authenticated-user-role",
+    }
+    headers = {key.lower(): value for key, value in request.headers.items() if key.lower() not in stripped}
+    headers["x-gateway-token"] = service_token
     if claims:
-        headers["X-Authenticated-User-ID"] = str(claims.get("user_id") or claims.get("sub"))
-        headers["X-Authenticated-User-Role"] = str(claims.get("role", "user"))
+        headers["x-authenticated-user-id"] = str(claims.get("user_id") or claims.get("sub"))
+        headers["x-authenticated-user-role"] = str(claims.get("role", "user"))
     else:
         # Do not trust identity/role headers sent by an unauthenticated client.
-        headers.pop("X-Authenticated-User-ID", None)
-        headers.pop("X-Authenticated-User-Role", None)
+        headers.pop("x-authenticated-user-id", None)
+        headers.pop("x-authenticated-user-role", None)
     upstream = f"{base_url}{upstream_path}"
     if request.url.query:
         upstream += "?" + request.url.query
-    result = await request.app.state.http.request(
-        request.method,
-        upstream,
-        content=await request.body(),
-        headers=headers,
-        cookies=request.cookies,
-    )
+    if full_path == "/auth/me/avatar":
+        body_limit = 6 * 1024 * 1024
+    elif full_path.startswith("/listings/") and "/files/" in full_path:
+        body_limit = 105 * 1024 * 1024
+    else:
+        body_limit = 2 * 1024 * 1024
+    try:
+        result = await request.app.state.http.request(
+            request.method,
+            upstream,
+            content=_stream_limited_body(request, body_limit),
+            headers=headers,
+            cookies=request.cookies,
+        )
+    except RequestBodyTooLarge as exc:
+        raise HTTPException(status_code=413, detail="Request body is too large") from exc
     response_headers = {
         key: value for key, value in result.headers.items()
-        if key.lower() in {"content-type", "set-cookie", "www-authenticate", "retry-after"}
+        if key.lower() in {"content-type", "set-cookie", "www-authenticate", "retry-after", "cache-control"}
     }
     return Response(content=result.content, status_code=result.status_code, headers=response_headers)

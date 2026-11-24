@@ -22,4 +22,4 @@ cd messaging-service
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Настройки включают `MONGODB_URL`, `RABBITMQ_URL`, `JWT_SECRET_KEY` и `JWT_ALGORITHM`. Для контейнерного запуска сначала поднимите MongoDB, RabbitMQ и API Gateway.
+Настройки включают собственные `MONGODB_URL`, `RABBITMQ_URL` и `GATEWAY_SHARED_SECRET`. Messaging не получает JWT signing key: Gateway подтверждает пользователя и отправляет только проверенный UUID. Для контейнерного запуска сначала поднимите MongoDB с аутентификацией, RabbitMQ и API Gateway.

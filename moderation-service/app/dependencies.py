@@ -1,14 +1,11 @@
 import hmac
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from fastapi import HTTPException, Request, status
 
 from app.config import get_settings
 
 settings = get_settings()
-bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def require_gateway(request: Request) -> None:
@@ -17,22 +14,13 @@ async def require_gateway(request: Request) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="API Gateway required")
 
 
-async def require_moderator(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-) -> dict:
-    if request.headers.get("X-Authenticated-User-Role") != "moderator" or credentials is None:
+async def require_moderator(request: Request) -> dict:
+    """Use identity claims only after the Gateway's per-service secret check."""
+    if request.headers.get("X-Authenticated-User-Role") != "moderator":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Moderator role required")
     try:
-        claims = jwt.decode(credentials.credentials, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
-    except JWTError as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid access token") from exc
-    if claims.get("type") != "access" or claims.get("role") != "moderator":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Moderator role required")
-    try:
-        claims["moderator_id"] = claims.get("user_id") or claims.get("sub")
-        claims["moderator_id"] = UUID(str(claims["moderator_id"]))
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has no user identity") from exc
-    return claims
+        moderator_id = UUID(request.headers.get("X-Authenticated-User-ID", ""))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Gateway user identity is invalid") from exc
+    return {"moderator_id": moderator_id}
 

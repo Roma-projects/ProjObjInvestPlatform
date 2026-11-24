@@ -7,8 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    mongodb_url: str = "mongodb://localhost:27017/parsers_db"
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    mongodb_url: str
+    rabbitmq_url: str
     parsers_storage_dir: str = "./parsers_storage"
     egrul_url: str = "https://egrul.nalog.ru/"
     pb_url: str = "https://pb.nalog.ru/"

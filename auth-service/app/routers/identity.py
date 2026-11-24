@@ -125,7 +125,17 @@ async def reset_password(body: ResetPasswordBody, service: IdentityService = Dep
 async def verify(body: VerifyBody, response: Response, request: Request, service: IdentityService = Depends(get_identity_service)) -> dict[str, str]:
     if body.type == "phone":
         raise HTTPException(status_code=501, detail="SMS verification is not configured")
-    await service.verify_email(body.code)
+    challenge = request.cookies.get(VERIFICATION_COOKIE)
+    if not challenge:
+        raise HTTPException(status_code=401, detail="Verification challenge is required")
+    try:
+        claims = decode_token(challenge)
+        if claims.get("type") != "verification":
+            raise ValueError("Wrong challenge type")
+        challenge_user_id = int(claims["sub"])
+    except (ValueError, KeyError, TypeError) as exc:
+        raise HTTPException(status_code=401, detail="Verification challenge expired") from exc
+    await service.verify_email(body.code, challenge_user_id)
     response.delete_cookie(VERIFICATION_COOKIE, path="/auth", httponly=True, secure=settings.refresh_cookie_secure, samesite="strict")
     return {"detail": "Email verified"}
 

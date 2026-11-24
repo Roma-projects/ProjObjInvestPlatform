@@ -4,6 +4,7 @@
 
 from functools import lru_cache
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,11 +13,10 @@ class Settings(BaseSettings):
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
     )
 
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
-    mongodb_url: str = "mongodb://localhost:27017/notification_db"
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
-    cors_origins: str = "http://localhost:3000"
+    rabbitmq_url: str
+    mongodb_url: str
+    gateway_shared_secret: str = Field(min_length=32)
+    cors_origins: str = ""
     log_level: str = "INFO"
     service_name: str = "notification-service"
     service_port: int = 8006

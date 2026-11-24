@@ -14,5 +14,9 @@ COPY auth-service/app/templates ./app/templates
 COPY auth-service/alembic ./alembic
 COPY auth-service/alembic.ini .
 COPY auth-service/migration_bootstrap.py .
+RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app --home-dir /app --no-create-home app \
+    && mkdir -p /auth_avatars \
+    && chown -R 10001:10001 /app /auth_avatars
+USER 10001:10001
 EXPOSE 8000
 CMD ["sh", "-c", "python migration_bootstrap.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

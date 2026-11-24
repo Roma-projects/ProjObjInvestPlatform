@@ -15,7 +15,7 @@ docker compose logs -f api-gateway
 
 Gateway доступен через Nginx по `http://localhost:8080/api/`. Отдельный порт хоста не публикуется.
 
-Gateway направляет `/api/auth/*` в Auth-сервис; Nginx срезает префикс `/api` при проксировании. Для защиты входа, регистрации и восстановления пароля действует отдельный лимит по IP и маршруту — по умолчанию 30 запросов в минуту. Настройка: `AUTH_RATE_LIMIT_PER_MINUTE` в корневом `.env`.
+Gateway направляет `/api/auth/*` в Auth-сервис; Nginx срезает префикс `/api` при проксировании. Для входа, регистрации, подтверждения почты и восстановления пароля действует лимит по IP — по умолчанию 15 запросов в минуту; для загрузок — 10 в минуту на IP. Настройки: `AUTH_RATE_LIMIT_PER_MINUTE` и `UPLOAD_RATE_LIMIT_PER_MINUTE` в корневом `.env`.
 
 ## Зависимости и локальный запуск
 
@@ -27,6 +27,6 @@ cd api-gateway
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-Для локального запуска должны быть доступны Redis, RabbitMQ и сервисы Auth, Listing, Search, Moderation. В контейнере их адреса заданы в Compose. Основные настройки: `JWT_SECRET_KEY`, `JWT_ALGORITHM`, `GATEWAY_SHARED_SECRET`, `REDIS_URL`, `RABBITMQ_URL`, `AUTH_URL`, `LISTING_URL`, `SEARCH_URL`, `MODERATION_URL`, `NOTIFICATION_URL`.
+Для локального запуска должны быть доступны Redis, RabbitMQ и сервисы Auth, Listing, Search, Moderation. В контейнере их адреса заданы в Compose. Основные настройки: `JWT_PUBLIC_KEY_B64`, шесть отдельных `*_GATEWAY_SECRET`, `REDIS_URL`, `RABBITMQ_URL`, `AUTH_URL`, `LISTING_URL`, `SEARCH_URL`, `MODERATION_URL`, `NOTIFICATION_URL`. JWT подписывает только Auth своим RSA private key; Gateway имеет только public key и проверяет RS256. Не передавайте приватный ключ другим сервисам и не переиспользуйте один Gateway secret между сервисами.
 
 Маршруты `/api/moderation/*` доступны только JWT с ролью `moderator` и направляются в `moderation-service`. Gateway не публикует `/internal/listings/*`; этот внутренний маршрут Listing разрешает только сервисный секрет Moderation. Старые `/api/v1/auth/*` и `/api/v1/listings/*` маршруты отключены.

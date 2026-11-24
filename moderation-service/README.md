@@ -9,7 +9,7 @@
 3. Moderation фиксирует обращение в собственной PostgreSQL. Объявление публикуется автоматически, если AI вернул низкий рейтинг риска, `auto_ok` и `verification_level=basic`, не указал подозрений, все фотографии разрешены, проверки аналитических скриптов присутствуют и прошли без предупреждений, закрытых документов нет, а реестровая проверка ИП подтверждена. Любой сигнал риска, требование углублённой проверки или закрытый документ направляет случай в ручную очередь.
 4. Одобренное решение публикуется через outbox как `moderation.listing.approved`. Listing меняет статус и передаёт в Search только публичные allow-listed поля. Отклонённые и заблокированные записи в Search не попадают.
 
-Moderation не копирует байты документов и не подключает `private_uploads`. Для просмотра файла авторизованный модератор вызывает маршрут Moderation, а сервис получает его через внутренний Listing endpoint с отдельным `MODERATION_SHARED_SECRET`. Gateway не проксирует внутренний маршрут Listing.
+Moderation не копирует байты документов и не подключает `private_uploads`. Для просмотра файла авторизованный модератор вызывает маршрут Moderation, а сервис получает его через внутренний Listing endpoint с отдельным `LISTING_MODERATION_SECRET`; внутренний Auth lookup использует `AUTH_MODERATION_SECRET`. Gateway не проксирует внутренний маршрут Listing.
 
 ## API через Gateway
 
@@ -31,14 +31,14 @@ Exchange `listings` (topic). Вход: `listing.moderation.requested`. Выхо�
 
 Блокировка сначала разрешает стабильный UUID через закрытый Auth endpoint, затем событие с UUID и legacy integer ID распространяется в Auth, Gateway, Listing, Search и Notification. Так удаляются новые бизнес-объявления и объявления старого каталога; Search запоминает оба ID, чтобы не применить запоздавшую публикацию. После разблокировки аккаунт может войти, но объявления остаются снятыми до повторной проверки.
 
-Доступ к очереди выдаётся JWT с `role=moderator`. Роль назначает доверенный администратор в Auth-хранилище; после изменения пользователь должен войти заново, чтобы получить JWT с новой ролью. Например, в `auth_db` администратор может выполнить `UPDATE users SET role = 'moderator' WHERE email = 'moderator@example.com';`. Модератор также видит действие снятия с каталога на карточке опубликованного объявления.
+Gateway проверяет JWT и передаёт Moderation роль и UUID только вместе с выделенным секретом Moderation. Роль назначает доверенный администратор в Auth-хранилище; после изменения пользователь должен войти заново, чтобы получить JWT с новой ролью. Например, в `auth_db` администратор может выполнить `UPDATE users SET role = 'moderator' WHERE email = 'moderator@example.com';`. Модератор также видит действие снятия с каталога на карточке опубликованного объявления. Сам Moderation не получает JWT signing key.
 
 ## Настройки
 
 - `DATABASE_URL` — async PostgreSQL URL для `moderation_db`.
 - `RABBITMQ_URL` — брокер событий.
-- `JWT_SECRET_KEY`, `JWT_ALGORITHM` — проверка moderator access JWT.
-- `GATEWAY_SHARED_SECRET` — проверка запросов от Gateway.
+- `GATEWAY_SHARED_SECRET` — отдельный секрет запросов Gateway→Moderation.
+- `AUTH_MODERATION_SECRET`, `LISTING_MODERATION_SECRET` — разные внутренние ключи Moderation→Auth и Moderation→Listing.
 - `MODERATION_SERVICE_SHARED_SECRET` — доступ Moderation к внутреннему Listing endpoint.
 - `LISTING_URL` — внутренний URL Listing в Compose.
 - `AUTH_URL` — внутренний URL Auth для разрешения UUID в ID прежнего API.

@@ -75,7 +75,15 @@ Copy-Item analytic-scripts/.env.example analytic-scripts/.env
 Copy-Item analytic-ai/.env.example analytic-ai/.env
 ```
 
-Заполните случайными секретами `JWT_SECRET_KEY`, `GATEWAY_SHARED_SECRET`, `MODERATION_SHARED_SECRET`, пароли PostgreSQL и RabbitMQ. Используйте одно значение `MODERATION_SHARED_SECRET` во внутренних настройках Auth, Listing и Moderation. API ключ AI задайте только в `analytic-ai/.env`. Compose читает сервисные файлы через `env_file`, а для Moderation основные адреса задаёт в Compose; Dockerfiles не копируют реальные локальные `.env` в образы. Шаблоны `.env.example` можно хранить в Git.
+Сгенерируйте случайные локальные ключи, не перезаписывая уже заданные значения:
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File scripts/generate-local-secrets.ps1
+```
+
+Скрипт заполняет только отсутствующие секреты и шаблонные значения в корневом `.env`; повторный запуск сохраняет все непустые секреты. Он также создаёт пару RSA-3072 для JWT: приватный ключ передаётся только Auth, а Gateway получает только публичный ключ для проверки RS256. `.env` и вложенные `.env` исключены из Git. Compose задаёт отдельные Gateway secrets, PostgreSQL роли, Redis ACL и MongoDB пользователей для сервисов. API-ключ AI оставьте только в `analytic-ai/.env`. Секреты не копируются в Docker images.
+
+Для намеренной ротации сгенерированных ключей используйте `-Rotate` только в согласованное окно обслуживания: смена паролей баз/Redis/RabbitMQ требует обновления учётных данных в самих хранилищах, иначе сервисы потеряют подключение. Скрипт меняет локальный `.env`, но не выполняет ротацию в запущенных хранилищах.
 
 Для подтверждения email заполните SMTP-поля в корневом `.env` (Compose передаёт их в Auth):
 
@@ -92,6 +100,8 @@ docker compose ps
 ```
 
 Откройте `http://localhost:8080`. API доступен через `/api/`; например, Auth — `/api/auth/register`, каталог — `/api/catalog`. RabbitMQ Management UI доступен на `http://localhost:15672`.
+
+Перед Kubernetes production-развёртыванием прочитайте [`SECURITY_DEPLOYMENT.md`](SECURITY_DEPLOYMENT.md): внешний TLS terminator сам по себе не шифрует соединения до Pod и между сервисами, MongoDB на старом volume нужно перевести на authentication до включения `--auth`.
 
 Остановить контейнеры без удаления данных:
 
@@ -129,7 +139,7 @@ docker compose logs -f api-gateway auth-service listing-service
 
 ## Безопасность
 
-- JWT HS256, access 15 мин, refresh 7 дней
+- JWT RS256 (приватный ключ только в Auth), access 15 мин, refresh 7 дней
 - bcrypt 12 rounds
 - CORS: `http://localhost:3000`
 - Валидация входа через Pydantic v2

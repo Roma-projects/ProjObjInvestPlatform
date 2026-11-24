@@ -72,7 +72,7 @@ class ResetPasswordBody(BaseModel):
 
 class VerifyBody(BaseModel):
     type: Literal["email", "phone"]
-    code: str = Field(pattern=r"^\d{6}$")
+    code: str = Field(pattern=r"^\d{8}$")
 
 
 class ResendCodeBody(BaseModel):

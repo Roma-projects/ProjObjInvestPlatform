@@ -4,7 +4,9 @@
 
 """Common settings shared across microservices."""
 
+import base64
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,17 +18,27 @@ class SharedSettings(BaseSettings):
         extra="ignore",
     )
 
-    jwt_secret_key: str
-    jwt_algorithm: str = "HS256"
+    # JWT helpers are optional consumers of this shared settings object; only Auth signs tokens.
+    jwt_private_key_b64: str = ""
+    jwt_public_key_b64: str = ""
+    jwt_algorithm: Literal["RS256"] = "RS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
     bcrypt_rounds: int = 12
 
-    redis_url: str = "redis://localhost:6379/0"
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    redis_url: str
+    rabbitmq_url: str
 
     cors_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
+
+    @property
+    def jwt_private_key(self) -> bytes:
+        return base64.b64decode(self.jwt_private_key_b64, validate=True)
+
+    @property
+    def jwt_public_key(self) -> bytes:
+        return base64.b64decode(self.jwt_public_key_b64, validate=True)
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -34,6 +34,7 @@ services:
       NOTIFICATION_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:8000}
       MESSAGING_URL: ${MESSAGING_SERVICE_URL:-http://messaging-service:8000}
       MODERATION_URL: ${MODERATION_SERVICE_URL:-http://moderation-service:8000}
+      AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-30}
     depends_on:
       redis:
         condition: service_healthy

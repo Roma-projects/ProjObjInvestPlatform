@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     messaging_url: str = "http://messaging-service:8000"
     moderation_url: str = "http://moderation-service:8000"
     rate_limit_per_minute: int = 120
-    auth_rate_limit_per_minute: int = 10
+    auth_rate_limit_per_minute: int = 30
 
 
 @lru_cache

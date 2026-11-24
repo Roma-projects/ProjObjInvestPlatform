@@ -192,6 +192,9 @@ async def route_request(path: str, request: Request) -> Response:
             media_type="application/json",
         )
 
+    elif full_path.startswith("/auth/"):
+        base_url = settings.auth_url
+        upstream_path = full_path
     elif full_path == "/listings" or full_path.startswith("/listings/"):
         base_url = settings.listing_url
         upstream_path = full_path

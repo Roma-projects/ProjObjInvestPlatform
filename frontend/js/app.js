@@ -2799,22 +2799,41 @@ function applyHomeAccountState(user) {
   }
 }
 
-function initNotificationsAndAuth() {
-  const protectedPages = new Set(['profile.html', 'my-listings.html', 'create-listing.html', 'moderation-queue.html', 'moderation-detail.html', 'blacklist.html', 'moderator-profile.html', 'messages.html']);
-  if (protectedPages.has(pageName()) && !getAccessToken()) {
-    restoreSession().catch(() => false);
-  }
-}
+const protectedPages = new Set([
+  'catalog.html',
+  'favorites.html',
+  'profile.html',
+  'my-listings.html',
+  'create-listing.html',
+  'moderation-queue.html',
+  'moderation-detail.html',
+  'blacklist.html',
+  'moderator-profile.html',
+  'messages.html',
+]);
 
-function start() {
+async function start() {
+  const page = pageName();
+  if (protectedPages.has(page)) {
+    let user = null;
+    try {
+      user = await resolveCurrentUser();
+    } catch {
+      // Protected pages fail closed when the session cannot be verified.
+    }
+    if (!user) {
+      location.replace('index.html');
+      return;
+    }
+    loadedUser = user;
+  }
+
   bindGlobalUi();
   registerAuthForms();
   bindCatalog();
   bindCreateListing();
   bindMessages();
-  initNotificationsAndAuth();
 
-  const page = pageName();
   if (page === 'index.html') bindHome();
   if (page === 'favorites.html') loadFavorites();
   if (page === 'my-listings.html') loadOwnListings();
@@ -2823,14 +2842,7 @@ function start() {
   if (page === 'moderation-queue.html') loadModerationQueue();
   if (page === 'moderation-detail.html') bindModerationDetail();
   if (page === 'blacklist.html') bindBlacklist();
-  if (page === 'messages.html') {
-    resolveCurrentUser().then((user) => {
-      if (!user) throw new Error('Войдите, чтобы открыть сообщения.');
-      loadedUser = user;
-      return loadMessages();
-    })
-      .catch((error) => notify(`Войдите, чтобы открыть сообщения: ${error.message}`, 'error'));
-  }
+  if (page === 'messages.html') loadMessages();
 }
 
 start();

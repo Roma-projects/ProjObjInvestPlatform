@@ -102,7 +102,11 @@ def fallback_report(data: dict[str, Any], registry: dict[str, Any] | None = None
                              "fair_range_max": round(avg_profit * 48, 2) if avg_profit > 0 else None,
                              "verdict": "needs_human_review"},
         "forecast": {"horizon_months": 12, "direction": "unknown", "confidence": 0.0},
-        "moderator_report": {"red_flags": flags, "review_required": True},
+        "moderator_report": {
+            "comment": "Автоматический анализ недоступен или не завершён. Проверьте объявление, фотографии и подтверждающие документы вручную.",
+            "red_flags": flags,
+            "review_required": True,
+        },
         "user_analytics": {"average_monthly_revenue": round(avg_revenue, 2),
                            "average_monthly_net_profit": round(avg_profit, 2),
                            "payback_months": payback},

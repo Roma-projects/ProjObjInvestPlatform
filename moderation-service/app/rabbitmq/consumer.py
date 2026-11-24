@@ -60,6 +60,9 @@ class ModerationConsumer:
         snapshot = event.get("listing_snapshot") or {}
         if not isinstance(snapshot, dict):
             raise ValueError("listing_snapshot must be an object")
+        analytics_input = event.get("analytics_input")
+        if isinstance(analytics_input, dict):
+            snapshot = {**snapshot, "analytics_input": analytics_input}
 
         async with AsyncSessionLocal() as session:
             existing = await session.scalar(select(ModerationCase).where(

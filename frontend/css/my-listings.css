@@ -69,6 +69,9 @@
 .status--moderation,
 .status--archive { border-color: var(--color-primary); color: var(--color-primary); }
 
+.listing--not-clickable { cursor: default; }
+.listing--not-clickable a[aria-disabled="true"] { pointer-events: none; cursor: default; }
+
 /* ==========================================================================
    Адаптив (карточки перестраиваются правилами из profile.css)
    ========================================================================== */

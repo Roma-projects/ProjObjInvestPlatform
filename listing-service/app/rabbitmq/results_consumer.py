@@ -8,6 +8,7 @@ from uuid import UUID
 
 import aio_pika
 from aio_pika import ExchangeType
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 
 from app.config import get_settings
@@ -111,6 +112,9 @@ class AnalysisResultsConsumer:
                             "scripts_report": reports.get("scripts_report"),
                             "ai_report": reports.get("ai_report"),
                         },
+                        # Preserve the exact normalized payload both analytics workers received.
+                        # This lets moderators compare submitted fields with both reports.
+                        "analytics_input": jsonable_encoder(_data_for_analytics(row)),
                         "document_refs": dict(row.documents or {}),
                     }))
                     reports["moderation_request_queued"] = True

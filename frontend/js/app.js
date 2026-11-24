@@ -4,6 +4,7 @@ import {
   register,
   requestPasswordReset,
   resendVerificationCode,
+  refresh,
   resetPassword,
   updateProfile,
   uploadAvatar,
@@ -169,6 +170,21 @@ function saveFavorite(id, active) {
   else values.delete(String(id));
   try { localStorage.setItem('mieroventure.favorites', JSON.stringify([...values])); } catch { /* storage can be disabled */ }
   return true;
+}
+
+function safeModerationImage(value) {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const url = new URL(value, location.origin);
+    return url.origin === location.origin && ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch { return ''; }
+}
+
+function setModerationImage(element, url) {
+  if (!element) return;
+  element.style.backgroundImage = url ? `url("${url.replaceAll('"', '%22')}")` : '';
+  element.classList.toggle('placeholder', !url);
+  element.style.backgroundPosition = 'center'; element.style.backgroundSize = 'cover';
 }
 
 function setIconText(item, text) {
@@ -420,7 +436,32 @@ function bindCatalog() {
   if (location.pathname.endsWith('/catalog.html')) loadCatalog(form);
 }
 
-function listingCardFrom(item, template, favoriteMode = false) {
+async function applyModeratorCatalogNavigation() {
+  if (loadedUser?.role !== 'moderator' || !location.pathname.endsWith('/catalog.html')) return;
+  const nav = $('.sidebar .nav');
+  if (!nav || nav.dataset.moderatorNavigation === 'true') return;
+  try {
+    const response = await fetch('moderation-queue.html', { credentials: 'same-origin' });
+    if (!response.ok) return;
+    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const moderatorNav = $('.sidebar .nav', page);
+    if (!moderatorNav) return;
+    const catalogLink = [...moderatorNav.querySelectorAll('.nav__link')]
+      .find((link) => link.getAttribute('href') === 'catalog.html');
+    moderatorNav.querySelectorAll('.nav__link').forEach((link) => {
+      link.classList.remove('nav__link--active');
+      link.removeAttribute('aria-current');
+    });
+    catalogLink?.classList.add('nav__link--active');
+    catalogLink?.setAttribute('aria-current', 'page');
+    moderatorNav.dataset.moderatorNavigation = 'true';
+    nav.replaceWith(moderatorNav);
+  } catch {
+    // Keep the existing catalog navigation if its moderator template is unavailable.
+  }
+}
+
+function listingCardFrom(item, template, favoriteMode = false, destination = 'listing') {
   const card = template.cloneNode(true);
   const id = item.listing_id || item.id;
   card.dataset.listingId = id || '';
@@ -442,12 +483,30 @@ function listingCardFrom(item, template, favoriteMode = false) {
   const date = $('.listing__date', card);
   if (date) date.textContent = item.created_at ? `Создано: ${new Date(item.created_at).toLocaleDateString('ru-RU')}` : '';
   const moreLink = $('.listing__title a', card) || $('.listing__main', card);
-  if (moreLink && id) moreLink.dataset.href = `listing.html#${encodeURIComponent(id)}`;
-  card.addEventListener('click', (event) => {
-    if (event.target.closest('button, a')) return;
-    if (card.dataset.href) location.href = card.dataset.href;
-    else if (id) location.href = `listing.html#${encodeURIComponent(id)}`;
-  });
+  const href = destination === 'draft'
+    ? `create-listing.html#${encodeURIComponent(id)}`
+    : destination === 'listing' && id
+      ? `listing.html#${encodeURIComponent(id)}`
+      : '';
+  if (moreLink && href) {
+    moreLink.dataset.href = href;
+    if (moreLink.matches('a')) moreLink.href = href;
+  } else {
+    card.classList.add('listing--not-clickable');
+    delete card.dataset.href;
+    if (moreLink?.matches('a')) {
+      moreLink.removeAttribute('href');
+      moreLink.setAttribute('aria-disabled', 'true');
+      moreLink.tabIndex = -1;
+    }
+  }
+  if (href) {
+    card.dataset.href = href;
+    card.addEventListener('click', (event) => {
+      if (event.target.closest('button, a')) return;
+      location.href = href;
+    });
+  }
   const favorite = $('.listing__fav', card);
   if (favorite) {
     updateIconFavorite(favorite, favoriteMode || favoriteIds().includes(String(id)));
@@ -501,12 +560,16 @@ async function loadOwnListings() {
       return [];
     }
     items.forEach((item) => {
-      const card = listingCardFrom(item, template || document.createElement('article'));
       const status = item.status || 'draft';
+      const card = listingCardFrom(
+        item,
+        template || document.createElement('article'),
+        false,
+        status === 'published' ? 'listing' : status === 'draft' ? 'draft' : null,
+      );
       card.classList.remove('listing--active', 'listing--moderation', 'listing--archive');
       card.classList.add(status === 'published' ? 'listing--active' : status === 'on_moderation' || status === 'processing' ? 'listing--moderation' : 'listing--archive');
       card.dataset.status = status;
-      if (status === 'draft') card.dataset.href = `create-listing.html#${encodeURIComponent(item.id)}`;
       if (status === 'draft') {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
@@ -2006,6 +2069,7 @@ async function loadListingDetail() {
 }
 
 async function loadModerationQueue() {
+  const { makeRiskSparkline } = await import('./moderation-reports.js');
   const list = $('.queue__list');
   if (!list) return [];
   const template = $('li', list);
@@ -2044,7 +2108,32 @@ async function loadModerationQueue() {
         date.dateTime = item.created_at;
         date.textContent = new Date(item.created_at).toLocaleDateString('ru-RU');
       }
-      $('.score', card)?.setAttribute('hidden', '');
+      const photoFiles = listing.files || listing.media_files || {};
+      const cover = $('.mod-card__image', card);
+      if (cover) {
+        cover.removeAttribute('aria-hidden');
+        cover.setAttribute('role', 'img');
+        cover.setAttribute('aria-label', `Главное фото: ${listing.business_name || 'объявление'}`);
+        setModerationImage(cover, safeModerationImage(photoFiles.main_photo || photoFiles.photos?.[0] || listing.main_photo || listing.photos?.[0]));
+      }
+      const score = $('.score', card);
+      if (score) {
+        score.hidden = false;
+        score.setAttribute('aria-label', `AI: ${Number(ai.red_flag_score) || 0} баллов риска, порог высокого риска — 5, уровень ${ai.red_flag_rating || 'не указан'}`);
+        const gauge = $('.score__gauge', score);
+        if (gauge) {
+          gauge.replaceChildren();
+          const value = document.createElement('strong'); value.className = 'score__value'; value.textContent = `${Number(ai.red_flag_score) || 0} баллов`;
+          const track = document.createElement('span'); track.className = 'score__track'; track.setAttribute('aria-hidden', 'true');
+          const fill = document.createElement('span'); fill.className = `score__fill score__fill--${ai.red_flag_rating || 'unknown'}`;
+          fill.style.width = `${Math.max(0, Math.min(100, (Number(ai.red_flag_score) || 0) / 5 * 100))}%`;
+          track.append(fill);
+          const rating = document.createElement('span'); rating.className = 'score__rating';
+          rating.textContent = ({ critical: 'Критический', high: 'Высокий', moderate: 'Умеренный', low: 'Низкий' })[ai.red_flag_rating] || 'Нет оценки';
+          gauge.append(value, track, rating);
+          gauge.append(makeRiskSparkline(ai.red_flag_score, ai.red_flag_rating));
+        }
+      }
       const issueSection = $('.mod-card__issues', card);
       const issueList = $('.issues__list', card);
       if (issueList) {
@@ -2086,6 +2175,7 @@ async function loadModerationQueue() {
 }
 
 async function bindModerationDetail() {
+  const { makeReportCharts, makeReportSection } = await import('./moderation-reports.js');
   const container = $('.detail__container');
   const objectTemplate = $('.object-card', container)?.cloneNode(true);
   const decisionTemplate = $('.decision-row', container)?.cloneNode(true);
@@ -2107,6 +2197,8 @@ async function bindModerationDetail() {
     const scriptsReport = moderationCase.analytics_reports?.scripts_report || {};
     if (!objectTemplate || !decisionTemplate || !container) return;
     container.replaceChildren(objectTemplate, decisionTemplate);
+    // The HTML contains visual placeholders; moderation must display only values from this case's reports.
+    $$('.chart-section, .analysis-grid, .checks-section', objectTemplate).forEach((section) => section.remove());
     const title = $('.object-title', container);
     if (title) title.textContent = item.business_name || 'Объявление';
     const address = [item.city, item.street, item.house].filter(Boolean).join(', ');
@@ -2134,14 +2226,68 @@ async function bindModerationDetail() {
         ? metrics[index]
         : index === 4 ? `${metrics[index].toLocaleString('ru-RU', { maximumFractionDigits: 1 })} лет` : `${formatMoney(metrics[index])} / месяц`;
     });
-    const photos = [item.files?.main_photo, ...(item.files?.photos || [])].filter(Boolean);
+    const itemMedia = item.files || item.media_files || {};
+    const photoUrls = [...new Set([itemMedia.main_photo, ...(Array.isArray(itemMedia.photos) ? itemMedia.photos : []), item.main_photo, ...(Array.isArray(item.photos) ? item.photos : [])]
+      .map(safeModerationImage).filter(Boolean))];
     const mainPhoto = $('.object-gallery__main', container);
-    placeImage(mainPhoto, photos[0]);
-    $$('.gallery-thumb', container).forEach((thumb, index) => {
-      const url = photos[index + 1];
-      thumb.hidden = !url;
-      if (url) placeImage(thumb, url);
+    mainPhoto?.setAttribute('role', 'group');
+    mainPhoto?.setAttribute('aria-label', 'Фотографии объявления');
+    mainPhoto?.setAttribute('tabindex', '0');
+    const photoCounter = document.createElement('span');
+    photoCounter.className = 'gallery-counter';
+    photoCounter.setAttribute('aria-live', 'polite');
+    mainPhoto?.replaceChildren(photoCounter);
+    $$('.gallery-thumb', container).forEach((thumbnail) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = thumbnail.className;
+      button.setAttribute('aria-label', 'Показать фото');
+      thumbnail.replaceWith(button);
     });
+    const previousPhoto = $('.gallery-arrow--prev', container);
+    const nextPhoto = $('.gallery-arrow--next', container);
+    const thumbnailButtons = $$('.gallery-thumb', container);
+    const morePhotos = $('.gallery-more', container);
+    let activePhotoIndex = 0;
+    const showPhoto = (index) => {
+      if (!photoUrls.length) {
+        mainPhoto?.classList.add('placeholder');
+        if (photoCounter) photoCounter.textContent = 'Фотографии не добавлены';
+        thumbnailButtons.forEach((button) => { button.hidden = true; });
+        if (morePhotos) morePhotos.hidden = true;
+        return;
+      }
+      activePhotoIndex = (index + photoUrls.length) % photoUrls.length;
+      placeImage(mainPhoto, photoUrls[activePhotoIndex]);
+      if (photoCounter) photoCounter.textContent = `${activePhotoIndex + 1} / ${photoUrls.length}`;
+      thumbnailButtons.forEach((button, thumbIndex) => {
+        const photoIndex = thumbIndex + 1;
+        button.hidden = photoIndex >= photoUrls.length;
+        if (button.hidden) return;
+        placeImage(button, photoUrls[photoIndex]);
+        button.setAttribute('aria-label', `Показать фото ${photoIndex + 1}`);
+        button.setAttribute('aria-pressed', String(activePhotoIndex === photoIndex));
+        button.classList.toggle('is-active', activePhotoIndex === photoIndex);
+      });
+      if (morePhotos) {
+        const hiddenPhotoCount = Math.max(0, photoUrls.length - thumbnailButtons.length - 1);
+        morePhotos.hidden = hiddenPhotoCount === 0;
+        morePhotos.textContent = `+${hiddenPhotoCount}`;
+        morePhotos.setAttribute('aria-label', `Показать ещё ${hiddenPhotoCount} фото`);
+      }
+    };
+    previousPhoto?.addEventListener('click', () => showPhoto(activePhotoIndex - 1));
+    nextPhoto?.addEventListener('click', () => showPhoto(activePhotoIndex + 1));
+    thumbnailButtons.forEach((button, index) => button.addEventListener('click', () => showPhoto(index + 1)));
+    morePhotos?.addEventListener('click', () => showPhoto(thumbnailButtons.length + 1));
+    mainPhoto?.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      showPhoto(activePhotoIndex + (event.key === 'ArrowRight' ? 1 : -1));
+    });
+    const galleryControls = [previousPhoto, nextPhoto, ...thumbnailButtons, morePhotos].filter(Boolean);
+    galleryControls.forEach((button) => { button.disabled = photoUrls.length < 2; });
+    showPhoto(0);
     const details = document.createElement('section');
     details.className = 'analysis-grid';
     const decisionRow = $('.decision-row', container);
@@ -2153,9 +2299,16 @@ async function bindModerationDetail() {
     const descriptionTitle = document.createElement('h2');
     descriptionTitle.className = 'section-title';
     descriptionTitle.textContent = 'Описание и сведения';
+    const descriptionCard = document.createElement('div');
+    descriptionCard.className = 'moderation-description';
+    const descriptionLabel = document.createElement('h3');
+    descriptionLabel.className = 'moderation-description__title';
+    descriptionLabel.textContent = item.full_description ? 'Полное описание' : 'Краткое описание';
     const descriptionText = document.createElement('p');
+    descriptionText.className = 'moderation-description__text';
     descriptionText.textContent = item.full_description || item.short_description || 'Продавец не добавил описание.';
-    description.append(descriptionTitle, descriptionText);
+    descriptionCard.append(descriptionLabel, descriptionText);
+    description.append(descriptionTitle, descriptionCard);
     details.append(description);
     const listingFacts = makeDetailSection('Данные объявления', [
       ['Тип бизнеса', displayEnum(item.business_type)], ['Тип помещения', displayEnum(item.property_type)],
@@ -2201,14 +2354,144 @@ async function bindModerationDetail() {
       documents.append(heading, documentList);
       details.append(documents);
     }
-    const reportNotes = [
-      ...(aiReport.moderation_reasons || []),
-      ...((aiReport.red_flags || []).map((flag) => `${flag.code || 'Риск'}: ${flag.evidence || ''}`)),
-      ...((scriptsReport.consistency_report || []).filter((check) => check.status !== 'ok').map((check) => `${check.check}: расхождение ${check.difference}`)),
+    const aiComment = aiReport.moderator_report?.comment
+      || aiReport.moderator_report?.summary
+      || aiReport.moderator_report?.conclusion;
+    const reviewReasons = Array.isArray(aiReport.moderation_reasons) ? aiReport.moderation_reasons : [];
+    const redFlags = Array.isArray(aiReport.red_flags) ? aiReport.red_flags : [];
+    const photoReviews = Array.isArray(aiReport.content_moderation) ? aiReport.content_moderation : [];
+    const failedChecks = Array.isArray(scriptsReport.consistency_report)
+      ? scriptsReport.consistency_report.filter((check) => check.status !== 'ok')
+      : [];
+    const aiReview = document.createElement('section');
+    aiReview.className = 'analysis-block ai-review';
+    const aiReviewTitle = document.createElement('h2');
+    aiReviewTitle.className = 'section-title';
+    aiReviewTitle.textContent = 'Комментарий ИИ';
+    const aiReviewCard = document.createElement('div');
+    aiReviewCard.className = 'ai-review__card';
+    const aiReviewStatus = document.createElement('span');
+    aiReviewStatus.className = 'ai-review__status';
+    const hasAiReport = Object.keys(aiReport).length > 0;
+    const requiresReview = !hasAiReport || aiReport.moderation_status === 'requires_moderation'
+      || reviewReasons.length > 0 || redFlags.length > 0
+      || photoReviews.some((photo) => photo.status !== 'allowed') || failedChecks.length > 0;
+    aiReviewStatus.classList.toggle('ai-review__status--clear', !requiresReview);
+    aiReviewStatus.textContent = !hasAiReport ? 'Нет данных ИИ' : requiresReview ? 'Требуется проверка' : 'Замечаний не выявлено';
+    const aiReviewText = document.createElement('p');
+    aiReviewText.className = 'ai-review__text';
+    aiReviewText.textContent = typeof aiComment === 'string' && aiComment.trim()
+      ? aiComment.trim()
+      : !hasAiReport
+        ? 'Отчёт автоматической проверки отсутствует. Проверьте объявление и фотографии вручную перед принятием решения.'
+        : requiresReview
+        ? 'Автоматическая проверка обнаружила пункты, которые нужно сверить с объявлением и подтверждающими документами. Решение остаётся за модератором.'
+        : 'Автоматическая проверка не обнаружила критичных несоответствий. Сверьте сведения и изображения с данными объявления перед принятием решения.';
+    aiReviewCard.append(aiReviewStatus, aiReviewText);
+    aiReview.append(aiReviewTitle, aiReviewCard);
+    details.append(aiReview);
+
+    const analyticsInput = moderationCase.analytics_input || item.analytics_input || item;
+    const reportSections = [
+      makeReportSection('Входные параметры создания объявления', analyticsInput, 'report-section--inputs'),
+      makeReportSection('Итоги проверок аналитических скриптов', scriptsReport, 'report-section--scripts'),
+      makeReportSection('Итоговый AI-отчёт', aiReport, 'report-section--ai'),
     ].filter(Boolean);
-    if (reportNotes.length) {
-      const reports = makeDetailSection('Причины ручной проверки', reportNotes.map((text, index) => [`Пункт ${index + 1}`, text]));
-      if (reports) details.append(reports);
+    reportSections.forEach((section) => {
+      const disclosure = document.createElement('details'); disclosure.className = 'report-disclosure';
+      disclosure.open = section.classList.contains('report-section--ai');
+      const summary = document.createElement('summary');
+      summary.textContent = section.querySelector('.section-title')?.textContent || 'Подробный отчёт';
+      section.querySelector('.section-title')?.remove(); disclosure.append(summary, section); details.append(disclosure);
+    });
+    const charts = makeReportCharts(scriptsReport, item);
+    if (charts) details.append(charts);
+
+    const reasonLabels = {
+      'FIN-001': 'Чистая прибыль выше указанной выручки',
+      'FIN-002': 'Не сходится расчёт выручки, расходов и прибыли',
+      'FIN-003': 'Состав расходов не совпадает с общей суммой',
+      'FIN-004': 'Не совпадают суммы по отдельным статьям расходов',
+      'FIN-005': 'Окупаемость требует дополнительной проверки',
+      'DOC-001': 'Не приложены подтверждающие документы',
+      'DOC-002': 'Приложенные документы отсутствуют или не читаются',
+      'REG-001': 'Не удалось подтвердить данные продавца по реестру',
+      'CNT-001': 'В изображении обнаружено возможное нарушение правил',
+      photo_review_required: 'Не все фотографии прошли автоматическую проверку',
+      ai_service_unavailable: 'Автоматический анализ временно недоступен',
+      registry_identity_unverified: 'Не удалось автоматически подтвердить данные продавца',
+    };
+    const reasonDetails = new Map();
+    redFlags.forEach((flag) => {
+      if (flag?.code) reasonDetails.set(flag.code, flag.evidence || flag.description || 'Подробности проверки не предоставлены.');
+    });
+    const issueItems = [];
+    reviewReasons.forEach((reason) => {
+      if (typeof reason !== 'string' || !reason.trim()) return;
+      const match = reason.match(/\b(?:FIN|DOC|REG|CNT)-\d{3}\b/);
+      const code = match?.[0];
+      issueItems.push({
+        title: (code && reasonLabels[code]) || reasonLabels[reason] || code || 'Причина ручной проверки',
+        code: code || (reasonLabels[reason] ? 'Проверить вручную' : ''),
+        detail: (code && reasonDetails.get(code)) || (reasonLabels[reason]
+          ? 'Автоматическая проверка не смогла подтвердить соответствующие данные; сопоставьте их с объявлением и документами.'
+          : code ? reason.replace(code, '').replace(/^\s*[:—-]\s*/, '').trim() : reason),
+      });
+    });
+    redFlags.forEach((flag) => {
+      if (!flag?.code || reviewReasons.some((reason) => typeof reason === 'string' && reason.includes(flag.code))) return;
+      issueItems.push({
+        title: reasonLabels[flag.code] || flag.code,
+        code: flag.code,
+        detail: flag.evidence || flag.description || 'Подробности проверки не предоставлены.',
+      });
+    });
+    photoReviews.filter((photo) => photo && photo.status !== 'allowed').forEach((photo) => {
+      const categoryLabels = {
+        weapons: 'Возможное изображение оружия', narcotics: 'Возможное изображение запрещённых веществ',
+        nsfw: 'Возможный откровенный контент', alcohol_tobacco_main_subject: 'Алкоголь или табак — главный предмет изображения',
+        documents_personal_data: 'На изображении могут быть персональные данные', third_party_faces: 'На изображении обнаружено лицо третьего лица',
+        other_platform_watermark: 'На изображении заметен водяной знак другой платформы', counterfeit_brand: 'Возможны признаки контрафактного бренда',
+        prohibited_activity: 'Возможное изображение запрещённой деятельности', uncertain: 'Результат проверки изображения неоднозначен',
+      };
+      let photoName = '';
+      try { photoName = new URL(photo.image_path, location.origin).pathname.split('/').pop(); } catch { /* Ignore invalid image paths. */ }
+      issueItems.push({
+        title: categoryLabels[photo.category] || 'Требуется проверка фотографии',
+        code: photo.status === 'blocked' ? 'Заблокировано ИИ' : 'Проверить вручную',
+        detail: [photo.reason || 'Модель не предоставила пояснение к результату проверки.', photoName ? `Фото: ${photoName}` : ''].filter(Boolean).join(' '),
+      });
+    });
+    failedChecks.forEach((check) => issueItems.push({
+      title: check.check || 'Проверка согласованности данных',
+      code: 'Скриптовая проверка',
+      detail: check.difference ? `Обнаружено расхождение: ${check.difference}` : check.details || 'Проверка обнаружила несоответствие.',
+    }));
+    if (issueItems.length) {
+      const issues = document.createElement('section');
+      issues.className = 'analysis-block moderation-issues';
+      const issuesTitle = document.createElement('h2');
+      issuesTitle.className = 'section-title';
+      issuesTitle.textContent = 'Подробные пояснения к ошибкам';
+      const issueList = document.createElement('div');
+      issueList.className = 'moderation-issues__list';
+      issueItems.forEach((issue) => {
+        const card = document.createElement('article');
+        card.className = 'moderation-issue';
+        const heading = document.createElement('h3');
+        heading.className = 'moderation-issue__title';
+        heading.textContent = issue.title;
+        const code = document.createElement('span');
+        code.className = 'moderation-issue__code';
+        code.textContent = issue.code || 'Проверка';
+        const explanation = document.createElement('p');
+        explanation.className = 'moderation-issue__detail';
+        explanation.textContent = issue.detail;
+        card.append(heading, code, explanation);
+        issueList.append(card);
+      });
+      issues.append(issuesTitle, issueList);
+      details.append(issues);
     }
     const blockSeller = document.createElement('button');
     blockSeller.type = 'button';
@@ -2740,7 +3023,22 @@ async function resolveHomeUser() {
 async function resolveCurrentUser() {
   if (!getAccessToken() && !(await restoreSession())) return null;
   try {
-    return await me();
+    const user = await me();
+    const token = getAccessToken();
+    const claims = token?.split('.')[1];
+    let tokenRole;
+    if (claims) {
+      try {
+        const normalized = claims.replace(/-/g, '+').replace(/_/g, '/');
+        const decoded = decodeURIComponent(atob(normalized).split('').map((character) => `%${character.charCodeAt(0).toString(16).padStart(2, '0')}`).join(''));
+        tokenRole = JSON.parse(decoded).role;
+      }
+      catch { /* The Auth endpoint remains the source of truth for the user role. */ }
+    }
+    if (user?.role && tokenRole !== undefined && tokenRole !== user.role) {
+      await refresh();
+    }
+    return user;
   } catch (error) {
     if (error.status !== 401) throw error;
     setAccessToken(null);
@@ -2830,6 +3128,7 @@ async function start() {
 
   bindGlobalUi();
   registerAuthForms();
+  await applyModeratorCatalogNavigation();
   bindCatalog();
   bindCreateListing();
   bindMessages();

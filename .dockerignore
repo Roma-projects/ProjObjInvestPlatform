@@ -1,0 +1,22 @@
+# Keep the Docker build context small and avoid sending local/runtime artifacts.
+.git
+**/.git
+.venv
+**/.venv
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+**/.pytest_cache
+.mypy_cache
+**/.mypy_cache
+.ruff_cache
+**/.ruff_cache
+node_modules
+**/node_modules
+
+# Environment files are consumed by Compose at runtime, not copied into images.
+.env
+.env.*
+**/.env
+**/.env.*

@@ -350,8 +350,8 @@
       "expected_red_flag_score": 2,
       "expected_listing_policy": {
         "status": "on_moderation",
-        "verification_status": "deep",
-        "reason": "tax_certificate_doc загружен; Listing требует обязательную проверку независимо от решения AI."
+        "verification_status": "basic",
+        "reason": "tax_certificate_doc загружен; Listing требует ручную проверку с базовым уровнем."
       },
       "expected_red_flag_rating": "moderate"
     },

@@ -21,6 +21,30 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def _moderation_analytics_input(row: BusinessListing) -> dict:
+    """Собирает для модерации публичные поля объявления без внутренних файловых путей."""
+    fields = (
+        "business_type", "business_name", "short_description", "full_description", "sale_price",
+        "stock_included", "stock_value", "property_type", "deal_composition", "transfer_method",
+        "property_condition", "area_sqm", "equipment_list", "staff_count", "staff_details",
+        "business_age_months", "has_licenses", "has_contracts", "sale_reason", "monthly_financials",
+        "average_check", "monthly_orders", "monthly_clients_unique", "repeat_customer_rate",
+        "customer_base_size", "cost_structure", "seasonality_months", "peak_hours", "supplier_contracts",
+        "supplier_details", "debts_receivable", "debts_payable", "legal_claims", "legal_claims_details",
+        "equipment_lease", "monthly_loan_payments", "seller_name", "seller_status", "seller_inn",
+        "seller_ogrnip", "tax_system",
+    )
+    return {name: getattr(row, name) for name in fields} | {
+        "has_documents": {key: key in (row.documents or {}) for key in (
+            "evacuation_plan_doc", "fire_declaration_doc", "fire_service_contract_doc", "san_epid_conclusion",
+            "tax_certificate_doc", "income_statement_doc", "lease_agreement_doc", "ownership_doc", "passport_copy_doc",
+        )},
+        "country": row.country,
+        "city": row.city,
+        "street": row.street,
+    }
+
+
 class AnalysisResultsConsumer:
     """Сохраняет scripts/AI-отчёты в PostgreSQL и запускает финальное решение."""
 
@@ -71,11 +95,11 @@ class AnalysisResultsConsumer:
                 row.revenue_trend = event.get("revenue_trend")
             ai_report = reports.get("ai_report")
             if ai_report and reports.get("scripts_report") and not reports.get("final_decision_applied"):
-                has_sensitive_docs = bool(SENSITIVE_MODERATION_DOCUMENTS.intersection(row.documents or {}))
+                has_passport_copy = bool(SENSITIVE_MODERATION_DOCUMENTS.intersection(row.documents or {}))
                 row.status = "on_moderation"
                 row.verification_status = (
                     "deep"
-                    if has_sensitive_docs or ai_report.get("verification_level") == "deep"
+                    if has_passport_copy
                     else "basic"
                 )
                 if not reports.get("moderation_request_queued"):
@@ -114,7 +138,7 @@ class AnalysisResultsConsumer:
                         },
                         # Preserve the exact normalized payload both analytics workers received.
                         # This lets moderators compare submitted fields with both reports.
-                        "analytics_input": jsonable_encoder(_data_for_analytics(row)),
+                        "analytics_input": jsonable_encoder(_moderation_analytics_input(row)),
                         "document_refs": dict(row.documents or {}),
                     }))
                     reports["moderation_request_queued"] = True

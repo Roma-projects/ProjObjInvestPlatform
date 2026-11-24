@@ -31,6 +31,7 @@ class BusinessListingSubmissionTests(unittest.IsolatedAsyncioTestCase):
             deal_composition="owner",
             business_name="Кофейня",
             short_description="Готовый бизнес",
+            full_description="Небольшая кофейня с собственной посадочной зоной.",
             sale_price=Decimal("1250000.50"),
             country="Россия",
             city="Москва",
@@ -43,9 +44,20 @@ class BusinessListingSubmissionTests(unittest.IsolatedAsyncioTestCase):
             average_check=Decimal("450.50"),
             files={"main_photo": "/public/main.png", "photos": [f"/public/{i}.png" for i in range(5)]},
             documents={},
-            equipment_list=[],
-            staff_details=[],
-            monthly_financials=[],
+            equipment_list=[{
+                "equipment_name": "Кофемашина",
+                "equipment_brand": "Test Brand",
+                "equipment_condition": "хорошее",
+                "equipment_purchase_year": 2023,
+                "equipment_value": Decimal("240000.00"),
+            }],
+            staff_details=[{"position": "Бариста", "count": 2, "salary": Decimal("65000.00")}],
+            monthly_financials=[{
+                "month": "2026-01",
+                "revenue": Decimal("1000000.00"),
+                "total_expenses": Decimal("500000.00"),
+                "net_profit": Decimal("500000.00"),
+            }],
             cost_structure=[],
             seasonality_months=[],
             peak_hours=[],
@@ -74,6 +86,13 @@ class BusinessListingSubmissionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(analytics["debts_payable"], 725.1)
         self.assertEqual(analytics["monthly_loan_payments"], 999.99)
         self.assertEqual(analytics["average_check"], 450.5)
+        self.assertEqual(analytics["short_description"], "Готовый бизнес")
+        self.assertEqual(analytics["full_description"], "Небольшая кофейня с собственной посадочной зоной.")
+        self.assertEqual(analytics["equipment_list"][0]["equipment_name"], "Кофемашина")
+        self.assertEqual(analytics["equipment_list"][0]["equipment_value"], 240000.0)
+        self.assertEqual(analytics["staff_details"][0]["position"], "Бариста")
+        self.assertEqual(analytics["monthly_financials"][0]["month"], "2026-01")
+        self.assertEqual(analytics["monthly_financials"][0]["revenue"], 1000000.0)
         self.assertEqual(session.flush.await_count, 2)
         session.refresh.assert_awaited_once_with(
             row,

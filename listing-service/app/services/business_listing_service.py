@@ -34,7 +34,7 @@ PRIVATE_FIELDS = {
     "san_epid_conclusion", "tax_certificate_doc", "income_statement_doc",
     "lease_agreement_doc", "ownership_doc", "passport_copy_doc",
 }
-SENSITIVE_MODERATION_DOCUMENTS = {"passport_copy_doc", "tax_certificate_doc", "income_statement_doc"}
+SENSITIVE_MODERATION_DOCUMENTS = {"passport_copy_doc"}
 MIME_BY_SUFFIX = {
     ".jpg": {"image/jpeg"}, ".jpeg": {"image/jpeg"}, ".png": {"image/png"},
     ".webp": {"image/webp"}, ".pdf": {"application/pdf"},

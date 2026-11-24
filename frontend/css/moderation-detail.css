@@ -347,6 +347,7 @@ body {
 
 .moderation-description,
 .ai-review__card,
+.moderation-data-table,
 .moderation-issue {
   border: 1px solid rgb(103 73 62 / 14%);
   border-radius: 8px;
@@ -359,9 +360,20 @@ body {
   grid-column: 1 / -1;
 }
 
+.moderation-description__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .moderation-description {
+  min-width: 0;
   padding: 22px 24px;
 }
+
+.moderation-description--short { border-top: 3px solid var(--color-primary); }
+.moderation-description--full { border-top: 3px solid var(--color-muted); }
+.moderation-description--reason { border-top: 3px solid #b5424f; }
 
 .moderation-description__title,
 .moderation-issue__title {
@@ -388,6 +400,73 @@ body {
   border-left: 4px solid var(--color-primary);
   background: #fffaf3;
 }
+
+.ai-review__status,
+.ai-review__verification { margin-right: 8px; }
+
+.ai-review__verification {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid #b5424f;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #9e2836;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.analysis-grid > .ai-review { order: -1; }
+
+.moderation-data-table {
+  min-width: 0;
+  padding: 22px 24px;
+  grid-column: 1 / -1;
+}
+
+.moderation-data-table__scroll {
+  overflow-x: auto;
+  border: 1px solid rgb(103 73 62 / 12%);
+  border-radius: 8px;
+  background: #fffdf9;
+  -webkit-overflow-scrolling: touch;
+}
+
+.moderation-data-table__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.moderation-data-table__table th,
+.moderation-data-table__table td {
+  min-width: 110px;
+  padding: 13px 16px;
+  border-bottom: 1px solid rgb(103 73 62 / 10%);
+  color: var(--color-dark);
+  font-size: 14px;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+.moderation-data-table__table th {
+  background: #f8f2eb;
+  color: #826f66;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.moderation-data-table__table tbody tr:last-child td { border-bottom: 0; }
+.moderation-data-table__table tbody tr:nth-child(even) { background: rgb(248 242 235 / 45%); }
+.moderation-data-table__money { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.moderation-data-table--finances .moderation-data-table__table td:first-child { font-weight: 700; text-transform: capitalize; white-space: nowrap; }
+.moderation-data-table--equipment .moderation-data-table__table th:first-child,
+.moderation-data-table--equipment .moderation-data-table__table td:first-child { min-width: 200px; }
+
+.ai-review__text { white-space: pre-line; }
 
 .ai-review__status {
   display: inline-flex;
@@ -443,10 +522,11 @@ body {
 .report-disclosure[open] > summary { border-bottom: 1px solid var(--color-muted); }
 .report-disclosure .report-section { padding: 0 20px 20px; }
 .report-disclosure .section-title { display: none; }
+.report-disclosure--ai { grid-column: 1 / -1; }
 
 .report-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -482,15 +562,18 @@ body {
 
 .report-chart-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
 }
+
+.report-disclosure--charts { grid-column: 1 / -1; }
+.report-disclosure--charts .report-charts { grid-column: 1 / -1; }
 
 .moderation-chart,
 .expense-chart {
   min-width: 0;
   margin: 0;
-  padding: 16px;
+  padding: 22px 26px;
   border: 1px solid rgb(103 73 62 / 14%);
   border-radius: 10px;
   background: var(--color-surface);
@@ -498,14 +581,14 @@ body {
 
 .moderation-chart figcaption,
 .expense-chart h3 {
-  margin: 0 0 12px;
+  margin: 0 0 18px;
   color: var(--color-text);
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
 }
 
-.moderation-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.moderation-chart svg { display: block; width: 100%; height: auto; min-height: 260px; overflow: visible; }
 .moderation-chart__grid { stroke: #eadfda; stroke-width: 1; }
 .moderation-chart__line { fill: none; stroke: var(--color-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .moderation-chart--profit .moderation-chart__line { stroke: #36794b; }
@@ -513,7 +596,7 @@ body {
 .moderation-chart__point { fill: var(--color-surface); stroke: var(--color-primary); stroke-width: 2.5; }
 .moderation-chart--profit .moderation-chart__point { stroke: #36794b; }
 .moderation-chart--seasonality .moderation-chart__point { stroke: #b58c55; }
-.moderation-chart__label { fill: #826f66; font: 11px var(--font-mono); }
+.moderation-chart__label { fill: #826f66; font: 14px var(--font-mono); }
 
 .expense-chart__row {
   display: grid;
@@ -521,12 +604,12 @@ body {
   align-items: center;
   gap: 10px;
   margin-top: 12px;
-  font-size: 12px;
+  font-size: 15px;
 }
 
-.expense-chart__track { height: 8px; overflow: hidden; border-radius: 99px; background: #eadfda; }
+.expense-chart__track { height: 12px; overflow: hidden; border-radius: 99px; background: #eadfda; }
 .expense-chart__bar { display: block; height: 100%; border-radius: inherit; background: var(--color-primary); }
-.expense-chart__row strong { color: var(--color-text); font-size: 11px; white-space: nowrap; }
+.expense-chart__row strong { color: var(--color-text); font-size: 14px; white-space: nowrap; }
 
 .moderation-issues__list {
   display: grid;
@@ -802,6 +885,11 @@ body {
 
 /* Карточка объекта: метрики уходят под фото и описание */
 @media (max-width: 1280px) {
+  .moderation-description,
+  .moderation-data-table { padding: 18px 16px; }
+  .moderation-data-table__table th,
+  .moderation-data-table__table td { padding: 11px 12px; }
+
   .object-card {
     grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
     grid-template-areas:
@@ -952,6 +1040,7 @@ body {
   .report-disclosure .report-section { padding: 0 12px 14px; }
   .report-grid { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .report-value__nested { grid-template-columns: minmax(0, 1fr); }
+  .moderation-description__grid { grid-template-columns: minmax(0, 1fr); }
 
   /* графики не сжимаем до нечитаемого — внутри карточки прокрутка */
   .revenue-chart { min-width: 640px; }

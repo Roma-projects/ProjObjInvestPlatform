@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 
@@ -30,16 +31,18 @@ def validate_input(data: Any) -> dict[str, Any]:
             clean[key] = None
         elif key == "monthly_financials" and isinstance(value, list):
             clean[key] = [
-                {name: (item.get(name) if item.get(name) is None or _is_type(item.get(name), kind) else None)
+                {name: (_coerce_number(item.get(name)) if kind == (int, float) and _is_type(item.get(name), kind)
+                        else item.get(name) if item.get(name) is None or _is_type(item.get(name), kind) else None)
                  for name, kind in MONTH_TYPES.items()}
                 for item in value if isinstance(item, dict)
             ]
         elif key in {"staff_details", "equipment_list"} and isinstance(value, list):
             inner = {"salary": (int, float), "count": int} if key == "staff_details" else {"equipment_value": (int, float)}
-            clean[key] = [{name: (row.get(name) if row.get(name) is None or _is_type(row.get(name), kind) else None)
+            clean[key] = [{name: (_coerce_number(row.get(name)) if kind == (int, float) and _is_type(row.get(name), kind)
+                                  else row.get(name) if row.get(name) is None or _is_type(row.get(name), kind) else None)
                            for name, kind in inner.items()} for row in value if isinstance(row, dict)]
         elif _is_type(value, expected):
-            clean[key] = value
+            clean[key] = _coerce_number(value) if expected == (int, float) else value
         else:
             clean[key] = None
     return clean
@@ -47,7 +50,28 @@ def validate_input(data: Any) -> dict[str, Any]:
 
 def _is_type(value: Any, expected: type | tuple[type, ...]) -> bool:
     """Проверяет JSON-тип и не принимает bool вместо чисел (Python считает bool числом)."""
+    if expected == (int, float):
+        if isinstance(value, bool):
+            return False
+        if isinstance(value, (int, float)):
+            return math.isfinite(value)
+        if isinstance(value, str):
+            try:
+                return math.isfinite(float(value.replace(" ", "").replace(",", ".")))
+            except ValueError:
+                return False
+        return False
     return isinstance(value, expected) and not (isinstance(value, bool) and expected != bool)
+
+
+def _coerce_number(value: Any) -> Any:
+    """Преобразует числовые значения из PostgreSQL JSON-строк в числа."""
+    if isinstance(value, str):
+        try:
+            return float(value.replace(" ", "").replace(",", "."))
+        except ValueError:
+            return None
+    return value
 
 
 def _number(value: Any) -> float:

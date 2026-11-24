@@ -97,7 +97,10 @@ def fallback_report(data: dict[str, Any], registry: dict[str, Any] | None = None
         "metrics_summary": {"average_monthly_revenue": round(avg_revenue, 2),
                             "average_monthly_net_profit": round(avg_profit, 2), "payback_months": payback},
         "content_moderation": [],
-        "registry_match_report": {"status": data.get("registry_check", "skipped"), "extract": registry or {}},
+        "registry_match_report": {
+            "status": data.get("registry_check", "skipped") if data.get("seller_status") == "ip" else "not_applicable",
+            "extract": registry or {},
+        },
         "price_assessment": {"fair_range_min": round(avg_profit * 24, 2) if avg_profit > 0 else None,
                              "fair_range_max": round(avg_profit * 48, 2) if avg_profit > 0 else None,
                              "verdict": "needs_human_review"},

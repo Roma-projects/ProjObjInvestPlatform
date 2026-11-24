@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import BlacklistEntry, ModerationCase, ModerationOutboxEvent
 from app.schemas.moderation import DecisionBody
 
-SENSITIVE_DOCUMENT_FIELDS = {"passport_copy_doc", "tax_certificate_doc", "income_statement_doc"}
+SENSITIVE_DOCUMENT_FIELDS = {"passport_copy_doc"}
 
 
 class ModerationService:
@@ -43,7 +43,7 @@ class ModerationService:
             case.status = "approved"
             case.verification_level = (
                 "deep"
-                if body.verification_level == "deep" or SENSITIVE_DOCUMENT_FIELDS.intersection(case.document_refs)
+                if SENSITIVE_DOCUMENT_FIELDS.intersection(case.document_refs)
                 else "basic"
             )
             self._add_listing_event("moderation.listing.approved", case)

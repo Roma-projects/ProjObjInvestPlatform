@@ -105,7 +105,7 @@ class VisionAnalyzer:
         sent_image_paths = image_paths[:10]
         overflow_paths = image_paths[10:]
         if not base_url or not api_key:
-            return self._provider_failure_report(base, requested_image_paths, "AI endpoint не настроен")
+            return self._provider_failure_report(base, requested_image_paths, "AI endpoint не настроен", data)
         content: list[dict[str, Any]] = [{
             "type": "text",
             "text": json.dumps({"data_for_analytics": self._safe_model_data(data),
@@ -132,7 +132,7 @@ class VisionAnalyzer:
             status_code = exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else "unavailable"
             logger.warning("AI provider request failed (%s, %s); returning fail-closed report", type(exc).__name__, status_code)
             failure = f"HTTP {status_code}" if isinstance(exc, httpx.HTTPStatusError) else type(exc).__name__
-            return self._provider_failure_report(base, requested_image_paths, f"AI-проверка не завершилась ({failure})")
+            return self._provider_failure_report(base, requested_image_paths, f"AI-проверка не завершилась ({failure})", data)
         # Keep deterministic fallback values if the model omits fields or returns an empty object.
         nested_fields = {"metrics_summary", "price_assessment", "forecast", "moderator_report", "user_analytics",
                          "registry_match_report"}
@@ -247,14 +247,11 @@ class VisionAnalyzer:
             or base["red_flag_score"] >= 5 or photo_issues
             else "auto_ok"
         )
-        has_verification_documents = (
-            any(value is True for value in data["has_documents"].values())
-            if isinstance(data.get("has_documents"), dict)
-            else False
-        )
+        documents = data.get("has_documents")
+        has_passport_copy = isinstance(documents, dict) and documents.get("passport_copy_doc") is True
         base["verification_level"] = (
             "deep"
-            if has_verification_documents or flags or photo_issues or base["moderation_status"] != "auto_ok"
+            if has_passport_copy
             else "basic"
         )
         if base["moderation_status"] == "requires_moderation":
@@ -278,13 +275,18 @@ class VisionAnalyzer:
         return base
 
     @staticmethod
-    def _provider_failure_report(base: dict[str, Any], image_paths: list[str], reason: str) -> dict[str, Any]:
+    def _provider_failure_report(
+        base: dict[str, Any], image_paths: list[str], reason: str, data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Keeps review mandatory and names every image when the vision API is unavailable."""
         issues = [{"image_path": path, "status": "review", "category": "ai_unavailable",
                    "reason": f"{reason}; фото требует ручной модерации", "confidence": 0.0}
                   for path in image_paths]
         base["moderation_status"] = "requires_moderation"
-        base["verification_level"] = "deep"
+        documents = data.get("has_documents")
+        base["verification_level"] = (
+            "deep" if isinstance(documents, dict) and documents.get("passport_copy_doc") is True else "basic"
+        )
         base["moderation_reasons"] = list(dict.fromkeys([*base.get("moderation_reasons", []), "ai_service_unavailable"]))
         base["content_moderation"] = issues
         base["moderator_report"]["photo_issues"] = issues

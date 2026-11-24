@@ -33,28 +33,95 @@ const labels = {
   severity: 'Важность', evidence: 'Основание', recommendation: 'Рекомендация', review_required: 'Нужна ручная проверка',
   risk_level: 'Уровень риска', images_passed: 'Фото без замечаний', images_failed: 'Фото с замечаниями',
   requires_manual_doc_request: 'Нужно запросить документы', payback_period_months: 'Окупаемость, месяцев',
+  forecast_commentary: 'Пояснение к прогнозу', expected_monthly_profit: 'Ожидаемая прибыль в месяц',
+  expected_monthly_revenue: 'Ожидаемая выручка в месяц', risk_rating: 'Уровень риска', photo_issues: 'Замечания к фото',
+  critical_flags: 'Критические замечания', verification_summary: 'Сводка проверок', registry_status: 'Статус реестра',
+  documents_missing: 'Не представлены документы', documents_provided: 'Представленные документы',
+  price_status: 'Оценка цены', fair_price_min: 'Минимальная ориентировочная стоимость',
+  fair_price_max: 'Максимальная ориентировочная стоимость', valuation_commentary: 'Пояснение к оценке',
+  price_deviation_percent: 'Отклонение цены', recommendation: 'Рекомендация',
+  status: 'Статус', extract: 'Найденные сведения', identity_check: 'Сверка данных продавца',
+  fio_match: 'Совпадение ФИО', inn_match: 'Совпадение ИНН', business_status_match: 'Статус ИП подтверждён',
+  document_downloaded: 'Выписка загружена', verified: 'Проверка подтверждена',
+  uploaded: 'Загружен', readable: 'Читается', source_text_excerpt: 'Сведения из источника',
+  sources_checked: 'Проверенные источники', failed_sources: 'Источники с ошибкой', total_duration_ms: 'Время проверки, мс',
+  registration_date: 'Дата регистрации', okved: 'Коды деятельности', bankruptcy_proceedings: 'Сведения о банкротстве',
+  arbitration_cases: 'Арбитражные дела', region: 'Регион регистрации', document_downloaded: 'Выписка загружена',
+  none: 'Не выявлено', allowed: 'Разрешено', review: 'Нужна проверка', suspicious: 'Подозрительно',
+  blocked: 'Заблокировано', prohibited: 'Запрещено', low: 'Низкий', moderate: 'Средний', high: 'Высокий',
+  critical: 'Критический', stable: 'Стабильная', growth: 'Рост', decline: 'Снижение', seasonal: 'Сезонная',
+  unknown: 'Недостаточно данных', verified: 'Подтверждён', unverified: 'Не подтверждён',
+  skipped: 'Не запускалась', not_applicable: 'Не применяется', awaiting: 'Выполняется', timeout: 'Истекло время ожидания',
+  error: 'Ошибка проверки', partial: 'Проверена частично', not_found: 'Запись не найдена', ok: 'Пройдена', warning: 'Предупреждение',
+  requires_moderation: 'Нужна модерация', auto_ok: 'Автоматически одобрено', needs_human_review: 'Нужна ручная оценка',
+  significantly_overpriced: 'Цена значительно выше ориентировочной', overpriced: 'Цена выше ориентировочной',
+  fair: 'Цена в пределах ориентира', underpriced: 'Цена ниже ориентира',
 };
 
 const moneyFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 const labelFor = (key) => labels[key] || String(key).replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 const moneyLike = /(price|revenue|profit|expense|value|salary|debt|assets|rent|check)/i;
+const hiddenFields = /(^|_)(id|path|url|filename|file|files|directory|folder|token|source_text_excerpt|photos|main_photo|floor_plan_image|video|created_at|updated_at)$/i;
+
+Object.assign(labels, {
+  comment: 'Комментарий', confidence: 'Уверенность', confidence_level: 'Уровень уверенности',
+  employee_count: 'Количество сотрудников', annual_revenue: 'Годовая выручка',
+  rent: 'Аренда', payroll: 'Заработная плата', purchases: 'Закупки', utilities: 'Коммунальные услуги',
+  taxes: 'Налоги', marketing: 'Маркетинг', other: 'Прочие расходы',
+  profitability_percent_by_month: 'Рентабельность по месяцам', expense_structure_percent: 'Структура расходов, %',
+  average_profitability_percent: 'Средняя рентабельность', debt_load_months: 'Кредитная нагрузка, месяцев',
+  rent_per_sqm: 'Аренда за м²', revenue_per_employee: 'Выручка на сотрудника', assets_value: 'Стоимость активов',
+  business_type: 'Тип бизнеса', property_type: 'Тип помещения', property_condition: 'Состояние помещения',
+  deal_composition: 'Состав сделки', transfer_method: 'Способ передачи', business_age_months: 'Возраст бизнеса, месяцев',
+  area_sqm: 'Площадь, м²', sale_price: 'Цена продажи', stock_value: 'Стоимость товарного остатка',
+  average_check: 'Средний чек', monthly_orders: 'Количество заказов в месяц', monthly_clients_unique: 'Уникальных клиентов в месяц',
+  repeat_customer_rate: 'Доля повторных клиентов', customer_base_size: 'Размер клиентской базы',
+  debts_receivable: 'Дебиторская задолженность', debts_payable: 'Кредиторская задолженность',
+  monthly_loan_payments: 'Платежи по кредитам в месяц', staff_count: 'Количество сотрудников',
+  equipment_list: 'Оборудование', staff_details: 'Состав команды', business_name: 'Название бизнеса',
+  short_description: 'Краткое описание', full_description: 'Полное описание', seller_name: 'Продавец',
+  seller_status: 'Статус продавца', seller_inn: 'ИНН', seller_ogrnip: 'ОГРНИП', country: 'Страна', city: 'Город',
+  street: 'Улица', house: 'Дом', seasonality_months: 'Сезонные месяцы', supplier_contracts: 'Договоры с поставщиками',
+  supplier_details: 'Поставщики', legal_claims: 'Судебные споры', legal_claims_details: 'Детали судебных споров',
+  equipment_lease: 'Аренда оборудования', stock_included: 'Товарный остаток включён', has_licenses: 'Лицензии',
+  has_contracts: 'Договоры', sale_reason: 'Причина продажи', has_documents: 'Наличие документов',
+  revenue: 'Выручка', net_profit: 'Чистая прибыль', total_expenses: 'Общие расходы', rent_expenses: 'Расходы на аренду',
+  payroll_expenses: 'Расходы на зарплату', purchases_expenses: 'Расходы на закупки', utilities_expenses: 'Расходы на коммунальные услуги',
+  taxes_expenses: 'Расходы на налоги', marketing_expenses: 'Расходы на маркетинг', other_expenses: 'Прочие расходы',
+  month: 'Месяц', equipment_value: 'Стоимость оборудования', salary: 'Заработная плата', count: 'Количество',
+  verification_level: 'Уровень проверки', expected_ogrnip_match: 'ОГРНИП совпадает',
+  code: 'Код', name: 'Показатель', value: 'Значение', month: 'Месяц',
+  self_employed: 'Самозанятый', ip: 'Индивидуальный предприниматель', legal_entity: 'Юридическое лицо', individual: 'Физическое лицо',
+  full_transfer_training: 'Полная передача с обучением', owner: 'Собственник', free_purpose: 'Свободное назначение',
+  good_condition: 'Хорошее состояние', food: 'Общественное питание',
+});
+
+function cleanReportData(value) {
+  if (typeof value === 'string' && (/^https?:\/\//i.test(value) || /(?:^|\/)public\/uploads\/|\.(?:pdf|png|jpe?g|webp|docx?|xlsx?)(?:$|[?#])/i.test(value))) return null;
+  if (Array.isArray(value)) return value.map(cleanReportData).filter((item) => item !== null);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !hiddenFields.test(key) && !['source_text_excerpt', 'registry_extract'].includes(key))
+    .map(([key, nested]) => [key, cleanReportData(nested)]));
+}
 
 function formatValue(key, value) {
   if (value === null || value === undefined || value === '') return 'Не указано';
   if (typeof value === 'boolean') return value ? 'Да' : 'Нет';
   if (typeof value === 'number') {
-    if (moneyLike.test(key)) return `${moneyFormat.format(value)} ₽`;
     if (/(percent|rate|confidence)$/i.test(key)) return `${(Math.abs(value) <= 1 && value !== 0 ? value * 100 : value).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
+    if (moneyLike.test(key)) return `${moneyFormat.format(value)} ₽`;
     return value.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
   }
-  if (typeof value === 'string') return value.replaceAll('_', ' ');
+  if (typeof value === 'string') return labels[value] || value.replaceAll('_', ' ');
   return '';
 }
 
 function addData(grid, data, columns = 3) {
   let added = 0;
   Object.entries(data || {}).forEach(([key, value]) => {
-    if (value === undefined) return;
+    if (value === undefined || hiddenFields.test(key)
+      || ['source_text_excerpt', 'registry_extract', 'extract'].includes(key)) return;
     const card = document.createElement('article'); card.className = 'report-value';
     const label = document.createElement('span'); label.className = 'report-value__label'; label.textContent = labelFor(key);
     const content = document.createElement('div'); content.className = 'report-value__content';
@@ -65,7 +132,7 @@ function addData(grid, data, columns = 3) {
         value.forEach((entry) => {
           const row = document.createElement('li');
           row.textContent = entry && typeof entry === 'object'
-            ? Object.entries(entry).map(([field, detail]) => `${labelFor(field)}: ${formatValue(field, detail)}`).join(' · ')
+            ? Object.entries(cleanReportData(entry)).map(([field, detail]) => `${labelFor(field)}: ${formatValue(field, detail)}`).filter((text) => !text.endsWith(': Не указано')).join(' · ') || 'Нет данных'
             : formatValue(key, entry);
           list.append(row);
         });
@@ -74,7 +141,7 @@ function addData(grid, data, columns = 3) {
     } else if (value && typeof value === 'object') {
       card.classList.add('report-value--nested');
       const nested = document.createElement('div'); nested.className = 'report-value__nested';
-      addData(nested, value, 2); content.append(nested);
+      addData(nested, cleanReportData(value), 2); content.append(nested);
     } else content.textContent = formatValue(key, value);
     card.append(label, content); card.style.setProperty('--report-columns', String(columns)); grid.append(card); added += 1;
   });
@@ -86,7 +153,7 @@ export function makeReportSection(title, data, className = '') {
   const section = document.createElement('section'); section.className = `analysis-block report-section ${className}`.trim();
   const heading = document.createElement('h2'); heading.className = 'section-title'; heading.textContent = title;
   const grid = document.createElement('div'); grid.className = 'report-grid';
-  if (!addData(grid, data)) return null;
+  if (!addData(grid, cleanReportData(data))) return null;
   section.append(heading, grid); return section;
 }
 
@@ -110,9 +177,9 @@ function addLineChart(grid, title, points, modifier = '') {
   const values = Array.isArray(points)
     ? points.map((point) => ({ label: point.month || point.label || '', value: Number(point.value ?? point.index) })).filter((point) => Number.isFinite(point.value))
     : [];
-  if (values.length < 2) return false;
-  const width = 720; const height = 210; const pad = { top: 22, right: 18, bottom: 38, left: 52 };
-  const min = Math.min(0, ...values.map((point) => point.value)); const max = Math.max(1, ...values.map((point) => point.value));
+  const width = 1000; const height = 360; const pad = { top: 28, right: 28, bottom: 48, left: 100 };
+  const rawMin = Math.min(0, ...values.map((point) => point.value)); const rawMax = Math.max(0, ...values.map((point) => point.value));
+  const spanRaw = rawMax - rawMin || 1; const min = rawMin - spanRaw * 0.08; const max = rawMax + spanRaw * 0.08;
   const plotW = width - pad.left - pad.right; const plotH = height - pad.top - pad.bottom; const span = max - min || 1;
   const coords = values.map((point, index) => ({ ...point, x: pad.left + index * plotW / (values.length - 1), y: pad.top + (max - point.value) * plotH / span }));
   const figure = document.createElement('figure'); figure.className = `moderation-chart ${modifier}`.trim();
@@ -123,12 +190,16 @@ function addLineChart(grid, title, points, modifier = '') {
     const y = pad.top + plotH * fraction; const line = document.createElementNS(svg.namespaceURI, 'line');
     line.setAttribute('x1', String(pad.left)); line.setAttribute('x2', String(width - pad.right)); line.setAttribute('y1', String(y));
     line.setAttribute('y2', String(y)); line.setAttribute('class', 'moderation-chart__grid'); svg.append(line);
+    const tick = document.createElementNS(svg.namespaceURI, 'text');
+    tick.setAttribute('x', String(pad.left - 12)); tick.setAttribute('y', String(y + 5));
+    tick.setAttribute('text-anchor', 'end'); tick.setAttribute('class', 'moderation-chart__label');
+    tick.textContent = Math.round(max - span * fraction).toLocaleString('ru-RU'); svg.append(tick);
   });
   const polyline = document.createElementNS(svg.namespaceURI, 'polyline');
   polyline.setAttribute('points', coords.map((p) => `${p.x},${p.y}`).join(' ')); polyline.setAttribute('class', 'moderation-chart__line'); svg.append(polyline);
   coords.forEach((point, index) => {
     const circle = document.createElementNS(svg.namespaceURI, 'circle'); circle.setAttribute('cx', String(point.x));
-    circle.setAttribute('cy', String(point.y)); circle.setAttribute('r', '4'); circle.setAttribute('class', 'moderation-chart__point');
+    circle.setAttribute('cy', String(point.y)); circle.setAttribute('r', '6'); circle.setAttribute('class', 'moderation-chart__point');
     const tip = document.createElementNS(svg.namespaceURI, 'title'); tip.textContent = `${point.label || `Точка ${index + 1}`}: ${point.value.toLocaleString('ru-RU')}`;
     circle.append(tip); svg.append(circle);
     if (index === 0 || index === coords.length - 1 || index === Math.floor(coords.length / 2)) {
@@ -145,14 +216,33 @@ export function makeReportCharts(scriptsReport, listing) {
   const section = document.createElement('section'); section.className = 'analysis-block report-section report-charts';
   const heading = document.createElement('h2'); heading.className = 'section-title'; heading.textContent = 'Итоговые графики аналитики';
   const grid = document.createElement('div'); grid.className = 'report-chart-grid'; let count = 0;
-  count += Number(addLineChart(grid, 'Выручка по месяцам', charts.revenue_line?.length ? charts.revenue_line : finance.map((row) => ({ month: row.month, value: row.revenue }))));
-  count += Number(addLineChart(grid, 'Чистая прибыль по месяцам', charts.profit_line?.length ? charts.profit_line : finance.map((row) => ({ month: row.month, value: row.net_profit })), 'moderation-chart--profit'));
-  count += Number(addLineChart(grid, 'Сезонность', charts.seasonality_bar || [], 'moderation-chart--seasonality'));
-  if (Array.isArray(charts.expenses_pie) && charts.expenses_pie.length) {
+  const number = (value) => {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') return Number(value.replace(/\s/g, '').replace(',', '.'));
+    return NaN;
+  };
+  const financePoints = (key) => finance.map((row) => ({ month: row.month, value: number(row[key]) }));
+  const usefulPoints = (points) => Array.isArray(points) && points.some((point) => Number(point?.value ?? point?.index) !== 0);
+  const revenuePoints = usefulPoints(charts.revenue_line) ? charts.revenue_line : financePoints('revenue');
+  const profitPoints = usefulPoints(charts.profit_line) ? charts.profit_line : financePoints('net_profit');
+  const seasonalityPoints = usefulPoints(charts.seasonality_bar) ? charts.seasonality_bar : (() => {
+    const revenues = finance.map((row) => number(row.revenue) || 0);
+    const average = revenues.length ? revenues.reduce((sum, value) => sum + value, 0) / revenues.length : 0;
+    return finance.map((row) => ({ month: row.month, index: average ? (number(row.revenue) || 0) / average : null }));
+  })();
+  count += Number(addLineChart(grid, 'Выручка по месяцам · ₽', revenuePoints));
+  count += Number(addLineChart(grid, 'Чистая прибыль по месяцам · ₽', profitPoints, 'moderation-chart--profit'));
+  count += Number(addLineChart(grid, 'Сезонность · индекс к средней выручке', seasonalityPoints, 'moderation-chart--seasonality'));
+  const expenseKeys = ['rent_expenses', 'payroll_expenses', 'purchases_expenses', 'utilities_expenses', 'taxes_expenses', 'marketing_expenses', 'other_expenses'];
+  const chartExpenses = Array.isArray(charts.expenses_pie) ? charts.expenses_pie : [];
+  const expenseData = chartExpenses.some((item) => Number(item.value) > 0)
+    ? chartExpenses
+    : expenseKeys.map((key) => ({ name: key.replace('_expenses', ''), value: finance.reduce((sum, row) => sum + (number(row[key]) || 0), 0) }));
+  if (expenseData.some((item) => Number(item.value) > 0)) {
     const panel = document.createElement('article'); panel.className = 'expense-chart';
     const title = document.createElement('h3'); title.textContent = 'Структура расходов'; panel.append(title);
-    const total = charts.expenses_pie.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
-    charts.expenses_pie.forEach((item) => {
+    const total = expenseData.reduce((sum, item) => sum + (Number(item.value) || 0), 0);
+    expenseData.filter((item) => Number(item.value) > 0).forEach((item) => {
       const row = document.createElement('div'); row.className = 'expense-chart__row';
       const label = document.createElement('span'); label.textContent = labelFor(item.name || 'expense');
       const track = document.createElement('span'); track.className = 'expense-chart__track';

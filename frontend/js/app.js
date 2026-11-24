@@ -2300,30 +2300,115 @@ async function bindModerationDetail() {
     descriptionTitle.className = 'section-title';
     descriptionTitle.textContent = 'Описание и сведения';
     const descriptionCard = document.createElement('div');
-    descriptionCard.className = 'moderation-description';
-    const descriptionLabel = document.createElement('h3');
-    descriptionLabel.className = 'moderation-description__title';
-    descriptionLabel.textContent = item.full_description ? 'Полное описание' : 'Краткое описание';
-    const descriptionText = document.createElement('p');
-    descriptionText.className = 'moderation-description__text';
-    descriptionText.textContent = item.full_description || item.short_description || 'Продавец не добавил описание.';
-    descriptionCard.append(descriptionLabel, descriptionText);
+    descriptionCard.className = 'moderation-description__grid';
+    const appendDescription = (title, text, modifier) => {
+      if (!text?.trim()) return;
+      const card = document.createElement('article');
+      card.className = `moderation-description moderation-description--${modifier}`;
+      const label = document.createElement('h3');
+      label.className = 'moderation-description__title';
+      label.textContent = title;
+      const paragraph = document.createElement('p');
+      paragraph.className = 'moderation-description__text';
+      paragraph.textContent = text.trim();
+      card.append(label, paragraph);
+      descriptionCard.append(card);
+    };
+    appendDescription('Краткое описание', item.short_description, 'short');
+    appendDescription('Полное описание', item.full_description, 'full');
+    appendDescription('Причина продажи', item.sale_reason, 'reason');
+    if (!descriptionCard.childElementCount) {
+      appendDescription('Описание', 'Продавец не добавил описание.', 'short');
+    }
     description.append(descriptionTitle, descriptionCard);
     details.append(description);
-    const listingFacts = makeDetailSection('Данные объявления', [
+    const appendDataTable = (title, columns, rows, modifier) => {
+      if (!rows.length) return;
+      const section = document.createElement('section');
+      section.className = `analysis-block moderation-data-table moderation-data-table--${modifier}`;
+      const heading = document.createElement('h2');
+      heading.className = 'section-title';
+      heading.textContent = title;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'moderation-data-table__scroll';
+      const table = document.createElement('table');
+      table.className = 'moderation-data-table__table';
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      columns.forEach((column) => {
+        const th = document.createElement('th');
+        th.scope = 'col';
+        th.textContent = column.label;
+        headerRow.append(th);
+      });
+      thead.append(headerRow);
+      const tbody = document.createElement('tbody');
+      rows.forEach((row) => {
+        const tr = document.createElement('tr');
+        columns.forEach((column) => {
+          const td = document.createElement('td');
+          const value = row[column.key];
+          td.textContent = value === undefined || value === null || value === ''
+            ? '—'
+            : column.money ? `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Number(value))} ₽` : column.format ? column.format(value) : String(value);
+          if (column.money) td.className = 'moderation-data-table__money';
+          tr.append(td);
+        });
+        tbody.append(tr);
+      });
+      table.append(thead, tbody);
+      wrapper.append(table);
+      section.append(heading, wrapper);
+      details.append(section);
+    };
+    const appendKeyValueTable = (title, entries, modifier) => {
+      const rows = [];
+      for (let index = 0; index < entries.length; index += 2) {
+        rows.push({
+          label: entries[index][0], value: entries[index][1],
+          second_label: entries[index + 1]?.[0] || '', second_value: entries[index + 1]?.[1] || '',
+        });
+      }
+      appendDataTable(title, [
+        { key: 'label', label: 'Параметр' }, { key: 'value', label: 'Значение' },
+        { key: 'second_label', label: 'Параметр' }, { key: 'second_value', label: 'Значение' },
+      ], rows, modifier);
+    };
+    appendKeyValueTable('Условия и характеристики', [
       ['Тип бизнеса', displayEnum(item.business_type)], ['Тип помещения', displayEnum(item.property_type)],
       ['Состояние помещения', displayEnum(item.property_condition)], ['Состав сделки', displayEnum(item.deal_composition)],
-      ['Способ передачи', displayEnum(item.transfer_method)], ['Продавец', item.seller_name], ['Статус продавца', displayEnum(item.seller_status)],
-      ['ИНН', item.seller_inn], ['ОГРНИП', item.seller_ogrnip], ['Причина продажи', item.sale_reason],
-      ['Проверка', moderationCase.verification_level === 'deep' ? 'Углублённая' : 'Базовая'],
-    ]);
-    if (listingFacts) details.append(listingFacts);
-    const financialDetails = finances.map((row) => makeDetailSection(row.month, [
-      ['Выручка', row.revenue === undefined ? '' : formatMoney(row.revenue)],
-      ['Расходы', row.total_expenses === undefined ? '' : formatMoney(row.total_expenses)],
-      ['Чистая прибыль', row.net_profit === undefined ? '' : formatMoney(row.net_profit)],
-    ]));
-    details.append(...financialDetails.filter(Boolean));
+      ['Способ передачи', displayEnum(item.transfer_method)],
+    ], 'listing');
+    appendKeyValueTable('Данные продавца', [
+      ['Продавец', item.seller_name], ['Статус продавца', displayEnum(item.seller_status)],
+      ['ИНН', item.seller_inn], ['ОГРНИП', item.seller_ogrnip],
+    ], 'seller');
+    appendDataTable('Финансовые данные по месяцам', [
+      { key: 'month', label: 'Месяц', format: (value) => {
+        const [year, month] = String(value).split('-');
+        return year && month ? new Intl.DateTimeFormat('ru-RU', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(Number(year), Number(month) - 1, 1))) : value;
+      } },
+      { key: 'revenue', label: 'Выручка', money: true },
+      { key: 'total_expenses', label: 'Расходы', money: true },
+      { key: 'net_profit', label: 'Чистая прибыль', money: true },
+    ], finances, 'finances');
+    const equipmentRows = (Array.isArray(item.equipment_list) ? item.equipment_list : []).map((equipment) => ({
+      ...equipment,
+      equipment_condition: displayEnum(equipment.equipment_condition),
+    }));
+    appendDataTable('Оборудование', [
+      { key: 'equipment_name', label: 'Наименование' },
+      { key: 'equipment_brand', label: 'Марка / модель' },
+      { key: 'equipment_condition', label: 'Состояние' },
+      { key: 'equipment_purchase_year', label: 'Год покупки' },
+      { key: 'equipment_value', label: 'Стоимость', money: true },
+    ], equipmentRows, 'equipment');
+    const staffRows = Array.isArray(item.staff_details) ? item.staff_details : [];
+    appendDataTable('Состав команды', [
+      { key: 'position', label: 'Должность' },
+      { key: 'count', label: 'Количество' },
+      { key: 'salary', label: 'Зарплата', money: true },
+    ], staffRows, 'staff');
     const docLabels = {
       passport_copy_doc: 'Копия паспорта', tax_certificate_doc: 'Налоговая справка', income_statement_doc: 'Отчёт о доходах',
       lease_agreement_doc: 'Договор аренды', ownership_doc: 'Документ о собственности', evacuation_plan_doc: 'План эвакуации',
@@ -2372,6 +2457,9 @@ async function bindModerationDetail() {
     aiReviewCard.className = 'ai-review__card';
     const aiReviewStatus = document.createElement('span');
     aiReviewStatus.className = 'ai-review__status';
+    const verificationBadge = document.createElement('span');
+    verificationBadge.className = 'ai-review__verification';
+    verificationBadge.textContent = `Уровень проверки: ${moderationCase.verification_level === 'deep' ? 'Углублённая' : 'Базовая'}`;
     const hasAiReport = Object.keys(aiReport).length > 0;
     const requiresReview = !hasAiReport || aiReport.moderation_status === 'requires_moderation'
       || reviewReasons.length > 0 || redFlags.length > 0
@@ -2387,25 +2475,114 @@ async function bindModerationDetail() {
         : requiresReview
         ? 'Автоматическая проверка обнаружила пункты, которые нужно сверить с объявлением и подтверждающими документами. Решение остаётся за модератором.'
         : 'Автоматическая проверка не обнаружила критичных несоответствий. Сверьте сведения и изображения с данными объявления перед принятием решения.';
-    aiReviewCard.append(aiReviewStatus, aiReviewText);
+    const aiExtraComments = [
+      aiReport.comment,
+      aiReport.full_comment,
+      aiReport.ai_comment,
+      aiReport.moderator_report?.comment,
+      aiReport.moderator_report?.full_comment,
+      aiReport.moderator_report?.detailed_comment,
+      aiReport.moderator_report?.analysis,
+    ].filter((comment, index, comments) => typeof comment === 'string' && comment.trim()
+      && comment.trim() !== aiReviewText.textContent && comments.indexOf(comment) === index);
+    if (aiExtraComments.length) {
+      aiReviewText.textContent = aiExtraComments.map((comment) => comment.trim()).join('\n\n');
+    }
+    aiReviewCard.append(aiReviewStatus, verificationBadge, aiReviewText);
     aiReview.append(aiReviewTitle, aiReviewCard);
-    details.append(aiReview);
+    details.prepend(aiReview);
 
     const analyticsInput = moderationCase.analytics_input || item.analytics_input || item;
+    const scriptMetrics = scriptsReport.financial_metrics || {};
+    const aiMetrics = { ...(aiReport.metrics_summary || {}), ...(aiReport.user_analytics || {}) };
+    const riskLabel = { low: 'Низкий', moderate: 'Средний', high: 'Высокий', critical: 'Критический' };
+    const registryReport = aiReport.registry_match_report || {};
+    const registryStatusLabels = {
+      verified: 'Подтверждён', unverified: 'Не подтверждён', skipped: 'Не запускалась',
+      not_applicable: 'Не применяется', awaiting: 'Выполняется', timeout: 'Истекло время ожидания',
+      error: 'Ошибка проверки', partial: 'Проверена частично', not_found: 'Запись не найдена',
+    };
+    const formatCheckName = (name = '') => name
+      .replace(/^net_profit:/, 'Сверка прибыли · ').replace(/^expense_items:/, 'Сверка статей расходов · ')
+      .replace(/^payroll:/, 'Сверка зарплат · ').replace(/^orders_revenue:/, 'Сверка выручки по заказам · ')
+      .replace(/:(\d{4}-\d{2})$/, ' · $1');
+    const formatCheckEvidence = (evidence = '') => {
+      let match = evidence.match(/financial equation differs by over 5% in (\d{4}-\d{2})/i);
+      if (match) return `За ${match[1]} расхождение формулы «выручка − расходы = прибыль» превышает 5%.`;
+      match = evidence.match(/expense categories differ by over 10% in (\d{4}-\d{2})/i);
+      if (match) return `За ${match[1]} сумма расходов по статьям отличается от общих расходов более чем на 10%.`;
+      match = evidence.match(/estimated payback is under six months/i);
+      if (match) return 'Расчётный срок окупаемости ниже шести месяцев — требуется ручная сверка цены и прибыли.';
+      match = evidence.match(/all monthly revenue values are multiples of 10000/i);
+      if (match) return 'Все суммы выручки округлены до десятков тысяч — запросите подтверждающие данные.';
+      return evidence;
+    };
+    const scriptSummary = {
+      ...(scriptsReport.revenue_trend ? { revenue_trend: scriptsReport.revenue_trend } : {}),
+      ...scriptMetrics,
+      ...(Array.isArray(scriptsReport.consistency_report) ? {
+        consistency_report: scriptsReport.consistency_report.map((check) => ({
+          check: formatCheckName(check.check),
+          status: check.status,
+          difference: check.difference,
+          allowed_difference: check.allowed_difference,
+        })),
+      } : {}),
+    };
+    const aiSummary = {
+      moderation_status: aiReport.moderation_status,
+      red_flag_rating: riskLabel[aiReport.red_flag_rating] || aiReport.red_flag_rating,
+      red_flag_score: aiReport.red_flag_score,
+      verification_level: aiReport.verification_level === 'deep' ? 'Углублённая' : aiReport.verification_level === 'basic' ? 'Базовая' : undefined,
+      review_required: aiReport.moderator_report?.review_required,
+    };
+    const aiRiskDetails = (aiReport.red_flags || []).map((flag) => ({
+      code: flag.code, severity: riskLabel[flag.severity] || flag.severity, evidence: flag.evidence || flag.description,
+    }));
+    const photoSummary = photoReviews.map((photo, index) => ({
+      photo_number: index + 1,
+      category: photo.category === 'none' ? 'Нарушений не выявлено' : photo.category,
+      status: photo.status,
+      confidence: photo.confidence,
+    }));
+    const identityCheck = registryReport.identity_check || {};
+    const registrySummary = {
+      status: registryStatusLabels[registryReport.status] || registryReport.status || 'Не указано',
+      reason: registryReport.reason || (registryReport.status === 'skipped' && item.seller_status === 'ip'
+        ? 'Проверка ИП не запустилась. Для автоматического запроса нужны статус «ИП», заполненные ФИО и ИНН, прошедший проверку контрольной суммы.'
+        : registryReport.status === 'skipped'
+          ? 'Продавец указан как самозанятый. Проверка ЕГРИП предназначена для ИП, поэтому для этого объявления она не применяется.'
+          : undefined),
+      ...(identityCheck.fio_match !== undefined ? { fio_match: identityCheck.fio_match } : {}),
+      ...(identityCheck.inn_match !== undefined ? { inn_match: identityCheck.inn_match } : {}),
+      ...(identityCheck.business_status_match !== undefined ? { business_status_match: identityCheck.business_status_match } : {}),
+      ...(identityCheck.document_downloaded !== undefined ? { document_downloaded: identityCheck.document_downloaded } : {}),
+      ...(identityCheck.verified !== undefined ? { verified: identityCheck.verified } : {}),
+    };
+    const priceAndForecast = {
+      ...(aiReport.price_assessment || {}),
+      ...(aiReport.forecast || {}),
+    };
     const reportSections = [
-      makeReportSection('Входные параметры создания объявления', analyticsInput, 'report-section--inputs'),
-      makeReportSection('Итоги проверок аналитических скриптов', scriptsReport, 'report-section--scripts'),
-      makeReportSection('Итоговый AI-отчёт', aiReport, 'report-section--ai'),
+      makeReportSection('Параметры объявления', analyticsInput, 'report-section--inputs'),
+      makeReportSection('Финансовый анализ и сверки', scriptSummary, 'report-section--scripts'),
+      makeReportSection('Краткий вывод AI', aiSummary, 'report-section--ai'),
+      makeReportSection('Финансовые показатели AI', aiMetrics, 'report-section--ai-metrics'),
+      makeReportSection('Риски и основания', { red_flags: aiRiskDetails, moderation_reasons: reviewReasons }, 'report-section--risks'),
+      makeReportSection('Проверка фотографий', { content_moderation: photoSummary }, 'report-section--photos'),
+      makeReportSection('Проверка по реестру', registrySummary, 'report-section--registry'),
+      makeReportSection('Оценка цены и прогноз', priceAndForecast, 'report-section--forecast'),
+      makeReportCharts(scriptsReport, item),
     ].filter(Boolean);
     reportSections.forEach((section) => {
       const disclosure = document.createElement('details'); disclosure.className = 'report-disclosure';
-      disclosure.open = section.classList.contains('report-section--ai');
+      disclosure.classList.toggle('report-disclosure--ai', section.classList.contains('report-section--ai'));
+      disclosure.classList.toggle('report-disclosure--charts', section.classList.contains('report-charts'));
+      disclosure.open = section.classList.contains('report-section--ai') || section.classList.contains('report-section--registry');
       const summary = document.createElement('summary');
-      summary.textContent = section.querySelector('.section-title')?.textContent || 'Подробный отчёт';
+      summary.textContent = section.querySelector('.section-title')?.textContent || 'Итоговые графики аналитики';
       section.querySelector('.section-title')?.remove(); disclosure.append(summary, section); details.append(disclosure);
     });
-    const charts = makeReportCharts(scriptsReport, item);
-    if (charts) details.append(charts);
 
     const reasonLabels = {
       'FIN-001': 'Чистая прибыль выше указанной выручки',
@@ -2433,9 +2610,9 @@ async function bindModerationDetail() {
       issueItems.push({
         title: (code && reasonLabels[code]) || reasonLabels[reason] || code || 'Причина ручной проверки',
         code: code || (reasonLabels[reason] ? 'Проверить вручную' : ''),
-        detail: (code && reasonDetails.get(code)) || (reasonLabels[reason]
+      detail: formatCheckEvidence((code && reasonDetails.get(code)) || (reasonLabels[reason]
           ? 'Автоматическая проверка не смогла подтвердить соответствующие данные; сопоставьте их с объявлением и документами.'
-          : code ? reason.replace(code, '').replace(/^\s*[:—-]\s*/, '').trim() : reason),
+        : code ? reason.replace(code, '').replace(/^\s*[:—-]\s*/, '').trim() : reason)),
       });
     });
     redFlags.forEach((flag) => {
@@ -2443,7 +2620,7 @@ async function bindModerationDetail() {
       issueItems.push({
         title: reasonLabels[flag.code] || flag.code,
         code: flag.code,
-        detail: flag.evidence || flag.description || 'Подробности проверки не предоставлены.',
+      detail: formatCheckEvidence(flag.evidence || flag.description || 'Подробности проверки не предоставлены.'),
       });
     });
     photoReviews.filter((photo) => photo && photo.status !== 'allowed').forEach((photo) => {
@@ -2463,10 +2640,15 @@ async function bindModerationDetail() {
       });
     });
     failedChecks.forEach((check) => issueItems.push({
-      title: check.check || 'Проверка согласованности данных',
+      title: formatCheckName(check.check || 'Проверка согласованности данных'),
       code: 'Скриптовая проверка',
-      detail: check.difference ? `Обнаружено расхождение: ${check.difference}` : check.details || 'Проверка обнаружила несоответствие.',
+      detail: check.difference
+        ? `Расхождение: ${formatMoney(check.difference)}. Допустимое значение: ${formatMoney(check.allowed_difference || 0)}.`
+        : formatCheckEvidence(check.details || 'Проверка обнаружила несоответствие.'),
     }));
+    const uniqueIssues = [...new Map(issueItems.map((issue) => [
+      `${issue.code}|${issue.title}|${issue.detail}`, issue,
+    ])).values()];
     if (issueItems.length) {
       const issues = document.createElement('section');
       issues.className = 'analysis-block moderation-issues';
@@ -2475,7 +2657,7 @@ async function bindModerationDetail() {
       issuesTitle.textContent = 'Подробные пояснения к ошибкам';
       const issueList = document.createElement('div');
       issueList.className = 'moderation-issues__list';
-      issueItems.forEach((issue) => {
+      uniqueIssues.forEach((issue) => {
         const card = document.createElement('article');
         card.className = 'moderation-issue';
         const heading = document.createElement('h3');

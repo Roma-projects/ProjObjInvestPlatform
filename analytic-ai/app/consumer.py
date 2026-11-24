@@ -158,7 +158,12 @@ class AIConsumer:
             else:
                 report = await self.analyzer.analyze(data, registry)
             # Registry verification is deterministic; an LLM must not approve an unmatched seller.
-            if data.get("seller_status") == "ip" and data.get("registry_check") not in {"timeout", "error"}:
+            if data.get("seller_status") != "ip":
+                report["registry_match_report"] = {
+                    "status": "not_applicable",
+                    "reason": "Реестровая проверка ЕГРИП предназначена для индивидуальных предпринимателей.",
+                }
+            elif data.get("registry_check") not in {"timeout", "error", "skipped", "invalid_inn"}:
                 identity = (registry or {}).get("identity_check") or {}
                 verified = bool(identity.get("verified"))
                 report["registry_match_report"] = {
@@ -168,12 +173,26 @@ class AIConsumer:
                 }
                 if not verified:
                     report["moderation_status"] = "requires_moderation"
-                    report["verification_level"] = "deep"
+                    documents = data.get("has_documents")
+                    report["verification_level"] = (
+                        "deep"
+                        if isinstance(documents, dict) and documents.get("passport_copy_doc") is True
+                        else "basic"
+                    )
                     reasons = report.setdefault("moderation_reasons", [])
                     reasons.append("registry_identity_unverified")
                     moderator = report.setdefault("moderator_report", {})
                     moderator["review_required"] = True
                     moderator["registry_identity_check"] = identity
+            elif data.get("seller_status") == "ip":
+                report["registry_match_report"] = {
+                    "status": data.get("registry_check"),
+                    "reason": (
+                        "Проверка не запускалась: проверьте ИНН и ФИО продавца."
+                        if data.get("registry_check") in {"skipped", "invalid_inn"}
+                        else "Не удалось получить ответ от реестра."
+                    ),
+                }
             result = {
                 "event": "listing.ai.analysis.completed",
                 "event_id": f"{correlation_id}:ai",

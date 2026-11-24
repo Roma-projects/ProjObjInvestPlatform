@@ -17,7 +17,7 @@ PRIVATE_DOCUMENT_FIELDS = {
     "evacuation_plan_doc", "fire_declaration_doc", "fire_service_contract_doc", "san_epid_conclusion",
     "tax_certificate_doc", "income_statement_doc", "lease_agreement_doc", "ownership_doc", "passport_copy_doc",
 }
-SENSITIVE_DOCUMENT_FIELDS = {"passport_copy_doc", "tax_certificate_doc", "income_statement_doc"}
+SENSITIVE_DOCUMENT_FIELDS = {"passport_copy_doc"}
 
 
 class ModerationConsumer:
@@ -73,12 +73,9 @@ class ModerationConsumer:
             is_banned = await session.scalar(select(BlacklistEntry.id).where(
                 BlacklistEntry.user_id == seller_id, BlacklistEntry.is_active.is_(True)
             ).limit(1))
-            ai_report = reports.get("ai_report") or {}
             verification_level = (
                 "deep"
                 if SENSITIVE_DOCUMENT_FIELDS.intersection(document_refs)
-                or event.get("verification_level") == "deep"
-                or ai_report.get("verification_level") == "deep"
                 else "basic"
             )
             case = ModerationCase(
@@ -110,8 +107,8 @@ class ModerationConsumer:
         ai = reports.get("ai_report") or {}
         scripts = reports.get("scripts_report") or {}
         # Every private attachment needs a human to confirm what it proves and
-        # that it belongs to this listing. Sensitive identity/financial files
-        # additionally raise the verification level to deep.
+        # that it belongs to this listing. Only a passport copy raises the
+        # verification level to deep; other private files keep it basic.
         if document_refs:
             return False
         if ai.get("moderation_status") != "auto_ok":

@@ -401,7 +401,7 @@ services:
   volume-permissions:
     image: alpine:3.20
     user: "0:0"
-    command: ["sh", "-ec", "for directory in /auth_avatars /public_uploads /private_uploads /parsers_storage; do mkdir -p \"$directory\"; chown -R 10001:10001 \"$directory\"; done"]
+    command: ["sh", "-ec", "for directory in /auth_avatars /public_uploads /private_uploads /parsers_storage; do mkdir -p \"$$directory\"; chown -R 10001:10001 \"$$directory\"; done"]
     volumes:
       - auth_avatars:/auth_avatars
       - public_uploads:/public_uploads

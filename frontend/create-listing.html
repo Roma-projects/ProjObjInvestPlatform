@@ -542,8 +542,10 @@
             <h2 class="form-card__title">Причина продажи</h2>
             <div class="form-grid">
               <label class="field field--full"><span class="field__label">Причина продажи</span><textarea
-                  class="field__textarea" name="sale_reason" rows="5"
-                  placeholder="Укажите причину/причины продажи объекта..."></textarea></label>
+                  class="field__textarea" name="sale_reason" rows="5" maxlength="1000"
+                  placeholder="Укажите причину/причины продажи объекта..."></textarea>
+                <small>До 1000 символов</small>
+              </label>
               <label class="field"><span class="field__label">Срок консультационной поддержки (в месяцах)</span><input
                   class="field__input" type="text" name="support_months"
                   placeholder="Укажите срок консультационной поддержки в месяцах" inputmode="numeric"></label>

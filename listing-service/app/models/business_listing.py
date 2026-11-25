@@ -45,7 +45,7 @@ class BusinessListing(Base):
     business_age_months: Mapped[int | None] = mapped_column(Integer)
     has_licenses: Mapped[bool | None] = mapped_column(Boolean)
     has_contracts: Mapped[bool | None] = mapped_column(Boolean)
-    sale_reason: Mapped[str | None] = mapped_column(String(200))
+    sale_reason: Mapped[str | None] = mapped_column(String(1000))
     stay_as_consultant_months: Mapped[int | None] = mapped_column(Integer)
     files: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
     video_url: Mapped[str | None] = mapped_column(String(2048))

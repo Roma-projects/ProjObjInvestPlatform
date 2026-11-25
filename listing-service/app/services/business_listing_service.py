@@ -56,7 +56,7 @@ def _validate_and_sanitize_file(path: Path, suffix: str, content_type: str) -> N
             with warnings.catch_warnings():
                 warnings.simplefilter("error", Image.DecompressionBombWarning)
                 with Image.open(path) as source:
-                    if source.format != expected_format or source.n_frames != 1:
+                    if source.format != expected_format or getattr(source, "n_frames", 1) != 1:
                         raise ValueError("Image type does not match the file extension")
                     if source.width * source.height > MAX_IMAGE_PIXELS:
                         raise ValueError("Image dimensions exceed the supported limit")

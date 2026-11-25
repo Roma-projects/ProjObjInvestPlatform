@@ -128,7 +128,7 @@ class BusinessListingDraft(BaseModel):
     business_age_months: int | None = Field(default=None, ge=0)
     has_licenses: bool | None = None
     has_contracts: bool | None = None
-    sale_reason: str | None = Field(default=None, max_length=200)
+    sale_reason: str | None = Field(default=None, max_length=1000)
     stay_as_consultant_months: int | None = Field(default=None, ge=0)
     video_url: str | None = Field(default=None, max_length=2048)
     tax_system: str | None = Field(default=None, max_length=100)

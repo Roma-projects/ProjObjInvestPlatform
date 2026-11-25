@@ -941,7 +941,10 @@ async function loadOwnListings() {
     applyStatusFilter();
     return items;
   } catch (error) {
-    container.replaceChildren(emptyState(`Не удалось загрузить объявления: ${error.message}`, 'Войти', 'login.html'));
+    const message = `Не удалось загрузить объявления: ${error.message}`;
+    container.replaceChildren(error.status === 401
+      ? emptyState(message, 'Войти', 'login.html')
+      : emptyState(message));
     notify(error.message, 'error');
     return [];
   }

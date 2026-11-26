@@ -163,18 +163,19 @@ class ParserQueueConsumer:
         self.storage = storage
         self.worker = ParserWorker(storage)
         self.connection: aio_pika.RobustConnection | None = None
+        self.channel: aio_pika.Channel | None = None
 
     async def start(self, rabbitmq_url: str) -> None:
         """Подключается к RabbitMQ, объявляет очередь и запускает обработчик."""
         self.connection = await aio_pika.connect_robust(rabbitmq_url)
-        channel = await self.connection.channel()
-        await channel.set_qos(prefetch_count=5)
-        exchange = await channel.declare_exchange("parsers", aio_pika.ExchangeType.TOPIC, durable=True)
-        queue = await channel.declare_queue(
+        self.channel = await self.connection.channel()
+        await self.channel.set_qos(prefetch_count=5)
+        exchange = await self.channel.declare_exchange("parsers", aio_pika.ExchangeType.TOPIC, durable=True)
+        queue = await self.channel.declare_queue(
             "parsers.tasks", durable=True,
             arguments={"x-dead-letter-exchange": "", "x-dead-letter-routing-key": "parsers.tasks.dlq"},
         )
-        await channel.declare_queue("parsers.tasks.dlq", durable=True)
+        await self.channel.declare_queue("parsers.tasks.dlq", durable=True)
         await queue.bind(exchange, routing_key="parsers.request.registry")
 
         async def handle(message: aio_pika.IncomingMessage) -> None:
@@ -184,7 +185,9 @@ class ParserQueueConsumer:
                 if not request.reply_to.startswith("ai.reply."):
                     raise ValueError("reply_to must identify an AI resume queue")
                 response = await self.worker.process(request)
-                await self.connection.default_exchange.publish(
+                if self.channel is None:
+                    raise RuntimeError("Parser RabbitMQ channel is not available")
+                await self.channel.default_exchange.publish(
                     aio_pika.Message(
                         response.model_dump_json().encode(), content_type="application/json",
                         delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
@@ -198,3 +201,4 @@ class ParserQueueConsumer:
         """Аккуратно закрывает соединение RabbitMQ при остановке приложения."""
         if self.connection and not self.connection.is_closed:
             await self.connection.close()
+        self.channel = None

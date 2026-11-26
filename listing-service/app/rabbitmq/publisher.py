@@ -81,7 +81,7 @@ class ListingPublisher:
             # The AI reply mailbox must exist before Parsers can complete its work.
             assert self._channel is not None
             await self._channel.declare_queue(
-                str(body["reply_to"]), durable=True, arguments={"x-expires": 300000}
+                str(body["reply_to"]), durable=True, arguments={"x-expires": 720000}
             )
         message = aio_pika.Message(
             body=json.dumps(body, default=str, ensure_ascii=False).encode("utf-8"),

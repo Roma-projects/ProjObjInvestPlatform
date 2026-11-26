@@ -2837,6 +2837,81 @@ async function bindModerationDetail() {
       if (match) return 'Все суммы выручки округлены до десятков тысяч — запросите подтверждающие данные.';
       return evidence;
     };
+    const autoPublicationReasons = [];
+    const addAutoPublicationReason = (reason) => {
+      if (reason && !autoPublicationReasons.includes(reason)) autoPublicationReasons.push(reason);
+    };
+    const riskRatingLabels = { low: 'низкий', moderate: 'умеренный', high: 'высокий', critical: 'критический' };
+    if (aiReport.moderation_status !== 'auto_ok') {
+      addAutoPublicationReason('AI не выдал разрешение на автоматическую публикацию.');
+    }
+    if (aiReport.verification_level !== 'basic') {
+      addAutoPublicationReason('AI назначил углублённый уровень проверки; для автопубликации допустим только базовый.');
+    }
+    if (aiReport.red_flag_rating !== 'low') {
+      const rating = riskRatingLabels[aiReport.red_flag_rating] || aiReport.red_flag_rating || 'не определён';
+      addAutoPublicationReason(`Уровень риска AI — ${rating}${Number.isFinite(Number(aiReport.red_flag_score)) ? ` (балл ${aiReport.red_flag_score})` : ''}; для автопубликации нужен низкий риск.`);
+    }
+    redFlags.forEach((flag) => {
+      if (!flag || typeof flag !== 'object') return;
+      const code = flag.code ? `${flag.code}: ` : '';
+      addAutoPublicationReason(`AI отметил риск ${code}${flag.evidence || flag.description || 'требуется проверить замечание AI.'}`);
+    });
+    reviewReasons.forEach((reason) => {
+      if (typeof reason === 'string' && reason.trim()) {
+        addAutoPublicationReason(`AI запросил ручную проверку: ${reason.trim()}.`);
+      }
+    });
+    if (!photoReviews.length || photoReviews.some((photo) => photo?.status !== 'allowed')) {
+      const flaggedPhotos = photoReviews.filter((photo) => photo && photo.status !== 'allowed');
+      if (flaggedPhotos.length) {
+        flaggedPhotos.forEach((photo, index) => addAutoPublicationReason(
+          `Фото ${index + 1}: ${photo.reason || `статус проверки «${photo.status || 'не указан'}»; требуется ручная оценка.`}`,
+        ));
+      } else {
+        addAutoPublicationReason('Нет полного успешного отчёта по фотографиям; автоматическая публикация невозможна.');
+      }
+    }
+    if (!Array.isArray(scriptsReport.consistency_report) || !scriptsReport.consistency_report.length) {
+      addAutoPublicationReason('Нет полного отчёта скриптовой проверки финансовой согласованности.');
+    }
+    failedChecks.forEach((check) => {
+      const checkName = formatCheckName(check.check || 'Проверка согласованности данных');
+      const difference = Number(check.difference);
+      const allowed = Number(check.allowed_difference);
+      const evidence = Number.isFinite(difference) && Number.isFinite(allowed)
+        ? `расхождение ${formatMoney(difference)} превышает допустимое ${formatMoney(allowed)}`
+        : formatCheckEvidence(check.details || 'проверка не пройдена');
+      addAutoPublicationReason(`Скриптовая проверка «${checkName}»: ${evidence}.`);
+    });
+    if (documentFields.length) {
+      const names = documentFields.map((field) => docLabels[field] || field).join(', ');
+      addAutoPublicationReason(`Приложены закрытые документы (${names}); их содержание и принадлежность нужно проверить человеку.`);
+    }
+    if (item.seller_status === 'ip' && registryReport.status !== 'verified') {
+      addAutoPublicationReason(`Проверка продавца по ЕГРИП не подтверждена (статус: ${registryStatusLabels[registryReport.status] || registryReport.status || 'нет данных'}).`);
+    }
+    if (autoPublicationReasons.length) {
+      const explanation = document.createElement('section');
+      explanation.className = 'analysis-block auto-publication-reasons';
+      explanation.setAttribute('aria-labelledby', 'auto-publication-reasons-title');
+      const explanationTitle = document.createElement('h2');
+      explanationTitle.className = 'section-title';
+      explanationTitle.id = 'auto-publication-reasons-title';
+      explanationTitle.textContent = 'Почему объявление не опубликовано автоматически';
+      const explanationIntro = document.createElement('p');
+      explanationIntro.className = 'auto-publication-reasons__intro';
+      explanationIntro.textContent = 'Для автоматической публикации должны одновременно пройти все проверки. Сейчас этому мешают:';
+      const explanationList = document.createElement('ul');
+      explanationList.className = 'auto-publication-reasons__list';
+      autoPublicationReasons.forEach((reason) => {
+        const entry = document.createElement('li');
+        entry.textContent = reason;
+        explanationList.append(entry);
+      });
+      explanation.append(explanationTitle, explanationIntro, explanationList);
+      aiReview.after(explanation);
+    }
     const scriptSummary = {
       ...(scriptsReport.revenue_trend ? { revenue_trend: scriptsReport.revenue_trend } : {}),
       ...scriptMetrics,

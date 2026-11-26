@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     polza_model: str = "google/gemini-3.8-flash"
     public_upload_dir: str = "/public_uploads"
     model_timeout_seconds: int = 90
+    registry_wait_timeout_seconds: int = 420
 
 
 @lru_cache

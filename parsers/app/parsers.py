@@ -153,7 +153,9 @@ class RegistryParser(ABC):
             start_url = urljoin(settings.pb_url.rstrip("/") + "/", "search.html#search-ip")
         stage = "browser launch"
         async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(headless=True, chromium_sandbox=True)
+            # The container drops all Linux capabilities, so Chromium cannot create
+            # its own namespace sandbox. Container isolation remains enabled.
+            browser = await playwright.chromium.launch(headless=True, chromium_sandbox=False)
             try:
                 context = await browser.new_context(
                     accept_downloads=True,

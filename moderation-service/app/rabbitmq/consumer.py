@@ -69,6 +69,37 @@ class ModerationConsumer:
                 ModerationCase.listing_id == listing_id
             ).with_for_update())
             if existing:
+                # A fresh Listing analysis may correct a previous registry timeout.
+                # Refresh only undecided cases; never rewrite a moderator's decision.
+                if existing.status == "pending" and existing.decision is None:
+                    verification_level = (
+                        "deep"
+                        if SENSITIVE_DOCUMENT_FIELDS.intersection(document_refs)
+                        else "basic"
+                    )
+                    existing.seller_id = seller_id
+                    existing.verification_level = verification_level
+                    existing.listing_snapshot = snapshot
+                    existing.analytics_reports = reports
+                    existing.document_refs = document_refs
+                    existing.source_event_id = source_event_id
+                    is_banned = await session.scalar(select(BlacklistEntry.id).where(
+                        BlacklistEntry.user_id == seller_id, BlacklistEntry.is_active.is_(True)
+                    ).limit(1))
+                    if is_banned:
+                        existing.status = "blocked"
+                        existing.decision = "reject"
+                        existing.decision_reason = "Аккаунт добавлен в чёрный список."
+                        existing.decided_at = datetime.now(timezone.utc)
+                        self._queue_result(
+                            session, "moderation.listing.rejected", existing, existing.decision_reason
+                        )
+                    elif self._eligible_for_auto_release(snapshot, reports, document_refs):
+                        existing.status = "auto_approved"
+                        existing.decision = "approve"
+                        existing.decided_at = datetime.now(timezone.utc)
+                        self._queue_result(session, "moderation.listing.approved", existing)
+                    await session.commit()
                 return
             is_banned = await session.scalar(select(BlacklistEntry.id).where(
                 BlacklistEntry.user_id == seller_id, BlacklistEntry.is_active.is_(True)

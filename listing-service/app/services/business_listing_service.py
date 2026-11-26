@@ -441,7 +441,8 @@ class BusinessListingService:
                 "status": row.seller_status,
                 "ogrnip": row.seller_ogrnip,
                 "sources": ["egrul", "pb", "fedresurs", "kad"],
-                "ttl_seconds": 120,
+                # Parsers may retry slow registry sources; AI keeps an extra 120s grace window.
+                "ttl_seconds": 300,
             }))
         # ORM numeric columns are Decimal; encode before storing the event in JSONB.
         self.session.add(OutboxEvent(routing_key="listing.creation.started", payload=jsonable_encoder(payload)))

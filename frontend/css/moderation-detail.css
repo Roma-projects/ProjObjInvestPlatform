@@ -493,6 +493,40 @@ body {
   overflow-wrap: anywhere;
 }
 
+.auto-publication-reasons {
+  grid-column: 1 / -1;
+  margin-top: 0;
+  padding: 22px 24px;
+  border: 1px solid rgb(181 66 79 / 28%);
+  border-left: 4px solid var(--color-warning-border);
+  border-radius: 8px;
+  background: #fff7f5;
+}
+
+.auto-publication-reasons .section-title {
+  margin-top: 0;
+  color: #8f2632;
+}
+
+.auto-publication-reasons__intro {
+  margin: 0 0 12px;
+  color: var(--color-dark);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.auto-publication-reasons__list {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 22px;
+  color: var(--color-dark);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.auto-publication-reasons__list li::marker { color: var(--color-warning-border); }
+
 .report-disclosure {
   grid-column: 1 / -1;
   margin-top: 18px;

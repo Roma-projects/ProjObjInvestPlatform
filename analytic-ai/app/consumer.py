@@ -86,9 +86,13 @@ class AIConsumer:
         correlation_id = str(event["correlation_id"])
         reply_name = f"ai.reply.{correlation_id}"
         assert self.channel is not None
-        reply_queue = await self.channel.declare_queue(reply_name, durable=True, arguments={"x-expires": 300000})
-        await self.redis.setex(f"ai:pending:{correlation_id}", 600, json.dumps(event, ensure_ascii=False))
-        timeout_seconds = 120
+        timeout_seconds = settings.registry_wait_timeout_seconds
+        reply_queue = await self.channel.declare_queue(
+            reply_name, durable=True, arguments={"x-expires": (timeout_seconds + 300) * 1000}
+        )
+        await self.redis.setex(
+            f"ai:pending:{correlation_id}", timeout_seconds + 300, json.dumps(event, ensure_ascii=False)
+        )
         timer_name = f"ai.timeout.{correlation_id}"
         timer_queue = await self.channel.declare_queue(
             timer_name, durable=True,
